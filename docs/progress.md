@@ -1212,3 +1212,14 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
 - Front-of-queue oracle on mm_r2_pred_qs: 383k -> 622k (+239k); 'fresh' mode (front only on levels with < 200 market
   lots) 410k: the value is in being early in THICK existing queues -> F-guarded early-placed ladder + taker
   (`exp_r2_ladderF.py`, subagent running).
+
+## 2026-11-07 22:55 — Zero-delay take (subagent A): mm_r2_zd = 392,436 round2, better than mm_r2_pred on all 4 tapes (home)
+
+- The flip IOC waited for the CANCELED of our own passive quote that held the room (subagent B measured it; 25 % of
+  wrong-way take runs got no IOC). Subagent A's fix (`strategies/exp_r2_new_a.py`): zd_take counts the room of the
+  quote being cancelled in the same callback, so the IOC and the cancel land together; a guard IOC trims any |I| > 100
+  at once (penalty ~1k per tape, already inside the pnl); zd_quote 2 = zero-delay requote only toward the market.
+- **`strategies/mm_r2_zd.py`** (mm_r2_pred gate 8 / 30 s + zd_take + zd_quote 2, quote_size 200): round2 **392,436**
+  (+20.5k), mirror 390,836 (+21.2k), round1 457,289 (+15.7k), sample_v2 267,405 (+1.5k), 8/8 everywhere, breach
+  penalty 50-1,057, inv q99.7 100, check_submission OK. Next leaderboard test (expected ~ +40k).
+- mm_r2_zd100 (quote_size 100): round2 394,998 but round1 -50k / sample_v2 -29k -> not recommended.
