@@ -896,3 +896,12 @@ v 70 % epizod (proto P(reverze) 0,46).
 **Důsledek:** naše mechaniky (plná kapacita, park, shrink podle imbalance) jsou v souladu s generátorem; lineární ridge už
 P(vyprázdnění) zhruba nese (krychle IC +0,03 bez PnL). Pro R2: stejná rodina modelu s jinými parametry → strategie se přenáší,
 přeladit prahy/park; „aritmetika fillů“ umožňuje spočítat optimální velikost stubů/bulku z parametrů kola (námět).
+
+## 2026-11-07 17:10 — Věk příkazů (naplánované cancely) jako feature: +0,007 IC na round1 → neportovat (home, mozek)
+
+`research/features_age.py` (numba replay pásky, 6 s; touch množství sedí se simulátorem na 100 % řádků), report
+`research/reports/round1_age_feature.md`. Očekávaný cancel objem touch do 200 ms z věkového profilu koreluje 0,68 s realizovaným,
+ale velikost fronty sama vysvětlí skoro totéž (R² 0,461 vs 0,474 s věky): cancel čas každého příkazu je jeden i.i.d. los a fronta
+o desítkách příkazů to zprůměruje. Walk-forward ridge 100 ms round1: 0,3828 → 0,3900 (+0,007), HGB +0,002. Na sample_v2 +0,022
+(100 ms) / +0,076 (1 s) a cross-fit round1 → v2 0,283 → 0,337 — věky jsou podíly, přenášejí se líp. **Závěr:** na round1 nic;
+levný robustnostní přídavek pro R2, pokud bude páska jako v2. Port popsán v reportu (ins_t[id] z prvního výskytu v snapshotu).
