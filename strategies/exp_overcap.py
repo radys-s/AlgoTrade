@@ -296,6 +296,9 @@ class MarketMaker(BaseStrategy):
         # When |I| >= this, send an IOC at the touch towards zero; 0 disables.
         'unwind_threshold': 0,
         'unwind_to': -1,
+        # Extra potential-position room for the unwind IOC only (the reducing side is usually full, so the old unwind
+        # never fired). A breach needs the whole resting reducing side AND the IOC to fill; 0 = old behaviour.
+        'unwind_slack': 0,
         'unwind_slip': 0,
         # Lots per unwind IOC.
         'unwind_size': 5,
@@ -337,6 +340,10 @@ class MarketMaker(BaseStrategy):
         'ml_jump': -1.0,
         # Queue-aware stub: cap a side at ml_stub while > ahead_stub market lots are ahead of our oldest touch order; 0 = off.
         'ahead_stub': 0,
+        # Fresh-size gate: while the market qty at the touch is < fresh_min_level, never ADD lots beyond
+        # max(current, fresh_stub) (existing orders are kept, only new back-of-queue lots are withheld); 0 = off.
+        'fresh_min_level': 0,
+        'fresh_stub': 3,
         'inv_lock': 0,
         'inv_lock_size': 1,
         # ML threshold shifts with inventory: bid stub when pred < -ml_thr + ml_inv_k * I / 100 (ask mirrored); 0 = off.
@@ -481,6 +488,7 @@ class MarketMaker(BaseStrategy):
         self.unwind_threshold = int(params['unwind_threshold'])
         self.unwind_size = int(params['unwind_size'])
         self.unwind_to = int(params['unwind_to'])
+        self.unwind_slack = int(params['unwind_slack'])
         self.unwind_slip = int(params['unwind_slip'])
         self.book_scan_orders = max(1, int(params['book_scan_orders']))
         self.imb_pull = float(params['imb_pull'])
@@ -503,6 +511,9 @@ class MarketMaker(BaseStrategy):
         self.ml_stub = max(0, int(params['ml_stub']))
         self.thin_cap = int(params['thin_cap'])
         self.inv_lock = int(params['inv_lock'])
+        self.fresh_min_level = int(params['fresh_min_level'])
+        self.fresh_stub = int(params['fresh_stub'])
+        self.lvl_qty = [1 << 62, 1 << 62]
         self.ahead_stub = int(params['ahead_stub'])
         self.ml_jump = float(params['ml_jump'])
         self.fill_freeze_us = int(params['fill_freeze_us'])
@@ -551,7 +562,7 @@ class MarketMaker(BaseStrategy):
             return
         scan = self.book_scan_orders
         need_qty = (self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0
-                    or self.thin_cap > 0)
+                    or self.thin_cap > 0 or self.fresh_min_level > 0)
 
         # Market touch and its quantity, skipping our own orders (only market orders count
         # towards the scan limit, so our own fragments can never hide the touch).
@@ -669,6 +680,8 @@ class MarketMaker(BaseStrategy):
         if self.inv_stop > 0:
             pull_bid = pull_bid or inv >= self.inv_stop
             pull_ask = pull_ask or inv <= -self.inv_stop
+        self.lvl_qty[0] = qb
+        self.lvl_qty[1] = qa
         lay = self.layer_size
         off = self.layer_offset
         if pull_bid:
@@ -756,6 +769,8 @@ class MarketMaker(BaseStrategy):
             self._cap(j, size)
             return
         want = size - have
+        if self.fresh_min_level and j < 2 and self.lvl_qty[k] < self.fresh_min_level:
+            want = min(want, self.fresh_stub - have)
         if want <= 0 or px <= 0:
             return
         if have > 0 and (want < self.topup_min or now - self.last_action_us[j] < self.min_requote_us):
@@ -791,15 +806,15 @@ class MarketMaker(BaseStrategy):
             k, sign, side, px = 1, -1, _SELL, bb
         else:
             k, sign, side, px = 0, 1, _BUY, ba
-        qty = min(self.unwind_size, abs(inv), self.max_pos - sign * inv - self.out[k])
+        qty = min(self.unwind_size, abs(inv), self.max_pos + self.unwind_slack - sign * inv - self.out[k])
         if qty > 0:
-            self.unwind_id = self._send(k, sign, side, px, qty, True, k)
+            self.unwind_id = self._send(k, sign, side, px, qty, True, k, self.unwind_slack)
             if self.unwind_id is not None:
                 self.n_unwinds += 1
 
-    def _send(self, k: int, sign: int, side: Side, px: int, qty: int, ioc: bool, j: int) -> str | None:
+    def _send(self, k: int, sign: int, side: Side, px: int, qty: int, ioc: bool, j: int, slack: int = 0) -> str | None:
         """The only place orders are created: refuse anything that could break the invariant."""
-        if qty <= 0 or px <= 0 or sign * self.inv + self.out[k] + qty > self.max_pos:
+        if qty <= 0 or px <= 0 or sign * self.inv + self.out[k] + qty > self.max_pos + slack:
             self.n_blocked += 1
             return None
         order_id = self.send_order(

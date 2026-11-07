@@ -273,7 +273,7 @@ class MarketMaker(BaseStrategy):
 
     PARAMS = {
         # Lots per side we try to keep resting at the quote price.
-        'quote_size': 200,
+        'quote_size': 180,
         # Hard cap M on inventory + same-side outstanding quantity (clamped to <= 100). Below the
         # exchange's 100 so a stuck inventory costs less to mark out at the end.
         'max_position': 100,
@@ -318,7 +318,7 @@ class MarketMaker(BaseStrategy):
         # Park a stub of park_size lots instead of cancelling a quote the market moved past; 0 disables.
         'park_size': 15,
         'park_depth': 1,
-        'park_max': 8,
+        'park_max': 6,
         # ML shrink: cap the side predicted to be run over at ml_stub lots when |pred| > ml_thr ticks; 0 disables.
         'ml_thr': 0.105,
         'ml_stub': 0,

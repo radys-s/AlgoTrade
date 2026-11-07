@@ -34,6 +34,8 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 15:40 | radys | ML shrink: ridge 100 ms signal caps the predicted-adverse side at 5 lots -> `mm_ml` round1 490,460 (+8.4 %) -> submission |
 | 2026-11-07 16:30 | radys | Rejected on mm_ml: over-cap quoting, inventory lockout/threshold, post-fill freeze, gap jump; structural levers for Honza in radys-findings s.8 |
 | 2026-11-07 16:55 | radys | ahead_stub rejected (deep queue = investment); handoff for Honza's Claude in radys-findings s.9 |
+| 2026-11-07 17:55 | radys | R1 end: team 511,422 (12th), leader 792,696; stack 503.7k local; fresh gate rejected; R2 plan in radys-findings 9c |
+| 2026-11-07 18:40 | radys | Capacity value: no-limit 150/200/300 lots = +101/+137/+181k; IOC unwind with slack rejected (-45k); prompt for Fable |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -927,6 +929,7 @@ ridge 23 + E[dm]: **0,412 (+0,032)** na 100 ms, HGB +0,001 (strom to má), 1 s n
 ridge 0,278). Kalibrace P_dep na round1 od 10 % výš dobrá; na v2 2–10× nadhodnoceno (jiné mu). Stejná povaha jako krychle (+0,03 IC,
 PnL −1 %) → rozhodne jen strategie: běží port `edm_100` jako 24. feature cíle B (`exp_b_struct.py`), compare do 17:45.
 
+<<<<<<< HEAD
 ## 2026-11-07 17:40 — Finál R1 = `mm_r1_final2` (514 093); strukturální feature v cíli B: REJECT (home, mozek)
 
 **Grid nad finálem** (`r1-final-grid2`, `-grid3`): ML shrink jako úplné stažení (ml_stub 0) + park 15 / max 8 → **514 093**; compare vs
@@ -988,3 +991,32 @@ takže křehkost prahů nebyla příčinou rozdílu k lídrům.
 všechny buňky 10–81 k (−82 až −98 %), fills −62 až −96 %. Příčky ve 4–9 ticích hloubky zaberou 100–500 lotů invariantu a skoro se
 neplní → touch kotace vyhladoví. Kvalitu hlubokých fillů to neměří, ale platí totéž co u mělkého ladderu: kapacita je vázaná a nečinná
 příčka stojí filly na touch. „Být první z konstrukce“ v hloubce nejde zaplatit kapacitou. Hypotéza o konstrukci lídrů tímhle padá.
+=======
+## 2026-11-07 17:55 — Round 1 closed (radys)
+
+- Final: team 511,422, 12th of 21+; leader 792,696. Our local best stack 503,745 (mm_ml_r1tuned + ml_tight_only + park_max 10 + park_size 15).
+- Fresh-size gate rejected (-35k..-212k). Every size reduction lost all round; every size increase won.
+- What went wrong: too much time on small filters around one architecture, and declaring ceilings instead of searching
+  structure. Round 2 plan: radys-findings section 9c.
+
+## 2026-11-07 18:40 — Capacity value and the round-2 prompt (radys)
+
+- `research/diag/nolimit.py` (penalty off): mm_ml_r1tuned at max_position 100/150/200/300 = 497,292 / 598,403 /
+  634,727 / 677,830; ~7,900 breach episodes and 4,600-6,700 s over 100 when allowed. Capacity is worth +100..+180k,
+  but breaching to get it would cost millions.
+- IOC unwind with `unwind_slack` 40 (the old unwind never fired because the reducing side is full): best 452,492 (-45k).
+  Rejected: crossing costs more than the freed room earns.
+- Conclusion: passive inventory turnover + higher edge per lot. Workflow for Honza's Claude: `docs/prompt-fable-round2.md`.
+>>>>>>> origin/main
+
+## 2026-11-07 19:25 — Orákulum priority ve frontě: strop 1,3–1,4 M na round1 → konstrukce lídrů = priorita (home, mozek)
+
+`research/diag/sim_frontqueue.py` (monkey-patch OrderBook.insert: náš příkaz se zařadí před všechny tržní na své ceně; simulátor nedotčen;
+s vypnutým patchem reprodukuje 514 093), report `research/reports/round1_front_oracle.md`. S dokonalou prioritou: mm_r1_final2
+**1 395 933** (fills 72 k, 3,84 M lotů, 0,364 $/lot), exp_full_capacity 1 301 334, mm_park 1 301 703, final2 bez ML 1 311 712;
+priorita jen na svěžích hladinách (< 100 lotů při vložení) 546 305 (+32 k). Chunky stabilní (177–188 k každý).
+**Závěr:** strop priority je 2,7× náš výsledek a 2× lídr → mezera 650–790 k je o pozici ve frontě, ne o signálu (ML filtr pod
+prioritou +85 k, normálně +51 k). ~850 k hodnoty je ve skoku *hlubokých* front (návrat na touch po ústupu), ne ve svěžích hladinách.
+V FIFO legitimně jen stářím příkazu: nechat kapacitu zrát na hladině místo re-kotace při každém pohybu (2,6×/s). Dřívější „trpělivé“
+varianty (requote_tolerance 1 −27 % na mm_v2, move_min −1 %, hold_inside −8 %) byly špatně postavené nebo na jiné bázi → R2 výzkum
+= jak legitimně získat stáří/prioritu: velký park (běží `r1-stay-big`), zpožděné následování zlepšení, relokace místo shrinku.
