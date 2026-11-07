@@ -374,3 +374,14 @@ inv q95 = 100.
   the snapshot (`owner != 'market'` rows are ours), join with mid 1 s later. Script:
   `uv run python -X utf8 research/diag/queue_fills.py data/round1.csv strategies/exp_full_capacity.py` (~2 min).
 - Quick tests: `research.run ... --halving 0.25 --keep 0.25` (screen on the first 25 %, full run for the best).
+
+## 14. IOC sweeps: deep resting orders are NOT a hidden edge (radys, 21:30, `research/diag/ioc_sweep_markout.py`)
+
+- Tape has 53,423 IOCs (Lifespan F, price + size ARE in the CSV, not in the strategy snapshot). Size median 61,
+  p90 368, p99 ~1,540 lots. 96 % cross; executed depth past the touch: 0 ticks 86 %, 1 tick 12 %, >= 2 ticks 1.8 %.
+- Hypothetical front-of-queue maker fill at depth k filled only by the sweep (gap-free mid, spread <= 3), median
+  markout per lot at 1 s / 5 s / 30 s: k=0 +0.5/+0.5/+0.5 (mean -0.40 at 1 s), k=1 +0.5/+0.5/+0.5 (mean noisy),
+  k=2 -0.5/-0.5/0, k=3 -1.5/-1.0/-0.5, k>=5 -2..-20. Sweeps continue, they do not revert for a deep maker.
+- => Deep rungs / deep grid are a reject (agrees with home's grid -80..-250k). The 400k is not in sweep-catching;
+  remaining candidates: retreat-touch fills filtered by the fair signal (D7, home exp_r2_grid2 covers it) and more
+  round trips at the touch (inventory pinned at 100 kills spread capture).

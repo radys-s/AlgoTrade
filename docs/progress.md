@@ -973,3 +973,8 @@ at thresholds 1.0 / 1.5 / 2.0 (500 ms hold, optimistic overlapping samples). No 
   sandbox check OK. Now `submission/best_strategy.py` (was mm_r2_gate86, 86,333).
 - Still open: inventory sits at |I| = 100 (p50/p90/p99), fill count is low (4.8k vs R1 winner's 426k) -> the
   leaderboard 75th pct (~400k) needs a structural change, not more filtering.
+
+## 2026-11-07 21:30 — R2: IOC sweep-catching hypothesis rejected (radys)
+
+- Offline markout of a deep (k ticks past touch) resting order filled only by IOC sweeps: median negative for
+  k >= 2 (-0.5 .. -4.5 ticks), only 1.8 % of IOCs reach 2+ ticks. Details: radys-findings s.14. No sim spent.
