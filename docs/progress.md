@@ -1113,3 +1113,15 @@ adverse selection, then the trend estimate.
   (Kalman/Tobit +0.01 corr, worse online). Hysteresis on the maker filter +7.6k.
 - Hybrid internals: |I| >= 90 for 73 % of the time; maker fills 587k lots (+0.12/lot at 1 s, +1.04/lot at 60 s = trend),
   taker 77k lots (+1.26/lot at 1 s). Running: fair-centric quoter, ML shrink stacked on the hybrid, taker sizing/exits.
+
+## 2026-11-07 21:30 — R2: aggressive fair taker = 341,105 -> upload candidate `strategies/mm_r2_fq.py` (home)
+
+- Subagent's fair-centric quoter (`strategies/exp_r2_fq.py`) found that the winner is an AGGRESSIVE IOC taker: cross
+  100 lots at the touch whenever F_hat = mid + fair_sig is beyond the opposite touch by 0.25 ticks (|sig| >= 0.75 at a
+  1-tick spread), re-enter on every update, plus touch quotes only on the side F favours, 30 s gate thr 6, fair over
+  20 levels / any-spread mid, tau 50.
+- **`strategies/mm_r2_fq.py`** (baked): round2 **341,105** (8/8, chunk_min +14.6k, hold 107k), mirror same, round1 377k,
+  sample_v2 253k, breach 0, check PASS 1.3 min. take_k 0.1 / 0.25 / 0.5 = 298k / 335k / 291k; cooldown 0-30 ms 320-341k;
+  gate off 277k; tau 20 185k; fair-centric (k 1) quotes under the same taker 304k.
+- Also today: flip taker (hold +-100 until the opposite signal) + maker 229-234k; ML shrink on the hybrid rejected
+  (gain only in its fit window); fade-exit taker inside the maker 204-211k (mm_r2_hybrid / hybrid2).

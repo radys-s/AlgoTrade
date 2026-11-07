@@ -238,6 +238,8 @@ class MarketMaker(BaseStrategy):
         'fair_off_fixed': 0,
         'fair_hyst': 0.0,
         'take_exit_own': 0,
+        'take_flip': 0,
+        'take_flat': -1.0,
     }
 
     def __init__(self) -> None:
@@ -306,6 +308,8 @@ class MarketMaker(BaseStrategy):
         self.fair_hyst = float(params['fair_hyst'])
         self.fair_out = [False, False]
         self.take_exit_own = int(params['take_exit_own'])
+        self.take_flip = int(params['take_flip'])
+        self.take_flat = float(params['take_flat'])
         self.tk_inv0 = 0
         self.tk_qty = 0
         if int(params['fair_off_fixed']):
@@ -517,6 +521,36 @@ class MarketMaker(BaseStrategy):
             if self.tk_pending in self.orders:
                 return  # the last IOC is still in flight
             self.tk_pending = None
+        if self.take_flip:
+            # Target +-take_qty in the direction of a strong signal; hold it until the opposite signal (flip).
+            if ba - bb > 3 or now - self.tk_last < self.take_cool_us:
+                return
+            sig = self.fair_sig
+            inv = self.inv
+            if sig > self.take_thr:
+                k, s, side, px = 0, 1, _BUY, ba + self.take_slip
+                need = self.take_qty - inv
+            elif sig < -self.take_thr:
+                k, s, side, px = 1, -1, _SELL, max(1, bb - self.take_slip)
+                need = self.take_qty + inv
+            elif self.take_flat >= 0.0 and inv > 0 and sig < -self.take_flat:
+                k, s, side, px = 1, -1, _SELL, max(1, bb - self.take_slip)
+                need = inv  # flatten a long once the signal turns mildly against it
+            elif self.take_flat >= 0.0 and inv < 0 and sig > self.take_flat:
+                k, s, side, px = 0, 1, _BUY, ba + self.take_slip
+                need = -inv
+            else:
+                return
+            room = self.max_pos - s * inv - self.out[k]
+            q = min(need, room)
+            if q <= 0:
+                return
+            oid = self._send(k, s, side, px, q, True, k)
+            if oid is not None:
+                self.tk_pending = oid
+                self.tk_last = now
+                self.n_takes += 1
+            return
         inv = self.inv
         if self.tk_dir != 0:
             s = self.tk_dir
