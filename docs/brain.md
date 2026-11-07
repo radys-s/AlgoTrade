@@ -116,8 +116,14 @@ what runs next, and at most one yes/no question.
   (0,49 $/lot) → parkování tam stojí 4,7 %. Parkování půlí čas na stropu (50 → 26 %). 37 % zlepšení
   flickeruje zpět do 500 ms, přesto se je vyplatí sledovat hned (H13, min_requote prodělaly).
 - **Koordinace:** Tomáš nezávisle testoval ladder a back-pull (= moje H11, H7) → před spuštěním agenta
-  vždy číst `docs/radys-findings.md` a jeho ledger tagy; teď dělá `exp_ml_shrink` (ridge → shrink přes
-  modify) — nedělat duplicitně.
+  vždy číst `docs/radys-findings.md` a jeho ledger tagy.
+- **mm_ml (Tomáš, 15:40 → submission, main 1769eaa): round1 490 460 (+8,4 % nad mm_park), 8/8 chunků,
+  holdout 126 291.** Ridge 100 ms (IC 0,38) → když |pred| > 0,15 ticku proti straně, zmenšit její kotaci
+  přes modify na 5-lotový stub (drží místo), po odeznění signálu dokotovat. Plató thr 0,1–0,15, stub 5–10.
+- **Sebekritika (14:50):** drift 0,33 ticku po fillu byl největší číslo na stole a já ho odepsal, protože
+  cancel-filtry prodělávaly a „shrink ≈ cancel“. Špatně: shrink přes modify drží čelo fronty a vrací loty
+  až po odeznění signálu, cancel ne. Správný postup byl testovat každou páku i ve verzi „přes modify“.
+  Obecně: každé pravidlo „kdy nekotovat“ implementovat jako zmenšení, nikdy jako cancel.
 - **Plán na R2 (19:00):** kickoff (startovní relace) → data card: režim spreadu (1 vs 2 ticky), reverze
   vs momentum po obchodech. Hned CPU grid championa mm_park na R2 + round1 + sample_v2:
   `--grid '{"park_size": [0, 10, 20], "park_max": [2, 3, 5], "park_depth": [1]}'` (0 = park off) a
@@ -140,5 +146,6 @@ what runs next, and at most one yes/no question.
 | 13:30 | Wave 1 uzavřena bez změny kandidáta; wave 2 = H7 `deep_pull` + rozbor času bez kotace (kódová cesta) místo dalších filtrů | všech ~80 běhů filtrů prodělává; jediný záporný segment fillů je imbalance proti × hluboká fronta |
 | 13:55 | **R1 finál = `submission/best_strategy.py` = Tomášův `mm_park` (452 651), parametry 20/1/3 nechat** | ověřeno nezávisle (home + notebook), ACCEPT 8/8 na round1; grid: plató ploché, baked hodnoty v jeho středu; −4,7 % na v2 je pro R1 irelevantní (privátní data = trh round1) |
 | 13:55 | ML taker overlay zamítnut i v levné lineární verzi; GPU/HGB verze se nestaví | −9 až −37 % ve všech 12 buňkách |
+| 14:50 | Nový champion mm_ml (Tomáš). Home staví nad ním: jemný grid thr × stub, asymetrické prahy (přidávající vs odvíjející strana), MLP místo ridge na GPU; R1-tuned stuby (park_max 5 + improve_stub 20) přidat až po nich | shrink přes modify je páka na drift; signál s vyšším IC a správně mířený shrink jsou přímé násobky zisku |
 | 14:25 | R1 submise hotová: Tomáš nahrál mm_park, server 452 651 = lokál, final. Výzkum R1 mechanik ukončen (H12, H13 REJECT, attribution bez nové páky); do R2 klid + příprava kickoff gridu | 13 mechanik, ~230 běhů; zbývající nápady jsou ±1 % a režimově závislé |
 | 13:50 | (dříve) R1 finál = `submission/best_strategy.py` (exp_full_capacity, 425 708). Výzkum R1 mechanik zastaven (H7–H9 také REJECT, ~110 běhů); nahrát nejpozději ~17:00 a nastavit final; tokeny šetřit na R2 | žádná z 9 mechanik ani 5 os nepřekonala kandidáta; strop pozice drží 50 % času a mimo strop je kotace živá |
