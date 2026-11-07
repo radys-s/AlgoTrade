@@ -926,3 +926,14 @@ takerů × lognormal velikosti × cancel člen; E[dm] = 0,5·(P_dep_ask − P_de
 ridge 23 + E[dm]: **0,412 (+0,032)** na 100 ms, HGB +0,001 (strom to má), 1 s nic. Cross-fit: nefitnutý E[dm] přenáší líp (0,310 vs
 ridge 0,278). Kalibrace P_dep na round1 od 10 % výš dobrá; na v2 2–10× nadhodnoceno (jiné mu). Stejná povaha jako krychle (+0,03 IC,
 PnL −1 %) → rozhodne jen strategie: běží port `edm_100` jako 24. feature cíle B (`exp_b_struct.py`), compare do 17:45.
+
+## 2026-11-07 17:40 — Finál R1 = `mm_r1_final2` (514 093); strukturální feature v cíli B: REJECT (home, mozek)
+
+**Grid nad finálem** (`r1-final-grid2`, `-grid3`): ML shrink jako úplné stažení (ml_stub 0) + park 15 / max 8 → **514 093**; compare vs
+mm_r1_final: round1 +3 624 (6/8, holdout +1 462), sample_v2 +1 553 (6/8, holdout +205) → ACCEPT; check PASS 4,0 min → zapečeno
+`strategies/mm_r1_final2.py` (1bc8ff6), k uploadu jako final. Graded knoby (0,05–0,08 × 0,4/0,6) ±1 k = šum.
+**Strukturální E[dm] jako 24. feature cíle B** (`strategies/exp_b_struct.py`, parita 510 469 ✔): holdout IC +0,006 vs cíl B
+(+0,025 vs prostý pohyb), ale round1 502 337 (−8 132, 0/8), v2 −1 653 → REJECT. Stejná lekce jako MLP/krychle: lepší globální
+rank ≠ lepší výběr horních 28 % |pred|, které shrink používá; B je lepší, protože je podmíněné skutečným zásahem takera.
+**Konečná bilance R1 (home):** ~40 mechanik/modelů, ~550 běhů; vítězné: plná kapacita (+33 %), park (Tomáš, +6 %), ML shrink
+přes modify (Tomáš, +8 %), cíl B (+2,6 %), stack tight/graded/park (+1,4 %), úplné stažení + park 15/8 (+0,7 %). mm_v2 321 k → 514 k.
