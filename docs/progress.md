@@ -1186,3 +1186,10 @@ longer tau (90-220 ms), taker-only faster tau, Tobit for the taker (+7.6k noise)
 hold worse), oracle-labelled entry filter, liquidity replacement after sweeps (+2.4k per tape, noise), slow F-mid gate,
 cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| are -0.18/lot at 1 s but +0.02 at
 10 s and removing them hurts. On the leaderboard our inventory is at +-100 for >= 99.7 % of the time.
+
+## 2026-11-07 22:35 — Leaderboard: mm_r2_pred2 = 787,414 (WORSE than mm_r2_pred 797,904) -> keep mm_r2_pred as final (home)
+
+- `mm_r2_pred2` (gate 20 s / thr 10) on the leaderboard: 787,414 (26,071 filled orders vs 22,519, 2.57M lots vs 2.25M):
+  the shorter, higher gate trades more and loses 10.5k on the (trending, mark-out 10,482) leaderboard tape although it
+  was +6.5k locally. Local gains below ~2-3 % do not transfer; the final defaults to the LAST upload -> re-upload
+  `strategies/mm_r2_pred.py` (797,904). Round 1 is no longer a criterion (user).
