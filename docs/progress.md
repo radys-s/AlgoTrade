@@ -791,3 +791,12 @@ sample_v2 258 239 (+4 178, 7/8, holdout +764) → ACCEPT na obou datasetech**, b
 A: +2,2 k / +2,1 k; C: −8 k. Nižší práh B 0,097 → round1 499 397 (v2 256 572).
 **Závěr:** malé (+0,9 % / +1,6 %), ale stejné znaménko na obou trzích → kandidát na novou bázi (R2) a na R1 upload.
 Běží dolaďování B (thr 0,09–0,105 × stub 3/5) proti mm_ml_r1tuned (497 292).
+
+## 2026-11-07 15:55 — `mm_ml_b`: cíl B + práh 0,105 / stub 3 → round1 503 148, ACCEPT na obou datasetech (home, mozek)
+
+Dolaďování B (ledger `r1-ml-targetB-tune`, `-tune2`, round1 / sample_v2): thr 0,09 → 494,8 k / 255,2 k; 0,097 → 500,9 k / 256,5 k;
+**0,105 → 503 148 / 258 042**; 0,11 → 501,7 k / 259,6 k; 0,115 → 499,1 k / 259,1 k; 0,122 → 495,0 k / 258,2 k → plató
+0,097–0,115, střed 0,105; stub 3 ≈ 5. **Compare mm_ml vs {B, 0,105, 3}: round1 +12 688 (+2,6 %), holdout +3 397,
+7/8 párových chunků; sample_v2 +3 981, holdout +1 686, 6/8 → ACCEPT.** Zapečeno do `strategies/mm_ml_b.py`
+(= exp_ml_target s B/0,105/3 jako výchozí), check s runtime běží. Doporučení: nahrát jako final R1 místo mm_ml_r1tuned
+(497 292, na v2 −4 %) — víc PnL i robustnější.
