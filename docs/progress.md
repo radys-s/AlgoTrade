@@ -806,3 +806,16 @@ Dolaďování B (ledger `r1-ml-targetB-tune`, `-tune2`, round1 / sample_v2): thr
 `strategies/exp_ml_h50.py`, `exp_ml_h20.py` (přes `refit_ml`, prahy na stejnou četnost), report `round1_ml_short_horizon.md`,
 ledger `r1-ml-short`. h50 @0,080: round1 487 319 (−3,1 k, 1/8), sample_v2 244 176 (−9,9 k, 0/8); h20: −3 % / −9 %.
 Osa horizontu je plochá až záporná oběma směry (1 s −6 k, 50 ms −3 k, 20 ms −16 k) → 100 ms zůstává.
+
+## 2026-11-07 16:10 — Orákulum: strop rodiny „shrink podle toxicity“ na round1 (home, mozek)
+
+`strategies/diag_oracle_ml.py` (DIAGNOSTIKA, lookahead z pásky, nikdy nesubmitovat), report `research/reports/round1_oracle_ceiling.md`,
+ledger `r1-oracle`. Místo ridge skutečný budoucí pohyb midu. Výsledky (round1, mm_park bez ML 452 651, mm_ml 490 460, mm_ml_b 503 148):
+- **Dokonalá znalost 100 ms:** shrink na jakýkoli pohyb 539 181; **jen na pohyb ≥ 0,5 ticku 601 310**; stub 0 (úplný pull)
+  545 760, stub 20 520 324. → strop 100ms-rodiny ≈ 540–600 k; ridge už bere ~40–50 % z něj.
+- **Dokonalá znalost 1 s:** 808 123 (jakýkoli pohyb), 886 570 (≥ 0,5 ticku), stub 0 846 217 — horní mez, 1 s pohyb
+  nelze predikovat s potřebným IC (ridge 1 s měl ve strategii méně než 100 ms).
+- Selektivita se vyplácí: shrink jen při velkých pohybech > shrink při každém (+62 k na 100 ms, +78 k na 1 s).
+**Závěr:** 650 k lídra nejde udělat 100ms toxicity filtrem ani s dokonalou předpovědí → buď předvídá ~1 s pohyb mnohem
+lépe než my, nebo má edge mimo filtrování (fronta, velikost, vrstvy), nebo přefituje veřejná data. Pro nás: cílit shrink
+na VELKÉ adverzní pohyby (klasifikační cíl), ne zpřesňovat průměrný 100 ms pohyb.
