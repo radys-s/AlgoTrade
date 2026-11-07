@@ -842,3 +842,14 @@ ledger `r1-ml-bigmove`. Precision horních 5/10/20 % na pohyb ≥ 0,5 ticku: B 0
 0,422/0,368/0,286 → zlepšení ≤ 0,009 na základu 0,135. Ve strategii při stejné četnosti −2 až −12 k na round1, až −20 k na v2;
 compare D4 @0,17: round1 −6 548 (2/8), v2 −20 230 (0/8) → REJECT. 23-feature lineární prostor je na hranici; B vyhrává, protože je
 podmíněné skutečným zásahem takera. Lepší výběr velkých pohybů potřebuje stav fronty, ne jiný lineární cíl.
+
+## 2026-11-07 16:25 — H20 fill-EV model s privátními features: model dobrý, jako shrink pravidlo REJECT (home, mozek)
+
+`research/fill_ev.py`, `strategies/exp_fill_ev.py` (ev_thr/ev_mode, parita 490 460 ✔, check PASS), report `round1_fill_ev.md`, ledger
+`r1-fill-ev`. Dataset: 63 428 fillů mm_ml na round1 (markout 1 s 0,224 $/lot), 15 679 na v2. Walk-forward ridge na markout 1 s:
+pred sám IC 0,28 → tržní features 0,31 → **+ privátní (pozice ve frontě, tloušťka, |I|, snižuje-|I|) 0,36–0,39**, v2 0,13 → 0,62;
+HGB nic navíc; spodní 3 decily nesou −101 k $ markoutu. Ale ve strategii: PnL klesá monotónně s prahem, nejlepší buňka
+(ev_thr −0,5, or) round1 488 065 (−2,4 k, 2/8), v2 253 189 → REJECT.
+**Proč:** zmenšení na stub stojí objem i na lotech, které jsou jen mírně záporné; mm_ml pred už bere hlavní ocas; queue_ahead
+v tréninku je podmíněn sweepem (ne live). Konzistentní s orákulem (strop 100ms filtru 540–600 k).
+**Nezkoušeno:** trénink na každé události s vahou pravděpodobnosti fillu; velikost shrinku úměrná EV; EV jen pro extrémní ocas.
