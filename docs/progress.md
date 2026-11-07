@@ -724,3 +724,13 @@ tok/hloubka), report `research/reports/round1_features_v2.md`. Walk-forward ridg
 HGB 0,452; **krychle imb1, imb2, micro, cnt_imb1 → ridge 0,410 (+0,03)**, top-1 % edge 0,449 → 0,543 ticku, cross-market IC
 0,278 → 0,293 (robustní). Cena ~0,3 µs. Běží test v strategii (`exp_ml_cubes.py`: refit s krychlemi, práh na stejnou
 četnost, compare vs mm_ml); po lekci s MLP (IC 0,447, ale PnL −4 %) rozhodne jen research.run.
+
+## 2026-11-07 15:15 — Nástroj `research.refit_ml` pro refit modelu na nové kolo (home, mozek)
+
+`uv run python -X utf8 -m research.refit_ml data/<kolo>.csv --template strategies/mm_ml.py --out strategies/mm_ml_<kolo>.py`
+(docs/refit_ml.md): postaví features, fitne ridge přesně jako `--export-linear` (alpha 10, stride, 6 cifer), nahradí v šabloně
+jen LINEAR_MODEL a číselný `ml_thr` (= 0,81-kvantil |pred| na nové pásce → stejná četnost shrinku jako 0,15 na round1),
+vypíše IC/std/kvantily a pustí check. ~10 s. **Validace:** refit na round1 je byte-identický s mm_ml.py, 490 460 ✔.
+**Generálka R2 (`strategies/mm_ml_v2fit.py`, fit na sample_v2):** škála predikce 0,064 vs 0,11 na round1 → auto práh 0,086;
+sample_v2 250 588 (champion s round1 modelem 254 061, −1,4 %, bez follow-up gridu); **model z v2 na round1: 294 677 (−40 %)**
+→ model se mezi trhy přenáší špatně, na R2 je refit na skutečné pásce kola nutný a práh musí jít z kvantilu.
