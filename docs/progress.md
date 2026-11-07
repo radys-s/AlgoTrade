@@ -531,3 +531,20 @@ v mean-reverting režimu zvážit park 10/1/2 nebo vypnout (4-buňkový test na 
 práh 1,2 / 20 lotů / max |I| 60 → 385 612 (**−9 %**), práh 0,6 → 379 k, 50 lotů → 268–292 k (−32 až −37 %), monotónně
 s intenzitou. **REJECT**; „spread jen jednou“ v simulátoru neobstojí (crossing + pozice zabraná takerem stojí víc,
 než horní 1 % predikcí vrátí). GPU/HGB verze se nestaví.
+
+## 2026-11-07 13:55 — H11 standing ladder REJECT, detail H10 ml_taker (home, mozek, R1) → R1 uzavřeno s `mm_park`
+
+**H11 (`strategies/exp_ladder.py`, ledger `r1-ladder`, báze mm_park):** pevné malé příkazy na touch−1..−L, které se
+nehýbou (čekají, až k nim cena přijde → čelo fronty). Parita 452 651 ✔, check PASS. S `ladder_reserve` 1 (touch kotace
+má přednost) jsou příčky jen ze zbytků kapacity: depth 2 → 453 094–453 170 (+0,1 %, compare 5/8 chunků, sample_v2
+−673, 2/8) → REJECT (šum); depth 4 → −1 až −2 %. S `ladder_reserve` 0 (příčky napřed) propad až na 169 693
+(−63 %): kapacita v hloubce se skoro neplní a chybí na touch. Netestováno: příčky místo parkovaných stubů.
+**H10 detail:** `--max-rows` v research.signals je jen krok, ne useknutí → agent fitoval vlastním skriptem (čas ≤ 75 %,
+purge 1 s). Ridge 1 s: walk-forward IC 0,397 (7/7), horní 1 % predikcí +0,81/−0,89 ticku v holdoutu; 100 ms model
+nikdy nepřekročí 0,6 ticku. Plná kotace nenechává IOC žádnou kapacitu → agent přidal `taker_reserve` (rezerva lotů
+na stranu): samotná rezerva 20 lotů stojí 39 k, 50 lotů 129 k. Overlay nad rezervou ještě −1,4 až −18 k; s rezervou 0
+(IOC jen do volné kapacity) −4,5 k (práh 1,2) až −17 k (práh 0,6) při 15–143 k přešlých lotech ≈ −0,1 až −0,3 ticku
+na lot. Compare 1,2/20/60: round1 −40 096 (0/8), sample_v2 −29 375 (0/8). Overhead 18,7 µs/událost (3,3 min / 8,8 M).
+**Závěr R1:** finál `submission/best_strategy.py` = mm_park 20/1/3 (452 651). Celkem na R1 ~180 běhů, 11 mechanik
++ 5 os; jediná vítězná mechanika nad plnou kapacitou je parkování stubů (Tomáš). Kapacita makera na touch je
+cennější než jakýkoli nalezený taker edge; cokoli, co bere kapacitu z touch nebo ruší příkazy, prodělává.
