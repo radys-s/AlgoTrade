@@ -1223,3 +1223,17 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
   (+20.5k), mirror 390,836 (+21.2k), round1 457,289 (+15.7k), sample_v2 267,405 (+1.5k), 8/8 everywhere, breach
   penalty 50-1,057, inv q99.7 100, check_submission OK. Next leaderboard test (expected ~ +40k).
 - mm_r2_zd100 (quote_size 100): round2 394,998 but round1 -50k / sample_v2 -29k -> not recommended.
+
+## 2026-11-07 23:10 — Leaderboard mm_r2_zd = 849,747 (final); ladder and order-statistic F rejected (home)
+
+- Leaderboard: `mm_r2_zd` **849,747** (+51.8k over mm_r2_pred; penalty 2,117, 23,239 filled orders) -> **final**.
+  Public chart at 22:53: 75th percentile ~860k (+-10k), median 288k; the band's top edge has been stepping with our
+  own uploads (~798k at 22:20 = mm_r2_pred, ~860k at 22:48 = mm_r2_zd), so we sit right on the top-25 % line.
+- F-guarded small-order ladder (subagent, `strategies/exp_r2_ladderF.py`, `exp_r2_ladderF_zd.py`, ledger r2-ladF):
+  no gain on either base (best +80 / -730 on round2 / mirror vs mm_r2_pred_qs; zd port -336 / -190). Deep rungs fill
+  only when an informed sweep goes through the touch (-0.75 ticks/lot at 1 s for every guard margin); older touch
+  orders earn +0.06..0.12/lot but only by using room the taker and touch quote need. Queue age is a dead end here.
+- Order-statistic F (`strategies/exp_r2_os.py`): L = max(bid insert) + 1, U = min(ask insert) - 1 over 20-30 ms.
+  Offline the 50/50 blend with the 70 ms EWMA lifts holdout corr with the 150 ms move 0.385 -> 0.412, but in the
+  strategy every weight loses: round2 + mirror 783k (off) -> 748-755k (taker 0.25), 529-610k (taker 0.5),
+  699-739k (quotes 0.3-0.5). Better bulk correlation, worse tails at the taker's decision points (as pred2 earlier).
