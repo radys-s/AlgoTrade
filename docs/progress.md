@@ -349,7 +349,6 @@ i `improve_unwind` shodně prodělávají.
 **Další krok:** po kickoffu R1 compare champion vs `exp_full_capacity` na round1 + sample_v2; CPU sweep
 championa na R1 (quote_size 100/200 × imb_pull × alpha_imbalance × min_requote_us, max_position 80/90).
 
-<<<<<<< HEAD
 ## 2026-11-07 13:15 — Round 1: `exp_full_capacity` ACCEPT (+33 %), sweep os = nic dalšího nepomáhá (home, mozek)
 
 **Režim R1** (data card `research/reports/round1.md`, 4,41 M řádků, 3,33 h): spread 1 tick 93 % času (sample_v2 41 %),
@@ -378,7 +377,6 @@ odstraňuje právě naše nejlepší filly (čelo svěží hladiny = tenká vlas
 návratu jsme zase na konci fronty. Páka zůstává objem na touch a pozice ve frontě.
 **Další krok:** H5 `exp_queue_join` (vstupovat jen do tenkých hladin / pull při hluboké frontě), H6 `exp_flow_pull`,
 fill attribution kandidáta na round1 (`research/reports/round1_fill_attribution.md`).
-=======
 ## 2026-11-07 13:20 — Round 1 kickoff (radys)
 
 The browser download of `round1.csv` was corrupt (two runs of zero bytes, 27 MB, 33-76% of the file); the clean
@@ -396,7 +394,6 @@ Ledger `r1-champ-vs-fullcap` (exp_imb_pull with filters off = mm_v2 / exp_full_c
 Full simulator run of `strategies/exp_full_capacity.py`: pnl 425,708, fills 30,548, penalty 0, q997 |I| = 100,
 check_submission OK. Higher than mm_v2 on the same data -> promoted to `submission/best_strategy.py`.
 Next: tuning sweep on R1 (20% halving) around quote 200 / max_pos 100.
->>>>>>> origin/main
 
 ## 2026-11-07 13:20 — H6 `flow_pull`: pull strany proti toku obchodů nefunguje (home, mozek, R1)
 
@@ -411,3 +408,19 @@ chunků, holdout stejný → REJECT. Na sample_v2 se flag při těchto prazích 
 **Závěr:** stažené filly nejsou netto adverzní: získaný spread převáží ~0,28 ticku post-fill driftu a pull navíc
 ztrácí prioritu ve frontě. Potvrzuje vzorec z os: žádný pull filtr na R1 nepomáhá.
 **Další krok:** tok případně jako posun velikosti (modify zmenšuje a drží místo ve frontě), ne jako pull.
+
+## 2026-11-07 13:25 — H5 `queue_join`: vstup jen do tenkých hladin / pull při hluboké frontě nefunguje (home, mozek, R1)
+
+**Hypotéza:** mm_edge na R1: edge fillu klesá s loty před nami (Q 0 → +0,25, 200 → 0, 500 → −0,21), filly z konce
+fronty při vyprázdnění hladiny −0,22. Kotovat stranu jen tam, kde dostaneme dobrou pozici: `join_max_qty` (vstoupit
+jen když tržní množství na touch ≤ N) a `max_queue_ahead` (stáhnout, když je před nami > N lotů).
+**Změna:** `strategies/exp_queue_join.py` = exp_full_capacity + oba flagy (0 = off). Parita 425 708 ✔, check PASS.
+**Data:** round1, compare i sample_v2 (ledger `r1-queue-join`, 18 buněk).
+**Výsledek:** monotónně horší, čím přísnější: join_max_qty 1800 → 415 545 (−2 %), 1200 → 404 831, 800 → 380 547
+(−11 %), 400 → 306 998, 200 → 239 496 (−44 %); max_queue_ahead 150 samo → 167 333 (−61 %), 300 → 241 237, 1000
+→ −9 %. Compare {join_max_qty 800}: round1 −45 161 (B 0/8 chunků), sample_v2 −26 528 (0/8) → REJECT.
+**Závěr:** filly z konce fronty jsou pro nás netto kladné (fill attribution: queue_ahead 201+ dává +0,12 $/lot,
+sweepy ≥ 100 lotů +0,10 $/lot), protože příkazy před nami se ruší (medián života 0,34 s) a naše pozice se zlepšuje
+čekáním; mm_edge měří statickou pozici při fillu a to podhodnocuje. Pull navíc po návratu zase skončí na konci fronty.
+**Další krok:** rozklad času bez živé kotace (74 % času živá kotace na stranu, strop vysvětlí jen ~17 %) a společná
+tabulka imbalance × pozice ve frontě z fill attribution; pak rozhodnout, zda zbývá jiná páka než `exp_full_capacity`.
