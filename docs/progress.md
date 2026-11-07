@@ -33,6 +33,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 15:10 | radys | k-fold: mm_park not overfit (oof +6.3 %, 8/9 blocks); back-pull and ladder rejected; ridge IC +0.38 stable |
 | 2026-11-07 15:40 | radys | ML shrink: ridge 100 ms signal caps the predicted-adverse side at 5 lots -> `mm_ml` round1 490,460 (+8.4 %) -> submission |
 | 2026-11-07 16:30 | radys | Rejected on mm_ml: over-cap quoting, inventory lockout/threshold, post-fill freeze, gap jump; structural levers for Honza in radys-findings s.8 |
+| 2026-11-07 16:55 | radys | ahead_stub rejected (deep queue = investment); handoff for Honza's Claude in radys-findings s.9 |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -447,3 +448,11 @@ All on round1, full tape unless noted, vs mm_ml 490,460 (`strategies/exp_overcap
   worse: orders inside a fresh gap get hit by the sweep's continuation.
 - **Why it matters:** the price range is only 105 ticks in 3.3 h; profit is purely spread capture under a 100-lot budget.
   Next: queue-aware stub (`ahead_stub`), park re-tune on the ML base; heavy levers for Honza in radys-findings s.8.
+
+## 2026-11-07 16:55 — Queue-aware stub rejected, handoff (radys)
+
+- `ahead_stub` (shrink the touch order while > X market lots are ahead): X=1200 476,032, 800 462k, 500 440k, 300 402k,
+  150 343k vs 492,254 off. Orders deep in the queue advance to the front; shrinking them throws that away.
+- Honza's home PC: `mm_ml_r1tuned.py` (thr 0.12 / stub 3) 497,292 is the current best; sweeps are unpredictable.
+- Full state and ranked next steps: `docs/radys-findings.md` section 9. Next: fill diagnostic `research/diag/queue_fills2.py`
+  on mm_ml_r1tuned, then capacity/inventory-turnover experiments.
