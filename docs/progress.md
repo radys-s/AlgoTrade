@@ -563,3 +563,11 @@ holdout −370); sample_v2 10 → −8 050 (0/8), 20 → −16 036 (0/8); fills 
 výrazně větší než zisk na round1).
 **Závěr:** poslední „nerušit“ místo v mm_park nemá zisk; stub dovnitř je mírně kladný jen v režimu round1 a v režimu
 v2 je sebrán trendem → nerobustní, nepovyšovat. Pro R2 si pamatovat jako případnou drobnou páku v R1-like režimu.
+
+## 2026-11-07 14:20 — Stres testy finálu `mm_park` (home, mozek, R1)
+
+**Zrcadlená páska** (strany B↔A, cena 20000 − p; `data/round1_mirror.csv`, ledger `r1-mirror-stress`): **452 651 = přesně
+originál** → strategie je stranově symetrická, žádný bias. **Umělý trend** (lineární posun všech inzertů o +40 resp.
++120 ticků přes celé kolo; ledger `r1-drift-stress`): oba kladné, min 448 795, součet 899 332 (≈ −1 % vs 452 651),
+breach 0. Pomalý trend (0,01 ticku/s vs 1 s volatilita 0,92) maker neohrozí; rychlejší režim takto syntetizovat nejde.
+**Závěr:** riziko záporného PnL na privátní pásce stejného trhu je malé; finál `submission/best_strategy.py` beze změny.
