@@ -109,9 +109,14 @@ what runs next, and at most one yes/no question.
   signálu nad makerem, odvíjení pasivně. Všech 12 buněk hluboko pod kandidátem (−9 % při prahu 1,2 /
   20 lotů, −32 až −37 % s 50 loty), monotónně s intenzitou. Taking v tomto simulátoru neplatí ani
   s pasivním výstupem → GPU/HGB verze nemá smysl.
-- **Otevřené otázky:** H11 standing ladder (pevné malé příkazy na touch−1..−4, nehýbat); R2 režim →
-  park on/off; `max_position` 100 je monotónně nejlepší, trendující privátní páska je riziko sdílené
-  s championem.
+- **Standing ladder (H11):** neutrální (+0,1 %, 5/8), když má touch přednost; destruktivní (−63 %),
+  když příčky berou kapacitu touch. Kapacita na touch je cennější než cokoli v hloubce.
+- **Plán na R2 (19:00):** kickoff (startovní relace) → data card: režim spreadu (1 vs 2 ticky), reverze
+  vs momentum po obchodech. Hned 4-buňkový test championa mm_park: park off / 10/1/2 / 20/1/3 (+ quote
+  200 vs 100 pro jistotu) na R2 + robustnost round1/sample_v2; compare → doporučení do T+20 min.
+  Mechaniky z R1 netestovat znovu, pokud režim nepřinese nový důvod (viz tabulka zamítnutých).
+- **Otevřené otázky:** `max_position` 100 je monotónně nejlepší, trendující privátní páska je riziko
+  sdílené s championem; příčky místo parkovaných stubů (netestováno, nízká priorita).
 
 ## Rozhodnutí (append-only)
 
