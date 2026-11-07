@@ -330,6 +330,9 @@ class MarketMaker(BaseStrategy):
         # earlier, i.e. further forward in its queue. Same over-cap guard. 0 = off.
         'zd_quote': 2,
         'rt_ms': 0.0,
+        'ri_ms': 0.0,
+        'qa_max': 0,
+        'fq_k_sp2': -1.0,
         'qs_k': 0.0,
         'qs_weak': 100,
         # zd_quote 2: credit only quotes cancelled because the desired price moved toward the market (following an
@@ -443,6 +446,10 @@ class MarketMaker(BaseStrategy):
         self.qs_weak = int(params['qs_weak'])
         self.qs_f = 0.0
         self.rt_t = [-10**15, -10**15]
+        self.ri_us = int(float(params['ri_ms']) * 1000.0)
+        self.ri_t = [-10**15, -10**15]
+        self.qa_max = int(params['qa_max'])
+        self.fq_k_sp2 = float(params['fq_k_sp2'])
         self.zd_guard_pull = int(params['zd_guard_pull'])
         self.tr_rest = int(params['tr_rest'])
         self.tr_keep_k = float(params['tr_keep_k'])
@@ -484,7 +491,7 @@ class MarketMaker(BaseStrategy):
         if not bids or not asks:
             return
         scan = self.book_scan_orders
-        need_qty = self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0
+        need_qty = self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0 or self.qa_max > 0
 
         # Market touch and its quantity, skipping our own orders (only market orders count
         # towards the scan limit, so our own fragments can never hide the touch).
@@ -524,6 +531,11 @@ class MarketMaker(BaseStrategy):
                 break
         if ba < 0:
             return
+        if self.ri_us > 0:
+            if self.last_ba > 0 and ba < self.last_ba:
+                self.ri_t[0] = snapshot.timestamp_us  # the ask improved: F likely lower, our bid is at risk
+            if 0 < self.last_bb < bb:
+                self.ri_t[1] = snapshot.timestamp_us
         if self.rt_us > 0:
             if 0 < bb < self.last_bb:
                 self.rt_t[0] = snapshot.timestamp_us
@@ -624,6 +636,17 @@ class MarketMaker(BaseStrategy):
                 pull_ask = True
                 if self.gate_rungs:
                     self._clear_side(1, -1)
+        if self.qa_max > 0:
+            # do not START a quote behind a thick market queue: only sweeps reach its back (markout -0.4..-0.7)
+            if not self.active[0] and qb > self.qa_max:
+                pull_bid = True
+            if not self.active[1] and qa > self.qa_max:
+                pull_ask = True
+        if self.ri_us > 0:
+            if now - self.ri_t[0] < self.ri_us:
+                pull_bid = True
+            if now - self.ri_t[1] < self.ri_us:
+                pull_ask = True
         if self.rt_us > 0:
             if now - self.rt_t[0] < self.rt_us:
                 pull_bid = True
@@ -815,6 +838,8 @@ class MarketMaker(BaseStrategy):
         f = mid + self.fq_scale * sig + fshift
         self.qs_f = f
         k = self.fq_k
+        if self.fq_k_sp2 >= 0.0 and ba - bb >= 2:
+            k = self.fq_k_sp2
         dbid = floor(f - k)
         dask = -floor(-(f + k))
         tk = self.fq_take_k

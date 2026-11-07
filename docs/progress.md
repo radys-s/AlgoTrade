@@ -1249,3 +1249,15 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
 - Stacking: flow pull adds nothing on top of the retreat pull (both pull after adverse events); qs adds +6.5k.
 - Rejected this half hour: jump over-cap (inserts beyond the 20-tick snapshot are invisible), sweep follow/fade, taker
   slip, AND-taker, order-statistic F, deeper taker.
+
+## 2026-11-07 23:36 — Leaderboard mm_r2_rtq = 891,734 (+42k); next upload mm_r2_rts = 420,715 / 419,434 (home)
+
+- Leaderboard: `mm_r2_rtq` **891,734.52** (24,723 filled orders, penalty 2,100, end -100): +42.0k over mm_r2_zd for
+  +13.8k per local tape (x3.0).
+- **`strategies/mm_r2_rts.py`** = mm_r2_rtq + fq_k_sp2 0.7 (subagent tkst: at a spread >= 2 a passive quote needs F_hat
+  >= 0.7 ticks inside it; the base quoted both sides of a wide spread). round2 **420,715**, mirror 419,434 (+28.3k /
+  +28.6k over mm_r2_zd, +14.5k / +14.7k over mm_r2_rtq), round1 450,845 (-6.4k), sample_v2 232,192 (-35k: another
+  generator), check_submission OK, research.check PASS 1.6 min. Stack on round2+mirror: sp2 alone 826.1k, + rt 836.4k,
+  + qs 840.1k (base 783.3k).
+- Subagent predb (ridge with sweep / queue / clipped-fs70 features): no gain (offline corr 0.432 -> 0.462 but fewer
+  triggers; the taker's pnl follows trigger count x edge, not corr). Thick-queue skip, improve-pull: worse.
