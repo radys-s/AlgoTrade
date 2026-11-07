@@ -582,3 +582,24 @@ staré fronty stojí pozici → přesunout se jen když má nová hladina ≥ N 
 (0/8), sample_v2 +8 (šum) → REJECT.
 **Závěr:** sledovat i drobné improvery se vyplácí — nová hladina je tam, kde jsou filly, a stub už staré místo drží.
 Tím je rodina „pořadí ve frontě“ kolem mm_park prozkoumaná: 13 mechanik, jediný zisk je parkování (Tomáš).
+
+## 2026-11-07 14:45 — Fill attribution `mm_park` (home, mozek): kde vzniká +6,3 % a proč na v2 stojí 4,7 %
+
+Report `research/reports/round1_mm_park_attribution.md` (`research/fill_attribution.py`, nové módy `park`, `compare`;
+logy `logs/r1-park-inspect`, `logs/v2-park-inspect`, `logs/v2-fullcap-inspect`). Proxy $ = loty × markout 1 s (round1
++21,1 k vs skutečných +26,9 k; v2 −11,7 k vs −12,4 k).
+- **Stuby:** round1 19 922 vzniklých, ~40 % se naplní (průměr 8 z 20 lotů), 59 % zrušeno nenaplněných; život do fillu
+  1,1 s. **Markout stubu 0,39 $/lot vs 0,18 u touch fillů** (v2: 0,78 vs 0,50) → stuby nejsou adverzní, jsou to naše
+  nejlepší filly; 60 % lotů stubů se na round1 plní s 0 loty před nami (v2 jen 28 %). Stuby +63 k na 160 k lotech (7 %
+  lotů, 14 % $).
+- **Rozklad round1 +26,9 k:** touch filly stejný počet, ale **−472 k lotů (−18 %)** (stuby vážou kapacitu) = −77 k;
+  lepší kvalita touch fillů (0,179 vs 0,163) +34 k; stuby +63 k; zbytek chyba proxy.
+- **Čas na stropu |I| = 100 klesl z 50 % na 26 %** (v2 53 % → 22 %): stuby na odvíjející straně jsou na čele → rychlejší
+  obrat. Filly proti imbalance z −39,7 k na +6,6 k.
+- **v2 náklad:** ztracený bulk 68 k lotů (−13 %) za 0,49 $/lot ≈ −33 k; stuby jen +18 k, kvalita +3 k → −11,7 k. Cena
+  parkování = vytlačený bulk, a ten je na v2 3× cennější než na round1.
+- **Události:** zlepšení ~0,65/s na stranu (round1), ~0,4 (v2); ústupy podobně; **37 % zlepšení se do 500 ms vrátí**
+  (flicker) na obou datasetech — ale sledovat je se přesto vyplácí (H13, min_requote).
+**Závěr:** mechanismus parkování je potvrzený a správně naladěný pro round1 (víc stubů nad max 5 nepomáhá, stuby
+hloubky 2 umírají). Páka pro R2 = režimově závislé parkování (v mean-reverting režimu s cenným bulkem méně/menší
+stuby nebo vypnout): rozhodnout 4-buňkovým testem na kickoffu. Pro R1 žádná nová páka.

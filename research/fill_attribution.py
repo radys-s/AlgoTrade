@@ -246,6 +246,111 @@ def followup(run, feat):
     return "\n".join(out)
 
 
+def _md(r):
+    rows = ["| " + " | ".join(map(str, r.columns)) + " |", "|" + "---|" * len(r.columns)]
+    rows += ["| " + " | ".join(str(x) for x in row) + " |" for row in r.itertuples(index=False)]
+    return chr(10).join(rows)
+
+
+def park(run, feat, label):
+    """Stub economics for a parking strategy: a stub = our order that got a `modify` event (shrunk, queue place kept).
+    A fill is a stub fill when it happens at or after the order's modify time. Front = no market lots of the same
+    taker order matched at our price before our row (nothing was ahead of us at the fill)."""
+    g, act, cap, span = attribute(run, feat)
+    f, ts, mid, spr, imb, ev, tr, ut = load(run, feat)
+    mod = ev[ev.operation == "modify"].groupby("order_id").timestamp_us.min()
+    g["mod_ts"] = g.maker_order_id.map(mod)
+    g["stub"] = g.mod_ts.notna() & (g.timestamp_us >= g.mod_ts)
+    # front flag from the full trade list (file order = match order)
+    t = pd.read_csv(f"{run}/trades.csv", dtype={"taker_order_id": str, "maker_order_id": str})
+    t["mk"] = (t.maker_owner == "market").astype(int)
+    t["ahead"] = t.groupby(["taker_order_id", "price"]).mk.cumsum() - t.mk
+    ah = t[t.maker_owner == "user"].groupby(["timestamp_us", "taker_order_id", "maker_order_id"]).ahead.min()
+    g["mkt_ahead"] = pd.MultiIndex.from_frame(g[["timestamp_us", "taker_order_id", "maker_order_id"]]).map(ah.to_dict().get)
+    g["front"] = g.mkt_ahead == 0
+    g["usd1"] = g.qty * g.mo_1s
+    ad = ev[ev.operation == "add"].set_index("order_id")
+    canc = ev[ev.operation == "cancel"].set_index("order_id").timestamp_us
+    out = [f"## {label}: stubs"]
+    st_ids = mod.index
+    ns = len(st_ids)
+    gs = g[g.stub]
+    fl = gs.groupby("maker_order_id").qty.sum()
+    # stub size at park = modify event quantity
+    mq = ev[ev.operation == "modify"].groupby("order_id").quantity.first()
+    filled_any = pd.Series(st_ids.isin(fl.index), index=st_ids)
+    full = pd.Series([fl.get(o, 0) >= mq[o] for o in st_ids], index=st_ids)
+    cancd = pd.Series(st_ids.isin(canc.index), index=st_ids)
+    cancd_after = pd.Series([(o in canc.index) and canc[o] >= mod[o] for o in st_ids], index=st_ids)
+    out.append(f"stubs created (orders with a modify): {ns}; modify events {int((ev.operation=='modify').sum())}; "
+               f"filled in full {int(full.sum())}; partly filled then cancelled/left {int((filled_any & ~full).sum())}; "
+               f"never filled {int((~filled_any).sum())}; cancelled (unparked) {int(cancd_after.sum())}; "
+               f"still resting at end {int((~cancd_after & ~full).sum())}. Stub lots filled {int(gs.qty.sum())} (stub-fill rows {len(gs)}).\n")
+    # lifetime
+    end = {}
+    last = gs.groupby("maker_order_id").timestamp_us.max()
+    life = []
+    for o in st_ids:
+        if full[o]:
+            life.append((last[o] - mod[o], "filled"))
+        elif cancd_after[o]:
+            life.append((canc[o] - mod[o], "cancelled" if not filled_any[o] else "part+cancelled"))
+    lf = pd.DataFrame(life, columns=["us", "end"])
+    lf["ms"] = lf.us / 1000
+    q = lf.groupby("end").ms.describe(percentiles=[.5, .9]).round(1)
+    out += ["Stub lifetime from modify to end (ms):\n", _md(q.reset_index()), ""]
+    ret = pd.DataFrame({"cat": ["stub fills", "non-stub fills"], })
+    rows = []
+    for nm, d in (("stub", g[g.stub]), ("non-stub", g[~g.stub]), ("all", g)):
+        lots = d.qty.sum()
+        r = {"cat": nm, "fills": len(d), "lots": int(lots), "front_share_lots": round(d[d.front].qty.sum() / max(lots, 1), 3)}
+        for k in H:
+            r["mo" + k] = round((d.qty * d["mo_" + k]).sum() / max(lots, 1), 3)
+        r["edge"] = round((d.qty * d.edge).sum() / max(lots, 1), 3)
+        r["usd_1s"] = round(d.usd1.sum())
+        r["usd_30s"] = round((d.qty * d.mo_30s).sum())
+        rows.append(r)
+    out += ["Stub vs non-stub fills (markout per lot in ticks, $ = qty*markout):\n", _md(pd.DataFrame(rows)), ""]
+    rows = []
+    for nm, d in (("stub front", gs[gs.front]), ("stub behind market lots", gs[~gs.front]),
+                  ("non-stub front", g[~g.stub & g.front]), ("non-stub behind", g[~g.stub & ~g.front])):
+        lots = d.qty.sum()
+        r = {"cat": nm, "fills": len(d), "lots": int(lots)}
+        for k in H:
+            r["mo" + k] = round((d.qty * d["mo_" + k]).sum() / max(lots, 1), 3)
+        r["usd_1s"] = round(d.usd1.sum())
+        rows.append(r)
+    out += ["By front / behind:\n", _md(pd.DataFrame(rows)), ""]
+    d = g[g.stub].assign(rb=pd.cut(g[g.stub].timestamp_us - g[g.stub].mod_ts, [-1, 50e3, 500e3, 5e6, 1e12], labels=["<50ms", "50-500ms", "0.5-5s", ">5s"]))
+    out += ["Stub fills by time since parked:\n", tab(d, "rb"), ""]
+    out += ["Stub fills by direction vs inventory:\n", tab(g[g.stub].assign(dr=np.where(np.sign(g[g.stub].inv_before) * g[g.stub].sign > 0, "adds", "reduces/flat")), "dr"), ""]
+    # events from the tape book
+    bp, ap = f["bid_px"].astype(int), f["ask_px"].astype(int)
+    ev_rows = []
+    for nm, px, sgn in (("bid", bp, 1), ("ask", ap, -1)):
+        v = px > 0
+        idx = np.where(v)[0]
+        p = px[idx]
+        tt = ts[idx]
+        d = np.diff(p) * sgn
+        imp = np.where(d > 0)[0] + 1
+        ret_ = np.where(d < 0)[0] + 1
+        # flicker: within 500 ms best returns to <= the pre-improvement price (for bid; mirror for ask)
+        fl_n = 0
+        j_end = np.searchsorted(tt, tt[imp] + 500_000, side="right")
+        for a, e in zip(imp, j_end):
+            if (p[a:e] * sgn <= p[a - 1] * sgn).any():
+                fl_n += 1
+        ev_rows.append({"side": nm, "improvements": len(imp), "retreats": len(ret_), "improve_gone_within_500ms": fl_n,
+                        "share": round(fl_n / max(len(imp), 1), 3), "per_s_improve": round(len(imp) / span, 3)})
+    out += ["Tape touch events (market-only book; improvement = touch moves to a better price for that side; flicker = the old price is the touch again within 500 ms):\n",
+            _md(pd.DataFrame(ev_rows)), ""]
+    ps = ev[ev.operation == "modify"]
+    out.append(f"Our park modifies: {len(ps)} (distinct timestamp-side groups {ps.groupby(['timestamp_us','side']).ngroups}); "
+               f"cancels {int((ev.operation=='cancel').sum())}; cancel_failed {int((ev.operation=='cancel_failed').sum())}; modify_failed {int((ev.operation=='modify_failed').sum())}.\n")
+    return chr(10).join(out), g
+
+
 def trace(run, feat, a_s, b_s):
     """Raw chronological user trace from a_s-0.3 s to b_s+0.05 s (seconds)."""
     f = np.load(feat)
@@ -273,13 +378,56 @@ def trace(run, feat, a_s, b_s):
     return chr(10).join(out)
 
 
-if __name__ == "__main__":
+def _main():
     run = sys.argv[1]
     feat = sys.argv[2] if len(sys.argv) > 2 else "data/features/round1.npz"
     label = sys.argv[3] if len(sys.argv) > 3 else run
+    if label == "compare":
+        print(compare(run, sys.argv[4], feat, "A", "B"))
+        sys.exit()
+    if label == "park":
+        print(park(run, feat, run)[0])
+        sys.exit()
     if label == "trace":
         print(trace(run, feat, float(sys.argv[4]), float(sys.argv[5])))
         sys.exit()
     print(followup(run, feat) if label == "followup" else report(run, feat, label)[0])
 
 
+
+
+def _cats(run, feat):
+    g, act, cap, span = attribute(run, feat)
+    ev = pd.read_csv(f"{run}/events.csv", usecols=["timestamp_us", "source", "operation", "order_id"])
+    mod = ev[(ev.source == "user") & (ev.operation == "modify")].groupby("order_id").timestamp_us.min()
+    g["mod_ts"] = g.maker_order_id.map(mod)
+    g["stub"] = g.mod_ts.notna() & (g.timestamp_us >= g.mod_ts)
+    g["cat"] = np.where(g.stub, "stub", "touch(non-stub)")
+    g["usd1"] = g.qty * g.mo_1s
+    g["usd30"] = g.qty * g.mo_30s
+    g["usdE"] = g.qty * g.edge
+    return g, act, cap, span
+
+
+def compare(run_a, run_b, feat, name_a="A", name_b="B"):
+    """Fill categories of two runs side by side (stub = fill by a shrunk order after its modify)."""
+    rows = []
+    for nm, run in ((name_a, run_a), (name_b, run_b)):
+        g, act, cap, span = _cats(run, feat)
+        for c, d in list(g.groupby("cat")) + [("ALL", g)]:
+            lots = d.qty.sum()
+            rows.append({"run": nm, "cat": c, "fills": len(d), "lots": int(lots), "mo100ms": round((d.qty * d.mo_100ms).sum() / lots, 3),
+                         "mo1s": round(d.usd1.sum() / lots, 3), "mo30s": round(d.usd30.sum() / lots, 3), "edge": round(d.usdE.sum() / lots, 3),
+                         "usd_1s": round(d.usd1.sum()), "usd_30s": round(d.usd30.sum()), "usd_edge": round(d.usdE.sum())})
+        for s, d in g[~g.stub].groupby("side"):
+            lots = d.qty.sum()
+            rows.append({"run": nm, "cat": "touch " + s, "fills": len(d), "lots": int(lots), "mo100ms": round((d.qty * d.mo_100ms).sum() / lots, 3),
+                         "mo1s": round(d.usd1.sum() / lots, 3), "mo30s": round(d.usd30.sum() / lots, 3), "edge": round(d.usdE.sum() / lots, 3),
+                         "usd_1s": round(d.usd1.sum()), "usd_30s": round(d.usd30.sum()), "usd_edge": round(d.usdE.sum())})
+        rows.append({"run": nm, "cat": f"live bid/ask share, time at cap", "fills": "", "lots": "", "mo100ms": round(act['B'], 3), "mo1s": round(act['A'], 3), "mo30s": round(cap, 3),
+                     "edge": "", "usd_1s": "", "usd_30s": "", "usd_edge": ""})
+    return _md(pd.DataFrame(rows))
+
+
+if __name__ == "__main__":
+    _main()
