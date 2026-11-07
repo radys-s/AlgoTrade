@@ -31,6 +31,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 14:15 | radys | Queue-position diagnostics on R1; imb/thin/requote pulls all lose; handoff `docs/radys-findings.md` |
 | 2026-11-07 14:45 | radys | Park stubs via modify instead of cancel: `mm_park` round1 452,651 (+6.3 %), compare ACCEPT -> submission |
 | 2026-11-07 15:10 | radys | k-fold: mm_park not overfit (oof +6.3 %, 8/9 blocks); back-pull and ladder rejected; ridge IC +0.38 stable |
+| 2026-11-07 15:40 | radys | ML shrink: ridge 100 ms signal caps the predicted-adverse side at 5 lots -> `mm_ml` round1 490,460 (+8.4 %) -> submission |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -635,3 +636,13 @@ ověřen (round1: 12 180 rychlých vstupů, 60 900 lotů, vždy plná rezerva).
 horší kvality.
 **Závěr:** trvale nevyužitá kapacita stojí víc než pořadí získané o 5 ms dřív; cizí příkazy v tom okně nerozhodují
 o kvalitě fillů. Potvrzuje: každý lot kapacity musí ležet na touch.
+## 2026-11-07 15:40 — ML shrink on mm_park (radys)
+
+- **What:** the ridge 100 ms mid-move prediction (walk-forward IC +0.38) runs inside the strategy. When |pred| > 0.15 ticks
+  against a side, that side's touch quote is shrunk via `modify_order` to a 5-lot stub (keeps queue priority; never cancels).
+- **Why:** the main loss is adverse selection on the side about to be run over; shrinking keeps the queue spot but cuts the lots
+  that get picked off.
+- **Results (round1, full tape, 8 chunks + holdout):** thr 0.15 / stub 5 = 490,460 (8/8 chunks, holdout 126,291, pen 0);
+  stub 10 = 486,594; thr 0.1 = 485-488k; thr 0.3 = 454k (~ off); thr 0.05 = 388-401k (too aggressive). Plateau 0.1-0.15.
+- **Did not help:** thin-level cap (150/300 lots), flow pull, park 30 vs 20 (72-combo screen, 25 % then full).
+- **Next:** server upload to confirm; runtime check on idle CPU (ML adds per-event cost); Honza iterates further.

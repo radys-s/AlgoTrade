@@ -313,6 +313,10 @@ class MarketMaker(BaseStrategy):
         # ML shrink: cap the side predicted to be run over at ml_stub lots when |pred| > ml_thr ticks; 0 disables.
         'ml_thr': 0.0,
         'ml_stub': 20,
+        # Thin-level cap: while a side's market touch qty < thin_cap lots, cap its quote at thin_cap_size (shrink,
+        # never cancel the oldest order); 0 disables.
+        'thin_cap': 0,
+        'thin_cap_size': 20,
     }
 
     # research.signals data/features/round1.npz --horizon-ms 100 --export-linear (walk-forward ridge, IC +0.38)
@@ -470,6 +474,8 @@ class MarketMaker(BaseStrategy):
         self.parked_qty = [0, 0]
         self.ml_thr = float(params['ml_thr'])
         self.ml_stub = max(0, int(params['ml_stub']))
+        self.thin_cap = int(params['thin_cap'])
+        self.thin_cap_size = max(1, int(params['thin_cap_size']))
         self.full = _FullFeatures() if self.ml_thr > 0 else None
         self.pred = 0.0
 
@@ -508,7 +514,8 @@ class MarketMaker(BaseStrategy):
         if not bids or not asks:
             return
         scan = self.book_scan_orders
-        need_qty = self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0
+        need_qty = (self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0
+                    or self.thin_cap > 0)
 
         # Market touch and its quantity, skipping our own orders (only market orders count
         # towards the scan limit, so our own fragments can never hide the touch).
@@ -623,14 +630,20 @@ class MarketMaker(BaseStrategy):
             self._pull(0)
             self._pull(2)
         else:
-            self._quote(0, 1, _BUY, bid, now, self.ml_stub if self.full is not None and self.pred < -self.ml_thr else self.quote_size)
+            sz = self.ml_stub if self.full is not None and self.pred < -self.ml_thr else self.quote_size
+            if self.thin_cap > 0 and qb < self.thin_cap and sz > self.thin_cap_size:
+                sz = self.thin_cap_size
+            self._quote(0, 1, _BUY, bid, now, sz)
             if lay:
                 self._quote(2, 1, _BUY, bid - off, now, lay)
         if pull_ask:
             self._pull(1)
             self._pull(3)
         else:
-            self._quote(1, -1, _SELL, ask, now, self.ml_stub if self.full is not None and self.pred > self.ml_thr else self.quote_size)
+            sz = self.ml_stub if self.full is not None and self.pred > self.ml_thr else self.quote_size
+            if self.thin_cap > 0 and qa < self.thin_cap and sz > self.thin_cap_size:
+                sz = self.thin_cap_size
+            self._quote(1, -1, _SELL, ask, now, sz)
             if lay:
                 self._quote(3, -1, _SELL, ask + off, now, lay)
 
