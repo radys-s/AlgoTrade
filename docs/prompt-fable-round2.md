@@ -75,3 +75,9 @@ second. The old IOC unwind never fired because the reducing side is always full 
 `exp_overcap.py` now has `unwind_slack` (extra potential room for the unwind IOC only). radys is sweeping
 unwind_threshold x unwind_size with slack 40 (ledger `*r1-unwind.csv`). Value of 1 lot of capacity is roughly
 0.17 $/lot/s, an IOC unwind costs ~0.5-0.6 $/lot: unwinding pays if the freed room lasts > ~4 s.
+
+**Update (radys, after the sweep):** IOC unwind with `unwind_slack` 40 is rejected: threshold 90 / size 5 = 452,492
+(-45k, plus 4,228 $ penalty); lower thresholds were dropped on the 25 % screen. Crossing costs more than the freed
+capacity earns. So S2 must be **passive** turnover (only the reducing side gets the best queue spots: never ML-stub
+it, park more on it, let it keep aged orders), and the rest of the 55 % gap to the leader must come from **edge per
+lot** (0.25 $/lot now; front-of-queue fills earn 0.34): even with no limit at 300 lots we reach only 678k < 793k.

@@ -35,6 +35,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 16:30 | radys | Rejected on mm_ml: over-cap quoting, inventory lockout/threshold, post-fill freeze, gap jump; structural levers for Honza in radys-findings s.8 |
 | 2026-11-07 16:55 | radys | ahead_stub rejected (deep queue = investment); handoff for Honza's Claude in radys-findings s.9 |
 | 2026-11-07 17:55 | radys | R1 end: team 511,422 (12th), leader 792,696; stack 503.7k local; fresh gate rejected; R2 plan in radys-findings 9c |
+| 2026-11-07 18:40 | radys | Capacity value: no-limit 150/200/300 lots = +101/+137/+181k; IOC unwind with slack rejected (-45k); prompt for Fable |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -934,3 +935,12 @@ PnL −1 %) → rozhodne jen strategie: běží port `edm_100` jako 24. feature 
 - Fresh-size gate rejected (-35k..-212k). Every size reduction lost all round; every size increase won.
 - What went wrong: too much time on small filters around one architecture, and declaring ceilings instead of searching
   structure. Round 2 plan: radys-findings section 9c.
+
+## 2026-11-07 18:40 — Capacity value and the round-2 prompt (radys)
+
+- `research/diag/nolimit.py` (penalty off): mm_ml_r1tuned at max_position 100/150/200/300 = 497,292 / 598,403 /
+  634,727 / 677,830; ~7,900 breach episodes and 4,600-6,700 s over 100 when allowed. Capacity is worth +100..+180k,
+  but breaching to get it would cost millions.
+- IOC unwind with `unwind_slack` 40 (the old unwind never fired because the reducing side is full): best 452,492 (-45k).
+  Rejected: crossing costs more than the freed room earns.
+- Conclusion: passive inventory turnover + higher edge per lot. Workflow for Honza's Claude: `docs/prompt-fable-round2.md`.
