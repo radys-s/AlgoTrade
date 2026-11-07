@@ -1317,3 +1317,6 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
 - Why mm_r2_final loses on sample_v2 (221,596 vs 267,405 for mm_r2_zd): the whole -45k is fq_k_sp2 (off: 266,625); the hole
   filter never fires there, rt / qs are neutral (220-222k). The wide-spread filter is R2-generator specific (+65k on the
   R2 leaderboard), so it fits the round-2 private tape but would hurt a sample_v2-like market.
+- round1 attribution: fq_k_sp2 off gives 457,781 (hole off) / 457,198 (hole on) vs mm_r2_final 450,065 - the wide-spread
+  filter costs ~7.7k on round1 too; the hole filter is neutral off-R2.
+- Public chart at 23:41: 75th percentile ~930k (+-10k), median 347k; our best then was 957,133 (rts), now 974,031.
