@@ -1305,3 +1305,10 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
   hk_gap 2 433,351 / 432,142, hk_gap 4 identical; rt_ms 15 434,063 / 432,144, rt_ms 30 431,696 / 429,039. A plateau.
 - mm_r2_final vs mm_r2_rth by chunk: round2 5/8 better (gain mostly chunk 7, +2.6k), mirror 6/8. Modest, consistent sign.
   Final pick rule stays: the higher leaderboard pnl of mm_r2_rth (970,101) and mm_r2_final.
+
+## 2026-11-08 00:08 — Leaderboard mm_r2_final = 974,031 (best); last upload mm_r2_final2 (home)
+
+- `mm_r2_final` scored **974,031.26** (22,486 filled orders, penalty 1,921): +3.9k over mm_r2_rth for +3.35k per local tape.
+- Last upload `strategies/mm_r2_final2.py` = mm_r2_final with fq_k_sp2 0.77 (local +0.5k on the two tapes: a coin flip),
+  check PASS 1.5 min. Final = the higher of mm_r2_final (974,031) and mm_r2_final2.
+- Round 2 path on the leaderboard: 740,067 -> 797,904 -> 849,747 -> 891,735 -> 957,133 -> 970,101 -> 974,031.
