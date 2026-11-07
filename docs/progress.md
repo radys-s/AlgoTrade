@@ -780,3 +780,14 @@ All on round1, full tape unless noted, vs mm_ml 490,460 (`strategies/exp_overcap
   worse: orders inside a fresh gap get hit by the sweep's continuation.
 - **Why it matters:** the price range is only 105 ticks in 3.3 h; profit is purely spread capture under a 100-lot budget.
   Next: queue-aware stub (`ahead_stub`), park re-tune on the ML base; heavy levers for Honza in radys-findings s.8.
+
+## 2026-11-07 15:50 — H18 cíl zarovnaný se ztrátou: varianta B = první robustní zlepšení nad mm_ml (home, mozek)
+
+`research/fit_target.py`, `strategies/exp_ml_target.py` (`ml_target` base/A/B/C, parita 490 460 ✔, check PASS), report
+`research/reports/round1_ml_target.md`. Stejných 23 features, jiný cíl: A = MSE vážené zásahem takera do 100 ms, **B = pohyb
+midu po prvním zásahu × [zásah]** (0 bez zásahu), C = skór adverzního fillu. IC proti vlastnímu cíli se liší jen o ≤ 0,005;
+lineární model nese totéž. Ale **B při prahu 0,122 (stejná četnost): round1 494 990 (+4 530, 6/8, holdout +1 528),
+sample_v2 258 239 (+4 178, 7/8, holdout +764) → ACCEPT na obou datasetech**, bez runtime nákladu (jen jiný dict).
+A: +2,2 k / +2,1 k; C: −8 k. Nižší práh B 0,097 → round1 499 397 (v2 256 572).
+**Závěr:** malé (+0,9 % / +1,6 %), ale stejné znaménko na obou trzích → kandidát na novou bázi (R2) a na R1 upload.
+Běží dolaďování B (thr 0,09–0,105 × stub 3/5) proti mm_ml_r1tuned (497 292).
