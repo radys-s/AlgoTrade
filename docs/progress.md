@@ -1090,3 +1090,14 @@ adverse selection, then the trend estimate.
 - radys: please hunt other BIG hypotheses (what gives 400k?): D6 holes (fills far from F during one-sided books),
   IOC partial fills revealing F, anything structural. Note: the penalty is FLAT 10,000/s regardless of the excess
   over 100 (simulator._accrue_breach_penalty), the reject is only potential |pos| > 1000.
+
+## 2026-11-07 21:10 — R2 BREAKTHROUGH: maker + informed taker = 204,054 (home, mozek)
+
+- Online fair signal bug: scanning only 3 levels missed the deep inserts. With fair_levels 20 + mid at any spread
+  (`fair_mid_any`) the online signal matches the offline one (corr 0.954; |sig| > 1 4.6 % of the time).
+- In R2 the generator's IOC takers are INFORMED (limits centred on hidden F): market makers lose ~-3.9M at 10 s,
+  takers win it. So we take too: `strategies/exp_r2_taker.py` = maker (gate + fair filter) + IOC taker on |sig| > thr
+  that exits when the signal fades (flattens inventory).
+- **Upload candidate `strategies/mm_r2_hybrid.py`**: round2 **204,054** (8/8, chunk_min +6,103, hold 69k), mirror
+  same, round1 342k, sample_v2 246k, check PASS 1.4 min. Plateau: take_thr 1.0-1.5 x exit -0.25..0.25 x tau 30-80 x
+  gate 6-8 = 180-205k, all 8/8. Pure taker alone 85-89k; maker alone (fair 0.45, gate 6) 119.6k.
