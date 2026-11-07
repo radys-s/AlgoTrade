@@ -236,6 +236,8 @@ class MarketMaker(BaseStrategy):
         'maker_off': 0,
         'fair_mid_any': 0,
         'fair_off_fixed': 0,
+        'fair_hyst': 0.0,
+        'take_exit_own': 0,
     }
 
     def __init__(self) -> None:
@@ -301,6 +303,11 @@ class MarketMaker(BaseStrategy):
         self.take_cool_us = int(params['take_cool_ms']) * 1000
         self.maker_off = int(params['maker_off'])
         self.fair_mid_any = int(params['fair_mid_any'])
+        self.fair_hyst = float(params['fair_hyst'])
+        self.fair_out = [False, False]
+        self.take_exit_own = int(params['take_exit_own'])
+        self.tk_inv0 = 0
+        self.tk_qty = 0
         if int(params['fair_off_fixed']):
             self.fair_off = [-1.22, 1.20]
             self.fair_n = [1 << 40, 1 << 40]
@@ -458,7 +465,15 @@ class MarketMaker(BaseStrategy):
             pull_bid = pull_bid or inv >= self.inv_stop
             pull_ask = pull_ask or inv <= -self.inv_stop
         if self.fair_thr > 0.0:
-            if self.fair_sig < -self.fair_thr:
+            if self.fair_hyst > 0.0:
+                # Sticky pull (exp_r2_fair2): a side stays out until sig is back within fair_hyst * fair_thr.
+                sig = self.fair_sig
+                fo = self.fair_out
+                fo[0] = sig < -self.fair_thr or (fo[0] and sig < -self.fair_thr * self.fair_hyst)
+                fo[1] = sig > self.fair_thr or (fo[1] and sig > self.fair_thr * self.fair_hyst)
+                pull_bid = pull_bid or fo[0]
+                pull_ask = pull_ask or fo[1]
+            elif self.fair_sig < -self.fair_thr:
                 pull_bid = True
             elif self.fair_sig > self.fair_thr:
                 pull_ask = True
@@ -505,6 +520,21 @@ class MarketMaker(BaseStrategy):
         inv = self.inv
         if self.tk_dir != 0:
             s = self.tk_dir
+            if self.take_exit_own:
+                if self.tk_qty < 0:  # entry just completed: what it bought (or sold) is the taker's own position
+                    self.tk_qty = max(0, s * (inv - self.tk_inv0))
+                q = min(self.tk_qty, s * inv)
+                if q <= 0:
+                    self.tk_dir = 0
+                    self.tk_last = now
+                    return
+                if s * self.fair_sig < self.take_exit or now - self.tk_t >= self.take_maxhold_us:
+                    if s > 0:
+                        self.tk_pending = self._send(1, -1, _SELL, max(1, bb - self.exit_slip), q, True, 1)
+                    else:
+                        self.tk_pending = self._send(0, 1, _BUY, ba + self.exit_slip, q, True, 0)
+                    self.tk_qty = 0  # after this IOC the own position is gone (any rest stays with the maker)
+                return
             if inv * s <= 0:
                 self.tk_dir = 0  # flat again (exit done, or the entry never filled)
                 self.tk_last = now
@@ -530,6 +560,8 @@ class MarketMaker(BaseStrategy):
             self.tk_pending = oid
             self.tk_dir = s
             self.tk_t = now
+            self.tk_inv0 = self.inv
+            self.tk_qty = -1  # filled in once the entry IOC is done
             self.n_takes += 1
 
     def _fair_update(self, now: int, bids, asks, bb: int, ba: int) -> None:

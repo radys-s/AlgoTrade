@@ -1101,3 +1101,15 @@ adverse selection, then the trend estimate.
 - **Upload candidate `strategies/mm_r2_hybrid.py`**: round2 **204,054** (8/8, chunk_min +6,103, hold 69k), mirror
   same, round1 342k, sample_v2 246k, check PASS 1.4 min. Plateau: take_thr 1.0-1.5 x exit -0.25..0.25 x tau 30-80 x
   gate 6-8 = 180-205k, all 8/8. Pure taker alone 85-89k; maker alone (fair 0.45, gate 6) 119.6k.
+
+## 2026-11-07 21:20 — mm_r2_hybrid2 = 211,186; small-order grid rejected; F estimate is at its information limit (home)
+
+- **Upload candidate `strategies/mm_r2_hybrid2.py`**: round2 **211,186** (8/8, chunk_min +8.6k), mirror same, round1 430k,
+  sample_v2 248k, check PASS 1.4 min. = hybrid + gate 20 s / thr 8 + fair-filter hysteresis 0.5 (exp_r2_fair2 idea).
+- Rejected: small-order grid + fair + over-cap (`exp_r2_grid2.py`, best 72k: in R2 every extra fill/queue position
+  lowers pnl), taker exit of own position only (-14.5k), inv_stop (-10..-40k), smaller quote_size / requote tolerance.
+- F estimator study (`research/diag/fair_model.py`, `exp_r2_fair2.py`): bids = floor(F - D), D ~ 1 tick + geometric
+  tail 0.25/tick, clamped at the opposite touch -1 (46 % on the clamp); EWMA tau 20-50 ms is at the information limit
+  (Kalman/Tobit +0.01 corr, worse online). Hysteresis on the maker filter +7.6k.
+- Hybrid internals: |I| >= 90 for 73 % of the time; maker fills 587k lots (+0.12/lot at 1 s, +1.04/lot at 60 s = trend),
+  taker 77k lots (+1.26/lot at 1 s). Running: fair-centric quoter, ML shrink stacked on the hybrid, taker sizing/exits.
