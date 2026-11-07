@@ -10,3 +10,6 @@ data/*
 # Simulator output
 logs/*
 !logs/.gitkeep
+
+# Playground outputs
+playground/out/

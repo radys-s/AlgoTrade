@@ -944,3 +944,14 @@ PnL −1 %) → rozhodne jen strategie: běží port `edm_100` jako 24. feature 
 - IOC unwind with `unwind_slack` 40 (the old unwind never fired because the reducing side is full): best 452,492 (-45k).
   Rejected: crossing costs more than the freed room earns.
 - Conclusion: passive inventory turnover + higher edge per lot. Workflow for Honza's Claude: `docs/prompt-fable-round2.md`.
+
+## 2026-11-07 — radys: playground baseline for Tomáš's own experiments
+
+**What:** `playground/my_strategy.py` (simple passive MM at the touch, inventory cap 60 enforced as I + resting <= cap,
+fast/slow EMA trend filter that drops the against-trend side) and `playground/run.py` (official sim config, stats,
+pnl per 10 % of time, plotly chart and fills CSV in `playground/out/`). README with parameters, run commands
+(local / VS Code / Colab) and an idea list.
+**Why:** lets Tomáš experiment with strategy logic in parallel instead of only prompting.
+**Result:** R2 public tape +42,193, 0 penalty, 7,015 fills, 75 s run. For comparison every R1 champion loses
+−148k..−230k on R2, so the trend filter alone flips the sign. |inventory| sits at the cap (60) almost always.
+**Next:** Tomáš iterates on the playground; radys waits for Honza's R2 model before fine-tuning.
