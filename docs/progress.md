@@ -13,6 +13,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 10:15 | radys / main | Import starteru, repo a větve `main`, `radys`, `herzic`, kontext soutěže |
 | 2026-11-07 10:22 | herzic | Honza: uv + `uv sync`, napojení na týmové repo, referenční běh `pnl=1878` ověřen |
 | 2026-11-07 11:05 | radys | Analýza playground dat (`research/analyze_tape.py`), grid runner, `momentum_hold.py`: sample `pnl=50 965` |
+| 2026-11-07 11:15 | radys | Playground submise `momentum_hold` (výchozí parametry): server `pnl=44 116` = lokálně přesně; výchozí parametry přepnuty na nejlepší z gridu |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -81,6 +82,13 @@ grid i `analyze_tape.py` pustit na data Round 1 hned po stažení; strategie je 
 
 **Další krok:** na datech Round 1 nejdřív `analyze_tape.py` (spread, momentum vs. reverze, imbalance),
 pak podle toho grid; Honza vede návrh strategie, radys reviewuje.
+
+## 2026-11-07 11:15 — První submise na serveru (radys, playground)
+
+Nahraná `momentum_hold.py` omylem s výchozími parametry (QTY 20, HOLD 3 s, SLIP 2), ne s nejlepšími z gridu.
+Server: `pnl=44 116`, fills 1 000, objem 11 932, pokuta 0, |I| q99,7 = 36, simulace 0,9 s.
+Lokální běh se stejnými parametry dal **přesně stejná čísla** → lokální simulátor = hodnocení,
+lokální grid je spolehlivý odhad veřejného skóre. Výchozí parametry přepnuty na QTY 50, HOLD 5 s, SLIP 3 (lokálně 50 965).
 
 ## Šablona experimentu
 

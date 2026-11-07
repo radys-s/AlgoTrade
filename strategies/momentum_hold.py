@@ -19,11 +19,11 @@ from simulator.strategy import BaseStrategy
 
 
 class MomentumHoldStrategy(BaseStrategy):
-    QTY = 20  # lotů na vstup
+    QTY = 50  # lotů na vstup (grid na samplu: nad ~25 už málo pomáhá, likvidita na touch ~25)
     MAX_POS = 80  # tvrdý strop inventáře (pokuta nad 100)
     MIN_FLOW = 1  # minimální |čistý tok| v callbacku pro vstup
-    HOLD_US = 3_000_000  # jak dlouho držet pozici
-    SLIP_TICKS = 2  # o kolik ticků přes touch smí IOC sweepnout
+    HOLD_US = 5_000_000  # jak dlouho držet pozici (grid: 5 s nejlepší)
+    SLIP_TICKS = 3  # o kolik ticků přes touch smí IOC sweepnout
     FLATTEN_AT_US = 3_590_000_000  # od kdy jen zavírat (konec dat)
 
     def __init__(self) -> None:
