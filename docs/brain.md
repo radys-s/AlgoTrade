@@ -124,8 +124,17 @@ what runs next, and at most one yes/no question.
   cancel-filtry prodělávaly a „shrink ≈ cancel“. Špatně: shrink přes modify drží čelo fronty a vrací loty
   až po odeznění signálu, cancel ne. Správný postup byl testovat každou páku i ve verzi „přes modify“.
   Obecně: každé pravidlo „kdy nekotovat“ implementovat jako zmenšení, nikdy jako cancel.
+- **Privátní R1 (18:15): 12./61, 511 422, z 0,55 (0,44 bodu); lídr 792 696 (2,07 bodu).** Pole vyrostlo
+  z veřejného průměru 344 k na privátní 434 k (+25 %), lídr +22 %, **my ±0 %**. Moje hypotéza „650 k =
+  přefit“ byla špatně: edge je skutečný a přenositelný u 9 týmů. Náš se nepřenesl → vrstvy laděné na
+  veřejnou pásku (pevné prahy na škále predikce, park 15/8, graded, tight) jsou křehké vůči posunu
+  parametrů generátoru (na v2 celý ML stack = full_capacity −1,5 %). **Pravidlo od R2:** vybírat podle
+  součtu přes R2 public + round1 + sample_v2 (out-of-sample pásky) a holdoutů, prahy relativní (kvantil),
+  velikosti relativní k rozdělení IOC; veřejně doladěný stack jen pokud vyhraje i mimo vzorek.
 - **Plán na R2 (19:00):** kickoff (startovní relace) → data card: režim spreadu (1 vs 2 ticky), reverze
-  vs momentum po obchodech. Hned CPU grid championa mm_park na R2 + round1 + sample_v2:
+  vs momentum po obchodech. Kandidáti: exp_full_capacity (robustní základ), mm_park, mm_ml_b / final2
+  s adaptivním prahem (`exp_adaptive`), refit B na R2 pásce; compare všech na R2 + round1 + v2.
+  Hned CPU grid championa mm_park na R2 + round1 + sample_v2:
   `--grid '{"park_size": [0, 10, 20], "park_max": [2, 3, 5], "park_depth": [1]}'` (0 = park off) a
   `--grid '{"quote_size": [100, 200]}'` pro jistotu; compare vítěze vs champion → doporučení do T+20 min.
   Mechaniky z R1 netestovat znovu, pokud režim nepřinese nový důvod (viz tabulka zamítnutých).
