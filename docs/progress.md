@@ -825,3 +825,12 @@ na VELKÉ adverzní pohyby (klasifikační cíl), ne zpřesňovat průměrný 10
 `strategies/exp_b_graded.py` (parita 503 148 ✔, check PASS), ledger `r1-b-graded`: thr_lo 0,07 → round1 506 979 (+3 831), v2 256 884
 (−1 158, holdout −1 418); 0,085 → 505 336 / 257 293. Compare {0,07, 0,5}: ACCEPT nástrojem (7/8), ale holdout jen +225 a v2
 záporný → marginální; případně jen do finálního R1 stacku, pokud se sejde víc dílků. park_max 5 nad B: REJECT (holdout −301, v2 −1 k).
+
+## 2026-11-07 16:15 — `refit_ml --target B` hotový; model z round1 je lepší i na v2 než model fitnutý na v2 (home, mozek)
+
+`research/refit_ml.py` umí `--target base|B` (+ `--thr-share`, `--ref-data`): B label přes `fit_target.build_targets`, nahradí jen
+položku 'B' v LINEAR_MODELS a `ml_thr` = kvantil |pred| na nové pásce při stejném podílu událostí jako mm_ml_b na round1
+(27,95 %). Validace: B na round1 → byte-identické s `mm_ml_b.py` (503 148); base → byte-identické s `mm_ml.py`.
+**Generálka R2:** B fitnuté na sample_v2 (`strategies/mm_ml_b_v2fit.py`, IC 0,27, práh 0,037): sample_v2 252 091 vs mm_ml_b
+(model z round1) **258 042**, round1 207 829. → **Model z round1 je lepší i na druhém trhu než lokální fit na 1,6h pásce.**
+Na R2 kickoffu tedy porovnat obojí: mm_ml_b beze změny vs refit na R2 pásce (compare na R2 + round1 + v2), ne refit slepě.
