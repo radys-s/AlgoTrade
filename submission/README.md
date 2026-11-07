@@ -31,6 +31,7 @@
 | 2026-11-07 13:20 | Round 1 / `round1.csv` | `strategies/exp_full_capacity.py` (Honza: mm_v2 + quote_size 200, max_pos 100) | 425,708 (mm_v2 here: 321,024) | not uploaded |
 | 2026-11-07 14:45 | Round 1 / `round1.csv` | `strategies/mm_park.py` (radys: exp_full_capacity + parked 20-lot stubs) | 452,651 (exp_full_capacity: 425,708) | 452,651 public (= local), final, fe4bb77b |
 | 2026-11-07 15:40 | Round 1 / `round1.csv` | `strategies/mm_ml.py` (radys: mm_park + ridge-signal 5-lot stub on predicted-adverse side, thr 0.15) | 490,460 (mm_park: 452,651) | 490,460 public (= local), e9048569 |
+| 2026-11-07 17:00 | Round 1 / `round1.csv` | `strategies/mm_ml_r1tuned.py` (Honza/home: mm_ml with ml_thr 0.12 / ml_stub 3) | 497,292 (mm_ml: 490,460) | 497,292 public (= local), 101dbdba (Jan) |
 
 Absolute path for upload (Tomáš's PC):
 `C:\Users\tomas\OneDrive\Desktop\Projekty\Ostatni\AlgoTradeArena\submission\best_strategy.py`
