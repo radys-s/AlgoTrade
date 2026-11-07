@@ -1043,3 +1043,20 @@ touch has 0 lots ahead 84 % of the time (2 s: 97 %). Front-of-queue oracle: gate
 drift 3 -> 86,333 (8/8, chunk_min +95); parking -20k, ladder 15 +1k. Fill decomposition (`fill_decomp.py`):
 spread +0.37/lot at the fill, -0.32/lot adverse within 1 s, +0.10/lot trend over 60 s. Next: cut the first-second
 adverse selection, then the trend estimate.
+
+## 2026-11-07 20:30 — R2: architectures other than the gate (home, mozek; Honza: "don't optimise one architecture early")
+
+- **Taker economics** (`research/diag/taker_econ.py`): crossing on flow/return signals is break-even at best; after
+  big 1 s moves the price REVERTS (momentum taker -1.5..-4.4 ticks at 1-5 s); 60 s momentum +1.5-2.5 ticks but only
+  ~100 independent windows -> a directional book is capped by 100 lots (tens of k). Contrarian after q0.999 spikes
+  +3..+12 ticks within 1-5 s, but ~15-60 events -> < 10k. Taking is not the R2 engine.
+- **Front-of-queue oracle without the gate:** plain maker -217k -> +170k, R1 champion -171k -> +209k. Queue position is a
+  400k swing; the gate is a band-aid for back-of-queue fills.
+- **Static grid** (`strategies/exp_grid.py`, never re-prices, orders age to the front): -80k..-250k without gate,
+  12-49k with gate. REJECT.
+- **Why** (`research/diag/front_fill_age.py`): the front-of-queue fill at a FRESH level (made by an improving insert)
+  earns +0.64 ticks/lot at 1 s (< 50 ms old) and +0.1..0.2 later; at a level the touch RETREATED onto it loses
+  -0.57/-0.42 in the first 200 ms. Grid/ladder/park orders become the touch by retreat -> adverse.
+- **Fresh-level maker** (`strategies/exp_fresh.py`, joins only a touch made by improvement <= fresh_us ago):
+  no gate -217k -> -36k (keep_alone 0), with flow_pull 200 -13k -> +40k; with the gate no gain (84k vs 86k).
+  Improving ourselves (improve2 / improve_min_spread 3) -300..-600k: our own inside orders get picked off. 
