@@ -510,3 +510,24 @@ check_submission OK, research.check PASS, 2.3 min projected for 8.8M rows.
 **Result:** `mm_park` -> `submission/best_strategy.py` (not uploaded; Tomáš waits for a bigger jump).
 **Caveat:** helps on momentum tapes, costs a little on mean-reverting ones.
 **Next:** `exp_backpull` quick screen; heavy experiments listed in [radys-findings.md](radys-findings.md) section 5-6.
+
+## 2026-11-07 13:55 — Ověření `mm_park`, jemný grid parkování, ML taker overlay (home, mozek, R1)
+
+**Ověření Tomášova `mm_park` (submission/best_strategy.py, main 96e3506):** `research.compare` exp_full_capacity vs
+mm_park: round1 425 708 → **452 651** (+26 943, holdout 110 280 → 117 886, 8/8 párových chunků +502 až +3 720),
+sample_v2 263 618 → 251 236 (−12 382, 0/8, stále kladné) → **ACCEPT** pro R1. `research.check` na round1 PASS,
+27 s, projekce 54 s na 8,8 M. Shoda s Tomášem i notebookem na jednotku.
+
+**Jemný grid parkování** (ledger `r1-park-grid`, park_size 10/15/20/30/40 × park_depth 1/2/3 × park_max 2/3/5,
+round1 + sample_v2, breach 0 všude): **park_depth 1 je jednoznačně nejlepší** (stub o 2–3 ticky za touch škodí
+na obou datasetech, při max 5 až −25 %). round1 plató depth 1: 20/1/5 455 473, 30/1/3 453 321, 15/1/5 453 009,
+**20/1/3 452 651 (baked)**, 15/1/3 448 999, 10/1/3 444 526 → rozptyl ±0,6 %, baked hodnoty ve středu.
+sample_v2 chce menší stuby: 10/1/2 259 359, 15/1/2 256 696, 20/1/3 251 236 (bez parkování 263 618). Součet
+r1+v2 plochý (15/1/5 703 986 ≈ 20/1/3 703 887 ≈ 20/1/5 703 759). **Závěr: parametry neměnit**; pro R2
+v mean-reverting režimu zvážit park 10/1/2 nebo vypnout (4-buňkový test na kickoffu).
+
+**H10 ML taker overlay (`strategies/exp_ml_taker.py`, ledger `r1-ml-taker`):** ridge model 1 s (fit jen na prvních
+75 % round1), IOC na touch při |predikce| > práh, odvíjení pasivně makerem; parita 425 708 ✔. 12 buněk: nejlepší
+práh 1,2 / 20 lotů / max |I| 60 → 385 612 (**−9 %**), práh 0,6 → 379 k, 50 lotů → 268–292 k (−32 až −37 %), monotónně
+s intenzitou. **REJECT**; „spread jen jednou“ v simulátoru neobstojí (crossing + pozice zabraná takerem stojí víc,
+než horní 1 % predikcí vrátí). GPU/HGB verze se nestaví.

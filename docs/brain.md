@@ -96,9 +96,22 @@ what runs next, and at most one yes/no question.
   (−46 k na 276 k lotů); s imbalance pro nás vydělává každá pozice (+0,37 až +0,51 $/lot).
   Čas bez živé kotace 26 % na stranu: strop 12–15 %, in-flight 0,5 %, **„jiné“ 10–14 %** v úsecích
   100–800 ms při |I| 70–89 → podezření na kódovou cestu (replacement až po potvrzení cancelu?).
-- **Otevřené otázky:** H7 `deep_pull` (pull jen při imbalance proti + hluboká fronta); proč 10–14 %
-  času bez kotace mimo strop (trace běží); `max_position` 100 je monotónně nejlepší, trendující
-  privátní páska je riziko sdílené s championem.
+- **Parkování stubů (Tomáš, 14:45 → `mm_park`, v submission):** když trh zlepší cenu a kotace se musí
+  posunout, starý příkaz se `modify_order` zmenší na 20 lotů místo cancelu → drží místo ve frontě
+  (simulátor při zmenšení pořadí nemění). round1 **452 651** (+6,3 %, 8/8 chunků, holdout +6,9 %),
+  sample_v2 −4,7 % (0/8). Ověřeno nezávisle na home i na notebooku (shoda na jednotku), check PASS,
+  54 s / 8,8 M. Jemný grid (45 buněk × 2 datasety, `r1-park-grid`): **depth 1 jednoznačně**, depth
+  2–3 horší všude; round1 plató size 15–30 × max 3–5 (453–455 k, ±0,6 %), baked 20/1/3 je v jeho
+  středu; sample_v2 chce menší stuby (10/1/2 = 259 k, bez parkování 264 k). Součet r1+v2 je plochý
+  (15/1/5 ≈ 20/1/3 ≈ 20/1/5) → **neměnit**. Pro R2 v mean-reverting režimu zvážit park 10 / max 2
+  nebo vypnout (rozhodne 4-buňkový test na kickoffu).
+- **ML taker overlay (H10, `exp_ml_taker`, lineární ridge 1 s fit na 75 % round1):** IOC při silném
+  signálu nad makerem, odvíjení pasivně. Všech 12 buněk hluboko pod kandidátem (−9 % při prahu 1,2 /
+  20 lotů, −32 až −37 % s 50 loty), monotónně s intenzitou. Taking v tomto simulátoru neplatí ani
+  s pasivním výstupem → GPU/HGB verze nemá smysl.
+- **Otevřené otázky:** H11 standing ladder (pevné malé příkazy na touch−1..−4, nehýbat); R2 režim →
+  park on/off; `max_position` 100 je monotónně nejlepší, trendující privátní páska je riziko sdílené
+  s championem.
 
 ## Rozhodnutí (append-only)
 
@@ -112,4 +125,6 @@ what runs next, and at most one yes/no question.
 | 13:05 | Doporučení: `exp_full_capacity` jako submise R1 (ACCEPT na round1 + sample_v2, check PASS) | +33 %, 8/8 chunků, žádná nová mechanika |
 | 13:08 | Honza: nespěchat se submisí (10 slotů, server = lokál); submitovat až promyšleně | slot je vzácnější než čas |
 | 13:30 | Wave 1 uzavřena bez změny kandidáta; wave 2 = H7 `deep_pull` + rozbor času bez kotace (kódová cesta) místo dalších filtrů | všech ~80 běhů filtrů prodělává; jediný záporný segment fillů je imbalance proti × hluboká fronta |
-| 13:50 | **R1 finál = `submission/best_strategy.py` (exp_full_capacity, 425 708).** Výzkum R1 mechanik zastaven (H7–H9 také REJECT, ~110 běhů); nahrát nejpozději ~17:00 a nastavit final; tokeny šetřit na R2 | žádná z 9 mechanik ani 5 os nepřekonala kandidáta; strop pozice drží 50 % času a mimo strop je kotace živá |
+| 13:55 | **R1 finál = `submission/best_strategy.py` = Tomášův `mm_park` (452 651), parametry 20/1/3 nechat** | ověřeno nezávisle (home + notebook), ACCEPT 8/8 na round1; grid: plató ploché, baked hodnoty v jeho středu; −4,7 % na v2 je pro R1 irelevantní (privátní data = trh round1) |
+| 13:55 | ML taker overlay zamítnut i v levné lineární verzi; GPU/HGB verze se nestaví | −9 až −37 % ve všech 12 buňkách |
+| 13:50 | (dříve) R1 finál = `submission/best_strategy.py` (exp_full_capacity, 425 708). Výzkum R1 mechanik zastaven (H7–H9 také REJECT, ~110 běhů); nahrát nejpozději ~17:00 a nastavit final; tokeny šetřit na R2 | žádná z 9 mechanik ani 5 os nepřekonala kandidáta; strop pozice drží 50 % času a mimo strop je kotace živá |
