@@ -1303,3 +1303,5 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
   research/reports/round2_final.md.
 - Stability of mm_r2_final (round2 / mirror vs 434,477 / 432,324): fq_k_sp2 0.72 433,512 / 432,998, 0.78 433,565 / 432,085;
   hk_gap 2 433,351 / 432,142, hk_gap 4 identical; rt_ms 15 434,063 / 432,144, rt_ms 30 431,696 / 429,039. A plateau.
+- mm_r2_final vs mm_r2_rth by chunk: round2 5/8 better (gain mostly chunk 7, +2.6k), mirror 6/8. Modest, consistent sign.
+  Final pick rule stays: the higher leaderboard pnl of mm_r2_rth (970,101) and mm_r2_final.
