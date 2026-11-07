@@ -1320,3 +1320,5 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
 - round1 attribution: fq_k_sp2 off gives 457,781 (hole off) / 457,198 (hole on) vs mm_r2_final 450,065 - the wide-spread
   filter costs ~7.7k on round1 too; the hole filter is neutral off-R2.
 - Public chart at 23:41: 75th percentile ~930k (+-10k), median 347k; our best then was 957,133 (rts), now 974,031.
+- round1 attribution (cont.): rt off 451,227 (qs 0.3) / 447,578 (qs off) vs mm_r2_final 450,065 - rt and qs are neutral
+  off-R2 (+-2k). Session end 00:15: best leaderboard mm_r2_final 974,031; last upload mm_r2_final2.
