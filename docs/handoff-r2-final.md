@@ -41,3 +41,27 @@ Local number is a RANKING device only. Coordinates: |I| pinned at 100 almost alw
   single-axis move either loses or buys train pnl with holdout. Beating it needs a NEW signal or a new constraint,
   not a threshold move. Wave 3 (running): trend-conditional take margin (`take_gate_bonus`/`take_counter_penalty`),
   thin-book deep sweep (`take_slip_qty`), gate window 15 s / 45 s.
+
+## COPILOT
+
+- Current status: the server artifact is still missing, so the local-vs-server gap analysis is blocked.
+- Verified local evidence: the best local round2 run in [20261107-222544_radys-s_r2-radys-fq5-spread.csv](research/results/20261107-222544_radys-fq5-spread.csv) is 360,791, while the uploaded base remains 349,077.
+- Trust rule: until a server file appears and is compared to the same run settings, local results are directional only and cannot be used for final ranking or claiming a champion.
+- Next action: keep the C2 sweep in the allowed output folder, re-check for the server artifact, and perform the exact server cross-check as soon as it lands.
+
+### Wave 3 — the gate window is the lever (~40 full-rate runs)
+- **`gate_window_us` 30 s -> 15 s = 358,764 (+2.8 %)**, 8/8 chunks, chunk_min +16,163, holdout +476, penalty 0.
+  5 s = 336,595, 10 s = 342,391, 45 s = 342,337, 20 s dropped in the p30 screen => 15 s is a real optimum, not a
+  monotone drift: the gate must measure the current minute, and anything shorter is noise.
+- **`gate_thr` 9 at that window = 363,943 (+4.25 %)**, 8/8, chunk_min +17,021, holdout 103,164 (+817), fills 12,561.
+  thr 7 = 351,518; thr 10 = 357,536 (holdout 95,872); thr 11 = 356,356 (holdout 92,988); thr 12 at 30 s = 354,377
+  (holdout 85,554). Everything above 9 buys train pnl with holdout => 9 is the top of the stable band.
+- **`take_k_spread` 0.1** (extra crossing margin when spread >= 2): +2,027 on top of gate 15 s at thr 8, holdout +911.
+  A wide or one-sided book has a stale touch, so a cross needs a bigger edge.
+- fq_take 150 + gate_max_spread 5 at thr 8: 361,140 (holdout 103,095) — roughly the same as thr 9, not additive.
+- fq_take_k 0.18 / 0.22 on the stack: 360,296 / 357,395 < 0.2 => keep 0.2.
+- Rejected in this wave: dropping clamped inserts (264,059, -26 %: the censored devs still carry the level
+  information), take_persist 2 (353,696), gate on F-drift instead of mid drift (358,934 vs 358,764 at thr 8; at
+  thr 12 it wins pnl but loses 7 k of holdout), taker slippage 1-2 ticks (-18 % / -25 %).
+- Net: **`strategies/mm_r2_radys_v1.py` = mm_r2_fq2 + gate 15 s + thr 9 + take_k_spread 0.1 = 363,943 local
+  (+4.25 %, x2.12 => ~772 k server pace)**, all 8 chunks positive, holdout better, penalty 0, single file, no imports.

@@ -179,3 +179,20 @@ explicit over-cap one and the penalty is counted), R1 not negative, sandbox chec
   realistic predictor tried (ridge blends, tau mixes, F velocity) lands at 244-273k. So the remaining value is not in
   a better estimator but in better USE of the same estimator at the decision points: trend-conditional margins and
   sweep depth on thin touches are the two untested uses.
+
+## Results 22:45 — the gate window is the only lever left on the fq2 skeleton
+
+- `gate_window_us` 15 s (was 30 s): **358,764 (+2.8 %)**, holdout +476. 5 s/10 s/45 s are all worse.
+- `gate_thr` 9 at 15 s: **363,943 (+4.25 %)**, holdout +817, 8/8 chunks, chunk_min +17,021, penalty 0.
+  thr 7 = 351.5k, thr 10 = 357.5k (holdout -6.5k), thr 11 = 356.4k (holdout -9.2k), thr 12 = 354.4k (holdout -16.8k):
+  above 9 everything is train-pnl buying. The gate must be FAST (15 s) and MEDIUM (9 ticks), not slow and loose.
+- `take_k_spread` 0.1 (bigger crossing margin when spread >= 2): +2.0k, holdout +911. On a one-sided/wide book the
+  touch is stale, so crossing needs more edge — this is the "one-sided book" fact (D6) finally paying.
+- Dead this wave: dropping clamped inserts (-26 %; the censored devs still tell you the level), take persistence
+  (-1.5 %), F-drift gate (neutral), taker slippage (-18/-25 %), fq_take_k 0.18/0.22.
+- **For Honza's Claude (home PC, needs >15 min)**: (1) re-run the whole fq2 sweep with `gate_window_us` 15000000
+  *inside* every grid (the 15 s window may move the optimum of fq_take_k / fq_take / gate_max_spread; my sweeps
+  fixed 30 s for all of them); (2) the gate and the fair signal are redundant in principle — the gate is a slow
+  proxy of F drift — so try removing the gate entirely at the 15 s horizon with a *lower* fair threshold instead;
+  (3) the crossing margin should probably also scale with the book's one-sidedness (spread 2-3 vs 10-80 ticks are
+  different regimes) — `take_k_spread` only handles spread >= 2.
