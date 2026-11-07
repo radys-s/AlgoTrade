@@ -6,6 +6,12 @@ unless marked otherwise; ledgers are in `research/results/*radys-s*`.
 
 ## TL;DR
 
+- **Origin of each strategy:** `submission/best_strategy.py` = **our model (radys window, Tomáš's PC)**
+  `strategies/mm_park.py` = Honza's `exp_full_capacity` core + parked 20-lot stubs: round1 **452,651**.
+  Previous champion = **Honza's model** `exp_full_capacity.py` (425,708). Not uploaded yet (Tomáš waits for a bigger jump).
+- `research.compare` mm_park vs exp_full_capacity: round1 +26,943, holdout +7,605, 8/8 chunks -> ACCEPT;
+  **sample_v2 -12,382 (-4.7 %, 0/8 chunks)** -> the park mechanic helps on momentum tapes (round1) and costs a
+  little on mean-reverting ones (v2). Watch this on later rounds.
 - Champion = `strategies/exp_full_capacity.py` (Honza: mm_v2 + quote_size 200): **round1 pnl 425,708**
   (mm_v2 there: 321,024). The +33 % came from Honza's quote_size 200, not from the radys experiments.
 - **Every mechanic that cancels or withholds a touch quote lost pnl on round1** (imbalance pull, flow pull,
@@ -74,6 +80,64 @@ All flags default to off (= champion, parity checked: off reproduces 425,708 / 2
 4. **Fill-quality model (phase 2).** Linear/ridge model of 1 s markout from (lots ahead, level thickness,
    L1 imbalance, flow, spread), weights embedded as literals (file limit 1 MiB, ours ~18 KB). Only useful
    together with 1-2: the decision must not cost queue priority.
+
+## 4. Results of the ideas above (radys, 14:40)
+
+| idea | file / flag | screen (25 % halving, then full round1) | status |
+|---|---|---|---|
+| #1 park a stub instead of cancelling | `strategies/exp_shrink.py`, baked as `strategies/mm_park.py` (park_size 20, park_depth 1, park_max 3) | **452,651 full (+6.3 %)**, holdout 117,886 (+6.9 %), 8/8 chunks; plateau: park 20 = 447-452k at depth 1/2/4, park 10 = 443k, park 50 = 440k | **in submission** (compare ACCEPT: round1 8/8, sample_v2 -4.7 %) |
+| #2 pull only at the back of the queue | `strategies/exp_backpull.py` (`back_ahead`, `back_imb`) | not run yet | built, check PASS |
+
+## 5. Heavy experiments for Honza's compute (not run in the radys window)
+
+These need large grids or long training; the radys laptop does only quick 25 % screens. Each starts from the
+best baked file (now `mm_park.py`) and keeps the new mechanic behind a flag that is off by default.
+
+1. **Park-stub fine grid on all datasets.** park_size 10-40 step 5 x park_depth 1-4 x park_max 1-6, plus
+   quote_size 150/200/250, on round1 + sample_v2 (+ every later round). Pick the plateau centre with
+   `research.ledger --robust`. ~150 full runs.
+2. **Park + back-pull combined.** back_ahead {100, 200, 300, 500} x back_imb {0.3, 0.5, 0.7} on top of the
+   park winner. Interactions matter: parking keeps front positions, back-pull only drops back positions.
+3. **Fill-quality model (walk-forward).** Label = 1 s markout of each touch fill (`research.mm_edge` data);
+   features = lots ahead of us, level thickness, L1 imbalance, microprice, flow 100 ms / 1 s, spread, abs(I).
+   Train ridge then a small MLP (`research.train_mlp`) on chunks 1..k, test on k+1 (walk-forward, 8 folds).
+   Use it only to decide when to SHRINK (modify) a quote, never to cancel a front order. Export weights as
+   literals (file limit 1 MiB; inference must stay < ~50 us/event: 4.4M events in a 15 min, 1 CPU sandbox).
+4. **Queue-aware sizing.** Size the touch quote by level thickness (> 1000 lots: +0.32 $/lot, < 100: negative):
+   size = f(level qty) instead of constant 200. Grid over 3-4 breakpoints.
+5. **Regime switch per round.** v2 (mean-reverting, spread 2 for 58 %) and round1 (momentum after trades,
+   spread 1 for 93 %) want different settings. Detect the regime online (spread share, trade-follow markout
+   over the last N s) and switch parameter sets; validate by training on one dataset, testing on the other.
+6. **Stress tests for the final pick.** The same strategy on: round1 shifted in time, round1 reversed in
+   price, round1 + sample_v2 concatenated, a 2x longer tape. Reject anything that is not positive on all.
+
+## 6. What the leading teams probably do (hypotheses to test)
+
+Evidence: on the playground leaderboard the top-2 curves had the same shape as ours (smooth, no blow-ups),
+just ~20 % steeper -> they market-make too, with more edge per second. On a replayed tape the edge beyond
+plain quoting comes from queue priority and from the replay artefacts (`.claude/skills/arena-market-mechanics`).
+
+1. **Standing ladder (pre-positioned queue priority).** Keep small orders permanently on touch-1 .. touch-4
+   and never move them; market orders live ~337 ms, so a ladder order that waits is at the FRONT when the
+   price arrives (Q = 0 fills: +0.21 $/lot). Our `layer` test lost because the layer was re-quoted with the
+   touch (lost priority every tick); a ladder that stays at fixed prices is a different mechanic. Cap the
+   total by the invariant (ladder size counts in OUT_k).
+2. **Zombie liquidity.** When our order is ahead of a market order, takers fill us and the market order
+   stays in the simulated book with no tape cancel. The simulated book becomes thicker where we quote early,
+   which protects our stubs (thick level behind us = +0.32 $/lot). Measure: book qty at our level vs the
+   historical qty; quote early on levels where we create zombies.
+3. **Repeated participants by order id / lifespan / size.** The tape has order ids and lifespans; informed
+   flow (big IOC sweeps, max Insert 124,248 lots in round1) may come from recognisable patterns (size
+   buckets, specific Lifespan values, Insert-then-IOC sequences). Classify the next taker's size from the
+   recent pattern and shrink the side it will hit just before it lands (5 ms latency is the constraint).
+4. **Sweep anticipation through queue depletion.** Cancels and small takers eating the touch queue ahead of
+   us precede the sweep that moves the price. Rate of depletion of the touch (lots/ms) as a feature for the
+   shrink decision (not cancel).
+5. **Inventory turnover instead of skew.** Fills that reduce abs(I) earn +0.20 $/lot, adding fills -0.015.
+   Leaders likely keep the reducing side at full size (we do, quote 200) AND shrink the adding side when
+   abs(I) is high, without moving its price (moving price lost every test).
+6. **Per-round regime detection.** The round data differs a lot (v2: mean-reverting, spread 2 for 58 %;
+   round1: momentum, spread 1 for 93 %); a team that adapts settings online beats one tuned on public data.
 
 ## Tools from this window
 

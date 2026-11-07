@@ -29,6 +29,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 13:20 | radys | Round 1: mm_v2 321,024 vs exp_full_capacity 425,708 (+33%) -> submission |
 | 2026-11-07 13:45 | radys | R1 tuning on full_capacity: layers/size/imb_pull/jump/flow_pull all <= 426k; fill analysis: inventory-adding fills lose |
 | 2026-11-07 14:15 | radys | Queue-position diagnostics on R1; imb/thin/requote pulls all lose; handoff `docs/radys-findings.md` |
+| 2026-11-07 14:45 | radys | Park stubs via modify instead of cancel: `mm_park` round1 452,651 (+6.3 %), compare ACCEPT -> submission |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -392,3 +393,18 @@ Full write-up and tables: [radys-findings.md](radys-findings.md). Ledgers `r1-qu
 requote_tolerance 1 -27 %, imb_pull 0.9 -11 %, thin_pull 30 -8 %. Our fills with 0 lots ahead earn +0.21 $/lot,
 with 500+ ahead -0.22..-0.52; any cancel sends us to the back of a ~900-lot queue, which is why every filter loses.
 Next: shrink via modify_order instead of cancel; pull only when already at the back.
+
+## 2026-11-07 14:45 — Park a stub instead of cancelling (radys, our model)
+
+**Idea:** every cancel sends us to the back of a ~900-lot queue, and our Q = 0 fills earn +0.21 $/lot. When the
+market improves past our quote, `strategies/exp_shrink.py` shrinks the old order with `modify_order` to a stub
+(the simulator reduces in place, queue place kept) instead of cancelling it; stubs further than park_depth
+ticks behind the touch are cancelled, at most park_max per side.
+**Screen** (ledger `r1-shrink`, 15 sets on 25 % of round1, best 5 on full): park 20 / depth 1 **452,651**,
+depth 2 447,771, depth 4 447,062; park 10 442,882; park 50 439,606; off 425,708. Plateau, not a spike.
+**Fairness check** (`research.compare`, champion exp_full_capacity vs `strategies/mm_park.py`):
+round1 +26,943, holdout +7,605, 8/8 paired chunks; sample_v2 -12,382 (-4.7 %), 0/8 chunks. VERDICT ACCEPT.
+check_submission OK, research.check PASS, 2.3 min projected for 8.8M rows.
+**Result:** `mm_park` -> `submission/best_strategy.py` (not uploaded; Tomáš waits for a bigger jump).
+**Caveat:** helps on momentum tapes, costs a little on mean-reverting ones.
+**Next:** `exp_backpull` quick screen; heavy experiments listed in [radys-findings.md](radys-findings.md) section 5-6.
