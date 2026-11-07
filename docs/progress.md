@@ -714,3 +714,13 @@ Ale ve strategii: thr 0,10 → 469 064, 0,125 → 466 972, 0,15 → 464 022, 0,2
 **Závěr:** IC navíc sedí v „těle“ rozdělení; shrink odměňuje vzácné, jisté predikce přejetí, které lineární kombinace
 toku a imbalance zachytí stejně dobře. Přenos na v2 slabý (trénink jen round1). Případný další pokus: trénink na
 round1 + sample_v2, nebo cíl zarovnaný se ztrátou (adverzní pohyb podmíněný fillem) místo MSE na 100 ms pohybu.
+
+## 2026-11-07 15:10 — Features v2 pro ridge: 12 nových kandidátů skoro nic, krychle imbalance +0,03 IC (home, mozek)
+
+`research/features_v2.py` (12 kandidátů z npz: vyprazdňování touch 100/500 ms, cancel/insert čistý tok 200 ms, počet
+příkazů, avgsz_imb, L2 imbalance, počet změn midu za 1 s, poslední IOC, podíl posledního obchodu, trvání spreadu,
+tok/hloubka), report `research/reports/round1_features_v2.md`. Walk-forward ridge 100 ms round1: baseline 0,380; +všech 12
+→ 0,386 (nic); na sample_v2 pomáhají ins/cxl/dep (+0,03–0,06), cross-market se nepřenáší. **Nelinearita je větší páka:**
+HGB 0,452; **krychle imb1, imb2, micro, cnt_imb1 → ridge 0,410 (+0,03)**, top-1 % edge 0,449 → 0,543 ticku, cross-market IC
+0,278 → 0,293 (robustní). Cena ~0,3 µs. Běží test v strategii (`exp_ml_cubes.py`: refit s krychlemi, práh na stejnou
+četnost, compare vs mm_ml); po lekci s MLP (IC 0,447, ale PnL −4 %) rozhodne jen research.run.
