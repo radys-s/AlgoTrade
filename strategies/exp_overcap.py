@@ -296,6 +296,9 @@ class MarketMaker(BaseStrategy):
         # When |I| >= this, send an IOC at the touch towards zero; 0 disables.
         'unwind_threshold': 0,
         'unwind_to': -1,
+        # Extra potential-position room for the unwind IOC only (the reducing side is usually full, so the old unwind
+        # never fired). A breach needs the whole resting reducing side AND the IOC to fill; 0 = old behaviour.
+        'unwind_slack': 0,
         'unwind_slip': 0,
         # Lots per unwind IOC.
         'unwind_size': 5,
@@ -485,6 +488,7 @@ class MarketMaker(BaseStrategy):
         self.unwind_threshold = int(params['unwind_threshold'])
         self.unwind_size = int(params['unwind_size'])
         self.unwind_to = int(params['unwind_to'])
+        self.unwind_slack = int(params['unwind_slack'])
         self.unwind_slip = int(params['unwind_slip'])
         self.book_scan_orders = max(1, int(params['book_scan_orders']))
         self.imb_pull = float(params['imb_pull'])
@@ -802,15 +806,15 @@ class MarketMaker(BaseStrategy):
             k, sign, side, px = 1, -1, _SELL, bb
         else:
             k, sign, side, px = 0, 1, _BUY, ba
-        qty = min(self.unwind_size, abs(inv), self.max_pos - sign * inv - self.out[k])
+        qty = min(self.unwind_size, abs(inv), self.max_pos + self.unwind_slack - sign * inv - self.out[k])
         if qty > 0:
-            self.unwind_id = self._send(k, sign, side, px, qty, True, k)
+            self.unwind_id = self._send(k, sign, side, px, qty, True, k, self.unwind_slack)
             if self.unwind_id is not None:
                 self.n_unwinds += 1
 
-    def _send(self, k: int, sign: int, side: Side, px: int, qty: int, ioc: bool, j: int) -> str | None:
+    def _send(self, k: int, sign: int, side: Side, px: int, qty: int, ioc: bool, j: int, slack: int = 0) -> str | None:
         """The only place orders are created: refuse anything that could break the invariant."""
-        if qty <= 0 or px <= 0 or sign * self.inv + self.out[k] + qty > self.max_pos:
+        if qty <= 0 or px <= 0 or sign * self.inv + self.out[k] + qty > self.max_pos + slack:
             self.n_blocked += 1
             return None
         order_id = self.send_order(
