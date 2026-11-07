@@ -292,6 +292,40 @@ showed a better-IC MLP lost in the shrink, so validate on pnl, not IC.
   behind the touch; cap resting per side R in {200, 400, 600}; on |I| > 80 cancel the adding side. Measure fills,
   pnl/lot, breach seconds, penalty $. Combine with the R2 trend gate (drop the against-trend ladder).
 
+## 11. DATA FLAW: hidden fair price leaks through new limit-order prices (radys, R2)
+
+The generator places limit orders around a hidden fair price F; the visible book lags F. Each new limit insert is
+a noisy look at F: `ev = price - side_offset` (bids -1.22, asks +1.20 vs the pre-event mid on R2). A time-decayed
+average of `ev - mid` (tau 20-50 ms, limit inserts only = visible to a strategy as new order ids) predicts:
+
+| tape | corr with mid move t+5ms -> t+100ms | -> t+1s | -> t+5s |
+|---|---|---|---|
+| R2 | +0.41 | +0.21 | +0.09 |
+| R1 | +0.31 | +0.37 | +0.17 |
+
+Book imbalance (what our ML used) is ~0.03 by comparison. Taker check on R2 (buy ask at t+5ms, sell bid at
+t+500ms, overlapping samples so optimistic): signal > 1.0 +0.25, > 1.5 +0.82, > 2.0 +1.37 ticks/lot after paying
+the spread twice. R1 rarely reaches > 1.0 (signal is smaller there), so on R1 it is mostly a MAKER filter.
+IOC limit prices also centre on F (buy IOC priced 1 tick below the ask -> mid -1.8 in 1 s), but they are not
+visible to us. Not found: IOC timing schedule, side persistence (0.50), cancel-side or placement-count signals.
+
+Explore file: `playground/explore_data.py` (cells, reproduces all numbers above).
+
+**Uses, in order of expected value:**
+1. Maker: skip / modify-down the side the fair price is moving away from (|sig| > ~0.5) -> fewer adverse fills;
+   lean size onto the side fair is moving toward. Cheap to add to the champion as a replacement for the ridge ML.
+2. Taker overlay: IOC with the signal when |sig| > 1.5-2.0, exit after ~0.5 s or when sig flips; |I| <= 100.
+3. Better F estimator (median, weights by placement, cancels) -> more corr.
+
+**Measurement tasks for agents (each self-contained):**
+- T1: implement the signal inside a strategy (scan snapshot for market order ids > last seen id, within 3 ticks of
+  the touch; ev = price - offset; time-decayed mean tau 30 ms minus current mid). Check it reproduces corr ~0.4.
+- T2: taker-only strategy on T1: thr {1.0,1.5,2.0,3.0} x hold {200,500,1000 ms} x qty {5,10,20}; report pnl, fills,
+  penalty on R2 and R1.
+- T3: champion (mm_ml_r1tuned / Honza's trend gate) + signal gate: drop/modify-down the side with sig against it,
+  thr {0.3,0.5,0.8,1.2}; report R2 and R1 pnl vs baseline.
+- T4: try fair estimators (EWMA tau 10-300 ms, median of last N inserts, touch-only inserts) -> corr at 100 ms / 1 s.
+
 ## Tools from this window
 
 - `research/analyze_tape.py` — 1-minute tape overview (spread, momentum vs reversion, signal correlations).

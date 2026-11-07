@@ -955,3 +955,13 @@ pnl per 10 % of time, plotly chart and fills CSV in `playground/out/`). README w
 **Result:** R2 public tape +42,193, 0 penalty, 7,015 fills, 75 s run. For comparison every R1 champion loses
 −148k..−230k on R2, so the trend filter alone flips the sign. |inventory| sits at the cap (60) almost always.
 **Next:** Tomáš iterates on the playground; radys waits for Honza's R2 model before fine-tuning.
+
+## 2026-11-07 — radys: data flaw found — hidden fair price leaks through new limit-order prices
+
+**What:** profiled the R2 tape for generator patterns. New limit orders are placed around a hidden fair price; a
+tau 20-50 ms average of (insert price - side offset - mid) predicts the next 100 ms mid move with corr +0.41 on R2
+(+0.37 at 1 s on R1); book imbalance gave 0.03. Taker check: +0.25 / +0.82 / +1.37 ticks per lot after both spreads
+at thresholds 1.0 / 1.5 / 2.0 (500 ms hold, optimistic overlapping samples). No IOC schedule, no side persistence.
+**Why it matters:** it is the first real directional edge we have; usable as a maker filter and a taker overlay.
+**Files:** `playground/explore_data.py` (reproducible cells), `docs/radys-findings.md` section 11 (tasks T1-T4).
+**Next:** Tomáš's agents run T1-T4 in the simulator (radys stops running heavy compute on request).
