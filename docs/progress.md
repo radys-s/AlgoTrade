@@ -981,3 +981,10 @@ ledger `r1-adaptive`. Prahy sledují škálu predikce (round1 0,105/0,069 = bake
 258 293 (−1,8 k) při stejném podílu; podíl 0,22 → +1,0 k / +0,8 k (šum). Compare {0,28} REJECT (3/8). **Závěr:** pojistka proti posunu
 škály predikce na novém kole (pro R2 užitečné, pokud nebudeme refitovat), ne zdroj PnL. Privátní R1 navíc ukázal, že se final2 přenesl 1:1,
 takže křehkost prahů nebyla příčinou rozdílu k lídrům.
+
+## 2026-11-07 19:00 — H25 hluboký ladder na prázdných hladinách: REJECT (home, mozek)
+
+`strategies/exp_ladder_deep.py` (ladder_start 4/6, depth 3/5, size 20/50, reserve 0; parita 452 651 ✔, check PASS), ledger `r1-ladder-deep`:
+všechny buňky 10–81 k (−82 až −98 %), fills −62 až −96 %. Příčky ve 4–9 ticích hloubky zaberou 100–500 lotů invariantu a skoro se
+neplní → touch kotace vyhladoví. Kvalitu hlubokých fillů to neměří, ale platí totéž co u mělkého ladderu: kapacita je vázaná a nečinná
+příčka stojí filly na touch. „Být první z konstrukce“ v hloubce nejde zaplatit kapacitou. Hypotéza o konstrukci lídrů tímhle padá.
