@@ -36,6 +36,7 @@
 | 2026-11-07 17:35 | Round 1 / `round1.csv` | `strategies/mm_r1_final.py` (Honza: mm_ml_b + graded 0.07 + ml_tight_only + park_max 5) | 510,469 (mm_ml_b: 503,148) | verified local |
 | 2026-11-07 18:05 | Round 1 / `round1.csv` | `strategies/mm_r1_final2.py` (Honza: ml_stub 0, park_size 15, park_max 8) | 514,093 (final: 510,469) | verified local |
 | 2026-11-07 18:25 | Round 1 / `round1.csv` | `strategies/mm_r1_final3.py` (radys: quote_size 180, park_max 6) | 515,687 (final2: 514,093) | ready to upload / NEW CHAMPION |
+| 2026-11-07 20:50 | Round 2 / `round2.csv` | `strategies/mm_r2_gate86.py` (Honza/home exp_r2_ladder: 30 s drift gate thr 4, gate_max_spread 3, park 0) | 86,333 (R1 champions on R2: -148k..-230k) | ready to upload (R2 insurance) |
 
 Absolute path for upload (Tomáš's PC):
 `C:\Users\tomas\OneDrive\Desktop\Projekty\Ostatni\AlgoTradeArena\submission\best_strategy.py`

@@ -1,20 +1,29 @@
-"""mm_r1_final2 (home): mm_r1_final with ml_stub 0 (full pull instead of a 3-lot stub), park_size 15, park_max 8; round1 514,093 vs 510,469 (grid r1-final-grid2, holdout +1,462).
+"""mm_r2_gate86: exp_r2_ladder (Honza/home) with the R2-best params baked in: gate_thr 4, gate_window 30 s,
+gate_max_spread 3, gate_rungs 1, park_size 0, ladder 0. Ledger r2-ladder-s3: round2 86,333 (8/8 chunks).
+"""
+"""exp_r2_ladder (home, R2): exp_ladder_home (mm_park + standing rungs) + the round-2 trend gate.
 
-mm_r1_final (home): mm_ml_b (ridge target B, ml_thr 0.105, ml_stub 3) + round1-regime stack baked: graded cap ml_thr_lo 0.07 / ml_frac_lo 0.5, ml_tight_only 1 (no ML stub at a 2-tick spread), park_max 5. round1 510,469 vs mm_ml_b 503,148 (+7,321, 7/8 paired chunks, holdout +566); sample_v2 258,573 (+531, 5/8, holdout +504). Fit for the round1 market; re-tune park/thresholds for other regimes.
+Why (round2 anatomy, research/diag/queue_age.py): market orders live ~0.3 s, so an order parked at a
+level >= 1 s before that level becomes the touch is at the very FRONT of the queue 84 % of the time
+(2 s: 97 %). The front-of-queue oracle on round2 is worth ~+150k for the gate maker (84k -> 232k).
+  * gate_thr / gate_window_us / gate_max_spread: drift = mid change over gate_window_us, sampled only
+    while the spread is <= gate_max_spread (round2 has transient one-sided gaps of 10-80 ticks that are
+    63 % of the mid variance; they must not trip the gate). |drift| >= gate_thr pulls the against-trend
+    side (bid when falling, ask when rising). gate_thr 0 = off (identical to exp_ladder_home).
+  * gate_rungs: 1 = the gate also cancels that side's rungs and parked stubs.
 
-mm_ml_b (home): mm_ml with the loss-aligned ridge target B (mid move after the first taker hit x [hit within 100 ms]), ml_thr 0.105, ml_stub 3 baked. round1 503,148 vs mm_ml 490,460 (+12,688, 7/8 paired chunks, holdout +3,397); sample_v2 258,042 (+3,981, 6/8). Plateau thr 0.097-0.115 (499-503k).
+exp_ladder (H11): mm_park + standing "ladder" rungs behind the touch that are never moved.
 
-mm_ml (radys): mm_park + ridge 100 ms signal shrinks the side predicted to be run over to a 5-lot stub
-(ml_thr 0.15 ticks, ml_stub 5) baked in. round1 local pnl 490,460 vs mm_park 452,651, 8/8 chunks.
+  * ladder_size / ladder_depth / ladder_reserve: per side keep one ladder_size-lot order at each of
+    touch-1 .. touch-ladder_depth (mirrored on the ask), placed once and then left alone while inside the
+    window, so when the price arrives they are already at the front of the new touch queue (queue position
+    is the edge: 0 lots ahead +0.21 $/lot, 500+ ahead loses). Rungs deeper than the window, or better than
+    the touch, are cancelled. Rungs count in OUT_k; ladder_reserve 1 = touch quote first, rungs from what is
+    left; 0 = rungs first, the touch quote takes the rest. ladder_size 0 = off (identical to mm_park).
+    The invariant gate in _send is untouched.
 
-exp_ml_shrink (radys): exp_shrink + a walk-forward ridge model that SHRINKS (never cancels) the side it
-predicts will be run over.
-
-  * ml_thr / ml_stub: pred = predicted mid change over the next 100 ms (ticks, ridge on research.signals
-    features, IC +0.38 in all 7 walk-forward folds on round1). pred < -ml_thr: cap the bid quote at ml_stub
-    lots (modify the oldest order down, cancel newer ones), pred > +ml_thr: same for the ask. The oldest
-    order keeps its queue place; the quote is topped up again (at the back) once the signal fades.
-    ml_thr 0 = off. Features: pasted copy of research.signals.OnlineFeatures (via signal_taker.py).
+mm_park (radys): exp_full_capacity + parked 20-lot stubs (park_size 20, park_depth 1, park_max 3) baked in.
+round1 local pnl 452,651 vs champion 425,708.
 
 exp_shrink (radys): exp_queue + park a stub instead of cancelling when the market improves past us.
 
@@ -88,7 +97,6 @@ The reject rule |I + s(R + q)| > 1000 can never fire either: R + q <= OUT_k (+q)
 s*I + R + q <= M <= 100, and s*I >= -M, so the value lies in [-100, 100].
 """
 
-import math
 from collections import deque
 from math import floor
 
@@ -119,137 +127,6 @@ _REJECTED = OrderStatus.REJECTED
 _NEVER_US = -(1 << 62)
 
 
-def _depth(views: list, levels: int) -> int:
-    """Quantity at the best `levels` distinct prices of one side (best first)."""
-    total = 0
-    level = 0
-    price = views[0].price
-    for view in views:
-        if view.price != price:
-            level += 1
-            if level == levels:
-                break
-            price = view.price
-        total += view.quantity
-    return total
-
-
-def _imb(b: float, a: float) -> float:
-    return (b - a) / (b + a) if b + a > 0 else 0.0
-
-
-class _FullFeatures:
-    """Pasted copy of research.signals.OnlineFeatures (default lookbacks), used only for SIGNAL='linear'."""
-
-    def __init__(self) -> None:
-        self.flow_events = (1, 10, 100)
-        self.flow_ms = (10, 100, 1000, 10000)
-        self.ret_ms = (100, 1000, 10000)
-        self._ev_hist = deque(maxlen=100)
-        self._ev_sums = [0.0, 0.0, 0.0]
-        self._flow_windows = [(t * 1000, deque(), [0.0]) for t in self.flow_ms]
-        self._fills = deque()
-        self._fills_sum = 0
-        self._events = deque()
-        self._mid_hist = [(t * 1000, deque()) for t in self.ret_ms]
-        self._mid_ff = math.nan
-        self._last_dmid = 0.0
-        self._last_change_us = None
-        self._last_trade_px = 0
-
-    def update(self, snapshot: OrderBookSnapshot, trades: list) -> dict | None:
-        t = snapshot.timestamp_us
-        if self._last_change_us is None:
-            self._last_change_us = t
-        flow = 0.0
-        for trade in trades:
-            flow += trade.quantity if trade.book_side == 'ask' else -trade.quantity
-            self._last_trade_px = trade.price
-        hist = self._ev_hist
-        for k, n in enumerate(self.flow_events):
-            self._ev_sums[k] += flow
-            if len(hist) >= n:
-                self._ev_sums[k] -= hist[-n]
-        hist.append(flow)
-        for window, items, total in self._flow_windows:
-            if flow:
-                items.append((t, flow))
-                total[0] += flow
-            while items and items[0][0] <= t - window:
-                total[0] -= items.popleft()[1]
-        if trades:
-            self._fills.append((t, len(trades)))
-            self._fills_sum += len(trades)
-        while self._fills and self._fills[0][0] <= t - 1_000_000:
-            self._fills_sum -= self._fills.popleft()[1]
-        self._events.append(t)
-        while self._events[0] <= t - 1_000_000:
-            self._events.popleft()
-        bids, asks = snapshot.bids, snapshot.asks
-        two_sided = bool(bids) and bool(asks)
-        if two_sided:
-            mid = (bids[0].price + asks[0].price) / 2
-            if mid != self._mid_ff:
-                if self._mid_ff == self._mid_ff:
-                    self._last_dmid = mid - self._mid_ff
-                    self._last_change_us = t
-                self._mid_ff = mid
-        rets = []
-        for window, items in self._mid_hist:
-            items.append((t, self._mid_ff))
-            while len(items) >= 2 and items[1][0] <= t - window:
-                items.popleft()
-            rets.append(self._mid_ff - items[0][1] if items[0][0] <= t - window else math.nan)
-        if not two_sided:
-            return None
-        b = [_depth(bids, k) for k in (1, 2, 3, 5)]
-        a = [_depth(asks, k) for k in (1, 2, 3, 5)]
-        bp, ap = bids[0].price, asks[0].price
-        nb = 0
-        for view in bids:
-            if view.price != bp:
-                break
-            nb += 1
-        na = 0
-        for view in asks:
-            if view.price != ap:
-                break
-            na += 1
-        spread = float(ap - bp)
-        imb1 = _imb(b[0], a[0])
-        out = {
-            'spread': spread, 'imb1': imb1, 'imb2': _imb(b[1], a[1]), 'imb3': _imb(b[2], a[2]),
-            'imb5': _imb(b[3], a[3]), 'micro': spread * imb1 / 2, 'cnt_imb1': _imb(nb, na),
-            'depth1_log': math.log1p(b[0] + a[0]),
-        }  # fmt: skip
-        for n, total in zip(self.flow_events, self._ev_sums):
-            out['flow_ev' + str(n)] = total
-        for t_ms, (_, _, total) in zip(self.flow_ms, self._flow_windows):
-            out['flow_ms' + str(t_ms)] = total[0]
-        out['ntr_ms1000'] = float(self._fills_sum)
-        out['nev_ms1000'] = float(len(self._events))
-        for t_ms, value in zip(self.ret_ms, rets):
-            out['ret_ms' + str(t_ms)] = value
-        out['last_dmid'] = self._last_dmid
-        out['dt_mid_log'] = math.log1p((t - self._last_change_us) / 1000)
-        out['ltp_dev'] = self._last_trade_px - (bp + ap) / 2 if self._last_trade_px > 0 else 0.0
-        return out
-
-
-def _predict_linear(model: dict, x: dict) -> float:
-    total = model['intercept']
-    lo, hi, mean, scale = model['lo'], model['hi'], model['mean'], model['scale']
-    for name, coef in model['coef'].items():
-        value = x[name]
-        if value < lo[name]:
-            value = lo[name]
-        elif value > hi[name]:
-            value = hi[name]
-        total += coef * (value - mean[name]) / scale[name]
-    return total
-
-
-
 class _Order:
     """Our record of one of our orders; `remaining` bounds what the exchange can still fill."""
 
@@ -257,8 +134,8 @@ class _Order:
         self.order_id = order_id
         self.k = k  # 0 = buy side, 1 = sell side
         self.slot = slot  # 0/1 touch quote, 2/3 second level (side = slot & 1)
+        self.rung = False  # a standing ladder order
         self.parked = False  # a shrunk stub left behind the touch for its queue priority
-        self.target = -1  # pending modify target (-1 = none)
         self.sign = sign  # +1 buy, -1 sell
         self.price = price
         self.remaining = quantity
@@ -273,7 +150,7 @@ class MarketMaker(BaseStrategy):
 
     PARAMS = {
         # Lots per side we try to keep resting at the quote price.
-        'quote_size': 180,
+        'quote_size': 200,
         # Hard cap M on inventory + same-side outstanding quantity (clamped to <= 100). Below the
         # exchange's 100 so a stuck inventory costs less to mark out at the end.
         'max_position': 100,
@@ -316,148 +193,17 @@ class MarketMaker(BaseStrategy):
         'thin_pull': 0,
         'thin_rejoin': 1.0,
         # Park a stub of park_size lots instead of cancelling a quote the market moved past; 0 disables.
-        'park_size': 15,
+        'park_size': 0,
         'park_depth': 1,
-        'park_max': 6,
-        # ML shrink: cap the side predicted to be run over at ml_stub lots when |pred| > ml_thr ticks; 0 disables.
-        'ml_thr': 0.105,
-        'ml_stub': 0,
-        # graded shrink: for ml_thr_lo < against-side |pred| <= ml_thr cap at ml_frac_lo x quote_size; 0 = off.
-        'ml_thr_lo': 0.07,
-        # ML stub only while the market spread is 1 tick (a wide-spread fill earns a full tick); 0 = always.
-        'ml_tight_only': 1,
-        'ml_frac_lo': 0.5,
-        'ml_target': 'B',  # base | A | B | C: which LINEAR_MODEL(S) entry feeds the shrink
-        # Thin-level cap: while a side's market touch qty < thin_cap lots, cap its quote at thin_cap_size (shrink,
-        # never cancel the oldest order); 0 disables.
-        'thin_cap': 0,
-        'thin_cap_size': 20,
+        'park_max': 3,
+        'ladder_size': 0,
+        'ladder_depth': 3,
+        'ladder_reserve': 1,
+        'gate_thr': 4,
+        'gate_window_us': 30000000,
+        'gate_max_spread': 3,
+        'gate_rungs': 1,
     }
-
-    # H18 loss-aligned targets (research.fit_target, round1 full fit): A = weighted MSE k=10, B = move x hit, C = adverse-fill score
-    LINEAR_MODELS: dict = {'A': {'intercept': -0.00011633, 'coef': {'spread': 0.0013991, 'imb1': 0.0792149, 'imb2': 0.043925, 'imb3': 0.0119941, 'imb5': -0.0593541, 'micro': -0.0344156, 'cnt_imb1': 0.0879723, 'depth1_log': 0.000281984, 'flow_ev1': 0.00118888, 'flow_ev10': 0.00368276, 'flow_ev100': 0.025835, 'flow_ms10': 0.000803595, 'flow_ms100': 0.00198066, 'flow_ms1000': 0.0341407, 'flow_ms10000': 0.00355985, 'ntr_ms1000': -0.000549619, 'nev_ms1000': 0.000324458, 'ret_ms100': 0.0133359, 'ret_ms1000': -0.014181, 'ret_ms10000': -0.00374638, 'last_dmid': 0.0166229, 'dt_mid_log': -0.000235338, 'ltp_dev': 0.0228302}, 'mean': {'spread': 1.0693, 'imb1': 0.00226445, 'imb2': 0.00180018, 'imb3': 0.00210598, 'imb5': 0.00196122, 'micro': 0.00110094, 'cnt_imb1': 0.00302462, 'depth1_log': 7.62745, 'flow_ev1': 0.00831957, 'flow_ev10': 0.109338, 'flow_ev100': 0.75778, 'flow_ms10': 0.0611908, 'flow_ms100': -0.133823, 'flow_ms1000': 1.45438, 'flow_ms10000': 14.4329, 'ntr_ms1000': 31.394, 'nev_ms1000': 369.081, 'ret_ms100': 0.000137964, 'ret_ms1000': 0.00183982, 'ret_ms10000': 0.0215042, 'last_dmid': -0.00232995, 'dt_mid_log': 5.96466, 'ltp_dev': -0.00145316}, 'scale': {'spread': 0.253972, 'imb1': 0.634089, 'imb2': 0.391809, 'imb3': 0.391049, 'imb5': 0.39463, 'micro': 0.332689, 'cnt_imb1': 0.552367, 'depth1_log': 0.724809, 'flow_ev1': 23.1121, 'flow_ev10': 115.745, 'flow_ev100': 414.842, 'flow_ms10': 75.3632, 'flow_ms100': 269.873, 'flow_ms1000': 829.43, 'flow_ms10000': 2626.82, 'ntr_ms1000': 16.4881, 'nev_ms1000': 25.5999, 'ret_ms100': 0.297793, 'ret_ms1000': 0.916508, 'ret_ms10000': 2.89814, 'last_dmid': 0.503705, 'dt_mid_log': 1.49873, 'ltp_dev': 0.55481}, 'lo': {'spread': 1.0, 'imb1': -0.999197, 'imb2': -0.944827, 'imb3': -0.948755, 'imb5': -0.952257, 'micro': -0.918063, 'cnt_imb1': -0.959184, 'depth1_log': 4.07754, 'flow_ev1': -365.0, 'flow_ev10': -1244.13, 'flow_ev100': -2659.0, 'flow_ms10': -972.0, 'flow_ms100': -2155.92, 'flow_ms1000': -3955.96, 'flow_ms10000': -9906.0, 'ntr_ms1000': 2.0, 'nev_ms1000': 294.0, 'ret_ms100': -1.5, 'ret_ms1000': -3.0, 'ret_ms10000': -9.0, 'last_dmid': -1.0, 'dt_mid_log': 0.0, 'ltp_dev': -1.5}, 'hi': {'spread': 2.0, 'imb1': 0.999224, 'imb2': 0.95081, 'imb3': 0.952935, 'imb5': 0.955548, 'micro': 0.91591, 'cnt_imb1': 0.959184, 'depth1_log': 10.1089, 'flow_ev1': 370.0, 'flow_ev10': 1261.13, 'flow_ev100': 2641.0, 'flow_ms10': 939.131, 'flow_ms100': 2090.0, 'flow_ms1000': 3824.0, 'flow_ms10000': 8906.0, 'ntr_ms1000': 98.0, 'nev_ms1000': 451.0, 'ret_ms100': 1.5, 'ret_ms1000': 3.0, 'ret_ms10000': 9.0, 'last_dmid': 1.0, 'dt_mid_log': 8.66873, 'ltp_dev': 1.5}, 'horizon_ms': 100, 'latency_ms': 5}, 'B': {'intercept': 0.000441121, 'coef': {'spread': 0.00133452, 'imb1': 0.0824714, 'imb2': 0.0149258, 'imb3': 0.0144349, 'imb5': -0.0312584, 'micro': -0.0520587, 'cnt_imb1': 0.0505402, 'depth1_log': -0.000421541, 'flow_ev1': -0.000244005, 'flow_ev10': -0.000286522, 'flow_ev100': 0.0151363, 'flow_ms10': -0.000948543, 'flow_ms100': 0.00504899, 'flow_ms1000': 0.0168779, 'flow_ms10000': 0.00168168, 'ntr_ms1000': -0.000859284, 'nev_ms1000': 0.000417404, 'ret_ms100': 0.00504642, 'ret_ms1000': -0.00788903, 'ret_ms10000': -0.0023049, 'last_dmid': 0.00922577, 'dt_mid_log': 0.000422585, 'ltp_dev': 0.00995797}, 'mean': {'spread': 1.0692, 'imb1': 0.00224751, 'imb2': 0.00174989, 'imb3': 0.00204918, 'imb5': 0.0019074, 'micro': 0.00107808, 'cnt_imb1': 0.00305099, 'depth1_log': 7.6274, 'flow_ev1': 0.0138849, 'flow_ev10': 0.0796944, 'flow_ev100': 0.633488, 'flow_ms10': -0.0203193, 'flow_ms100': -0.199753, 'flow_ms1000': 1.38836, 'flow_ms10000': 14.3423, 'ntr_ms1000': 31.3946, 'nev_ms1000': 369.079, 'ret_ms100': 0.000105061, 'ret_ms1000': 0.00183437, 'ret_ms10000': 0.0214286, 'last_dmid': -0.00237398, 'dt_mid_log': 5.96541, 'ltp_dev': -0.00162312}, 'scale': {'spread': 0.253788, 'imb1': 0.634086, 'imb2': 0.391867, 'imb3': 0.391076, 'imb5': 0.394647, 'micro': 0.332665, 'cnt_imb1': 0.552431, 'depth1_log': 0.724585, 'flow_ev1': 23.0386, 'flow_ev10': 115.5, 'flow_ev100': 414.757, 'flow_ms10': 74.7879, 'flow_ms100': 269.905, 'flow_ms1000': 829.333, 'flow_ms10000': 2626.78, 'ntr_ms1000': 16.4882, 'nev_ms1000': 25.5991, 'ret_ms100': 0.297626, 'ret_ms1000': 0.916424, 'ret_ms10000': 2.89809, 'last_dmid': 0.503711, 'dt_mid_log': 1.49741, 'ltp_dev': 0.554799}, 'lo': {'spread': 1.0, 'imb1': -0.999197, 'imb2': -0.944827, 'imb3': -0.948755, 'imb5': -0.952257, 'micro': -0.918063, 'cnt_imb1': -0.959184, 'depth1_log': 4.07754, 'flow_ev1': -365.0, 'flow_ev10': -1244.13, 'flow_ev100': -2659.0, 'flow_ms10': -972.0, 'flow_ms100': -2155.92, 'flow_ms1000': -3955.96, 'flow_ms10000': -9906.0, 'ntr_ms1000': 2.0, 'nev_ms1000': 294.0, 'ret_ms100': -1.5, 'ret_ms1000': -3.0, 'ret_ms10000': -9.0, 'last_dmid': -1.0, 'dt_mid_log': 0.0, 'ltp_dev': -1.5}, 'hi': {'spread': 2.0, 'imb1': 0.999224, 'imb2': 0.95081, 'imb3': 0.952935, 'imb5': 0.955548, 'micro': 0.91591, 'cnt_imb1': 0.959184, 'depth1_log': 10.1089, 'flow_ev1': 370.0, 'flow_ev10': 1261.13, 'flow_ev100': 2641.0, 'flow_ms10': 939.131, 'flow_ms100': 2090.0, 'flow_ms1000': 3824.0, 'flow_ms10000': 8906.0, 'ntr_ms1000': 98.0, 'nev_ms1000': 451.0, 'ret_ms100': 1.5, 'ret_ms1000': 3.0, 'ret_ms10000': 9.0, 'last_dmid': 1.0, 'dt_mid_log': 8.66873, 'ltp_dev': 1.5}, 'horizon_ms': 100, 'latency_ms': 5}, 'C': {'intercept': 0.00102837, 'coef': {'spread': -0.000957659, 'imb1': 0.00304119, 'imb2': 0.0136326, 'imb3': 0.0041803, 'imb5': -0.0203731, 'micro': -0.0167489, 'cnt_imb1': 0.084174, 'depth1_log': -6.01452e-05, 'flow_ev1': 0.000299281, 'flow_ev10': 0.002634, 'flow_ev100': 0.0215704, 'flow_ms10': -0.0010119, 'flow_ms100': 0.0118347, 'flow_ms1000': 0.0290867, 'flow_ms10000': 0.00208868, 'ntr_ms1000': 0.00189649, 'nev_ms1000': 0.000922184, 'ret_ms100': 0.0020093, 'ret_ms1000': -0.0172664, 'ret_ms10000': -0.00404831, 'last_dmid': 0.0139123, 'dt_mid_log': 0.00298355, 'ltp_dev': 0.0226772}, 'mean': {'spread': 1.0692, 'imb1': 0.00224751, 'imb2': 0.00174989, 'imb3': 0.00204918, 'imb5': 0.0019074, 'micro': 0.00107808, 'cnt_imb1': 0.00305099, 'depth1_log': 7.6274, 'flow_ev1': 0.0138849, 'flow_ev10': 0.0796944, 'flow_ev100': 0.633488, 'flow_ms10': -0.0203193, 'flow_ms100': -0.199753, 'flow_ms1000': 1.38836, 'flow_ms10000': 14.3423, 'ntr_ms1000': 31.3946, 'nev_ms1000': 369.079, 'ret_ms100': 0.000105061, 'ret_ms1000': 0.00183437, 'ret_ms10000': 0.0214286, 'last_dmid': -0.00237398, 'dt_mid_log': 5.96541, 'ltp_dev': -0.00162312}, 'scale': {'spread': 0.253788, 'imb1': 0.634086, 'imb2': 0.391867, 'imb3': 0.391076, 'imb5': 0.394647, 'micro': 0.332665, 'cnt_imb1': 0.552431, 'depth1_log': 0.724585, 'flow_ev1': 23.0386, 'flow_ev10': 115.5, 'flow_ev100': 414.757, 'flow_ms10': 74.7879, 'flow_ms100': 269.905, 'flow_ms1000': 829.333, 'flow_ms10000': 2626.78, 'ntr_ms1000': 16.4882, 'nev_ms1000': 25.5991, 'ret_ms100': 0.297626, 'ret_ms1000': 0.916424, 'ret_ms10000': 2.89809, 'last_dmid': 0.503711, 'dt_mid_log': 1.49741, 'ltp_dev': 0.554799}, 'lo': {'spread': 1.0, 'imb1': -0.999197, 'imb2': -0.944827, 'imb3': -0.948755, 'imb5': -0.952257, 'micro': -0.918063, 'cnt_imb1': -0.959184, 'depth1_log': 4.07754, 'flow_ev1': -365.0, 'flow_ev10': -1244.13, 'flow_ev100': -2659.0, 'flow_ms10': -972.0, 'flow_ms100': -2155.92, 'flow_ms1000': -3955.96, 'flow_ms10000': -9906.0, 'ntr_ms1000': 2.0, 'nev_ms1000': 294.0, 'ret_ms100': -1.5, 'ret_ms1000': -3.0, 'ret_ms10000': -9.0, 'last_dmid': -1.0, 'dt_mid_log': 0.0, 'ltp_dev': -1.5}, 'hi': {'spread': 2.0, 'imb1': 0.999224, 'imb2': 0.95081, 'imb3': 0.952935, 'imb5': 0.955548, 'micro': 0.91591, 'cnt_imb1': 0.959184, 'depth1_log': 10.1089, 'flow_ev1': 370.0, 'flow_ev10': 1261.13, 'flow_ev100': 2641.0, 'flow_ms10': 939.131, 'flow_ms100': 2090.0, 'flow_ms1000': 3824.0, 'flow_ms10000': 8906.0, 'ntr_ms1000': 98.0, 'nev_ms1000': 451.0, 'ret_ms100': 1.5, 'ret_ms1000': 3.0, 'ret_ms10000': 9.0, 'last_dmid': 1.0, 'dt_mid_log': 8.66873, 'ltp_dev': 1.5}, 'horizon_ms': 100, 'latency_ms': 5}}
-
-    # research.signals data/features/round1.npz --horizon-ms 100 --export-linear (walk-forward ridge, IC +0.38)
-    LINEAR_MODEL: dict = {'intercept': -0.00015815,
-     'coef': {'spread': 0.000997825,
-              'imb1': 0.0255576,
-              'imb2': 0.0367096,
-              'imb3': 0.0078605,
-              'imb5': -0.0458227,
-              'micro': -0.00206035,
-              'cnt_imb1': 0.0705746,
-              'depth1_log': 0.000425994,
-              'flow_ev1': 0.00152928,
-              'flow_ev10': 0.00413217,
-              'flow_ev100': 0.0178795,
-              'flow_ms10': 0.00143799,
-              'flow_ms100': -0.00128259,
-              'flow_ms1000': 0.0282251,
-              'flow_ms10000': 0.00346013,
-              'ntr_ms1000': -0.000652296,
-              'nev_ms1000': 0.000189557,
-              'ret_ms100': 0.0141121,
-              'ret_ms1000': -0.0116711,
-              'ret_ms10000': -0.0036369,
-              'last_dmid': 0.0128142,
-              'dt_mid_log': -9.06298e-05,
-              'ltp_dev': 0.0202146},
-     'mean': {'spread': 1.06919,
-              'imb1': 0.00227439,
-              'imb2': 0.00174741,
-              'imb3': 0.00204263,
-              'imb5': 0.00190086,
-              'micro': 0.00109152,
-              'cnt_imb1': 0.00307936,
-              'depth1_log': 7.62739,
-              'flow_ev1': 0.0138823,
-              'flow_ev10': 0.0794335,
-              'flow_ev100': 0.633076,
-              'flow_ms10': -0.0203602,
-              'flow_ms100': -0.20129,
-              'flow_ms1000': 1.38783,
-              'flow_ms10000': 14.4327,
-              'ntr_ms1000': 31.3942,
-              'nev_ms1000': 369.078,
-              'ret_ms100': 0.000105055,
-              'ret_ms1000': 0.00181113,
-              'ret_ms10000': 0.0214824,
-              'last_dmid': -0.0024013,
-              'dt_mid_log': 5.96546,
-              'ltp_dev': -0.00161418},
-     'scale': {'spread': 0.253782,
-               'imb1': 0.634088,
-               'imb2': 0.391863,
-               'imb3': 0.391071,
-               'imb5': 0.394643,
-               'micro': 0.332665,
-               'cnt_imb1': 0.552434,
-               'depth1_log': 0.724594,
-               'flow_ev1': 23.038,
-               'flow_ev10': 115.496,
-               'flow_ev100': 414.749,
-               'flow_ms10': 74.7858,
-               'flow_ms100': 269.898,
-               'flow_ms1000': 829.313,
-               'flow_ms10000': 2626.73,
-               'ntr_ms1000': 16.4879,
-               'nev_ms1000': 25.5992,
-               'ret_ms100': 0.297618,
-               'ret_ms1000': 0.916412,
-               'ret_ms10000': 2.89802,
-               'last_dmid': 0.503711,
-               'dt_mid_log': 1.49739,
-               'ltp_dev': 0.554796},
-     'lo': {'spread': 1.0,
-            'imb1': -0.999197,
-            'imb2': -0.944827,
-            'imb3': -0.948754,
-            'imb5': -0.952257,
-            'micro': -0.918056,
-            'cnt_imb1': -0.959184,
-            'depth1_log': 4.07754,
-            'flow_ev1': -365.0,
-            'flow_ev10': -1244.1,
-            'flow_ev100': -2659.0,
-            'flow_ms10': -972.0,
-            'flow_ms100': -2155.71,
-            'flow_ms1000': -3955.51,
-            'flow_ms10000': -9906.0,
-            'ntr_ms1000': 2.0,
-            'nev_ms1000': 294.0,
-            'ret_ms100': -1.5,
-            'ret_ms1000': -3.0,
-            'ret_ms10000': -9.0,
-            'last_dmid': -1.0,
-            'dt_mid_log': 0.0,
-            'ltp_dev': -1.5},
-     'hi': {'spread': 2.0,
-            'imb1': 0.999224,
-            'imb2': 0.95081,
-            'imb3': 0.952933,
-            'imb5': 0.955548,
-            'micro': 0.915903,
-            'cnt_imb1': 0.959184,
-            'depth1_log': 10.1089,
-            'flow_ev1': 370.0,
-            'flow_ev10': 1261.1,
-            'flow_ev100': 2641.0,
-            'flow_ms10': 939.101,
-            'flow_ms100': 2090.0,
-            'flow_ms1000': 3824.0,
-            'flow_ms10000': 8906.0,
-            'ntr_ms1000': 98.0,
-            'nev_ms1000': 451.0,
-            'ret_ms100': 1.5,
-            'ret_ms1000': 3.0,
-            'ret_ms10000': 9.0,
-            'last_dmid': 1.0,
-            'dt_mid_log': 8.66873,
-            'ltp_dev': 1.5},
-     'horizon_ms': 100,
-     'latency_ms': 5,
-     'source': 'data\\round1.csv',
-     'rows': 2203598}
 
     def __init__(self) -> None:
         super().__init__()
@@ -490,17 +236,18 @@ class MarketMaker(BaseStrategy):
         self.park_max = max(1, int(params['park_max']))
         self.parked: list[list[str]] = [[], []]  # ids of parked stubs per side, oldest first
         self.parked_qty = [0, 0]
-        self.ml_thr = float(params['ml_thr'])
-        self.ml_stub = max(0, int(params['ml_stub']))
-        self.ml_thr_lo = float(params['ml_thr_lo'])
-        self.ml_tight_only = int(params['ml_tight_only'])
-        self.ml_frac_lo = float(params['ml_frac_lo'])
-        self.thin_cap = int(params['thin_cap'])
-        self.thin_cap_size = max(1, int(params['thin_cap_size']))
-        self.full = _FullFeatures() if self.ml_thr > 0 else None
-        self.pred = 0.0
-        tgt = str(params['ml_target'])
-        self.model = self.LINEAR_MODEL if tgt == 'base' else self.LINEAR_MODELS[tgt]
+        self.ladder_size = max(0, int(params['ladder_size']))
+        self.ladder_depth = max(1, int(params['ladder_depth']))
+        self.ladder_reserve = int(params['ladder_reserve'])
+        self.rungs: list[dict[int, str]] = [{}, {}]  # price -> order id of standing rungs
+        self.rung_qty = [0, 0]
+        self.gate_thr = float(params['gate_thr'])
+        self.gate_window = int(params['gate_window_us'])
+        self.gate_max_spread = int(params['gate_max_spread'])
+        self.gate_rungs = int(params['gate_rungs'])
+        self.gate_pts: deque = deque()
+        self.gate_last_ts = _NEVER_US
+        self.gate_mid2 = 0
 
         # Position and order state (index k: 0 = buy, 1 = sell).
         self.inv = 0
@@ -531,14 +278,10 @@ class MarketMaker(BaseStrategy):
         """Recompute the desired bid/ask from the market touch and move our quotes if needed."""
         bids = snapshot.bids
         asks = snapshot.asks
-        if self.full is not None:
-            x = self.full.update(snapshot, [t for t in trades if t.taker_owner == 'market'])
-            self.pred = 0.0 if x is None else _predict_linear(self.model, x)
         if not bids or not asks:
             return
         scan = self.book_scan_orders
-        need_qty = (self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0
-                    or self.thin_cap > 0)
+        need_qty = self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0
 
         # Market touch and its quantity, skipping our own orders (only market orders count
         # towards the scan limit, so our own fragments can never hide the touch).
@@ -647,38 +390,104 @@ class MarketMaker(BaseStrategy):
         if self.inv_stop > 0:
             pull_bid = pull_bid or inv >= self.inv_stop
             pull_ask = pull_ask or inv <= -self.inv_stop
+        if self.gate_thr > 0.0:
+            drift = self._drift(now, bb, ba)
+            if drift <= -self.gate_thr:
+                pull_bid = True
+                if self.gate_rungs:
+                    self._clear_side(0, 1)
+            elif drift >= self.gate_thr:
+                pull_ask = True
+                if self.gate_rungs:
+                    self._clear_side(1, -1)
         lay = self.layer_size
         off = self.layer_offset
+        ladder = self.ladder_size > 0
+        if ladder and not self.ladder_reserve:
+            self._ladder(0, 1, _BUY, bb, ask, pull_bid)
+            self._ladder(1, -1, _SELL, ba, bid, pull_ask)
         if pull_bid:
             self._pull(0)
             self._pull(2)
         else:
-            sz = self.quote_size if self.ml_tight_only and ba - bb > 1 else self._ml_cap(-self.pred)
-            if self.thin_cap > 0 and qb < self.thin_cap and sz > self.thin_cap_size:
-                sz = self.thin_cap_size
-            self._quote(0, 1, _BUY, bid, now, sz)
+            self._quote(0, 1, _BUY, bid, now, self.quote_size)
             if lay:
                 self._quote(2, 1, _BUY, bid - off, now, lay)
         if pull_ask:
             self._pull(1)
             self._pull(3)
         else:
-            sz = self.quote_size if self.ml_tight_only and ba - bb > 1 else self._ml_cap(self.pred)
-            if self.thin_cap > 0 and qa < self.thin_cap and sz > self.thin_cap_size:
-                sz = self.thin_cap_size
-            self._quote(1, -1, _SELL, ask, now, sz)
+            self._quote(1, -1, _SELL, ask, now, self.quote_size)
             if lay:
                 self._quote(3, -1, _SELL, ask + off, now, lay)
+        if ladder and self.ladder_reserve:
+            self._ladder(0, 1, _BUY, bb, ask, pull_bid)
+            self._ladder(1, -1, _SELL, ba, bid, pull_ask)
 
-    def _ml_cap(self, against: float) -> int:
-        """Quote size for a side given the signed prediction against it (>0 = predicted to be run over)."""
-        if self.full is None:
-            return self.quote_size
-        if against > self.ml_thr:
-            return self.ml_stub
-        if self.ml_thr_lo > 0 and against > self.ml_thr_lo:
-            return max(self.ml_stub, int(self.ml_frac_lo * self.quote_size))
-        return self.quote_size
+    def _drift(self, now: int, bb: int, ba: int) -> float:
+        """Mid change (ticks) over the gate window, from samples taken while the spread is normal."""
+        pts = self.gate_pts
+        horizon = now - self.gate_window
+        if ba - bb <= self.gate_max_spread:
+            self.gate_mid2 = bb + ba
+            if now - self.gate_last_ts >= self.gate_window // 200:
+                pts.append((now, bb + ba))
+                self.gate_last_ts = now
+        while len(pts) > 1 and pts[1][0] <= horizon:
+            pts.popleft()
+        if not pts or pts[0][0] > horizon + self.gate_window // 10:
+            return 0.0  # not enough history yet
+        return (self.gate_mid2 - pts[0][1]) / 2.0
+
+    def _clear_side(self, k: int, sign: int) -> None:
+        """Cancel the side's rungs and parked stubs (the gate says the price runs through them)."""
+        rungs = self.rungs[k]
+        orders = self.orders
+        for px in list(rungs):
+            order = orders[rungs[px]]
+            order.rung = False
+            del rungs[px]
+            self.rung_qty[k] -= order.remaining
+            if not order.cancel_sent:
+                order.cancel_sent = True
+                self.cancel_order(order.order_id)
+                self.n_cancels += 1
+        for order_id in list(self.parked[k]):
+            self._unpark(order_id)
+
+    def _ladder(self, k: int, sign: int, side: Side, touch: int, other_quote: int, pulled: bool) -> None:
+        """Cancel rungs outside touch..touch-depth, then fill missing rungs from the free capacity."""
+        rungs = self.rungs[k]
+        depth = self.ladder_depth
+        if rungs:
+            orders = self.orders
+            for px in list(rungs):
+                d = (touch - px) * sign
+                if d < 0 or d > depth:
+                    order = orders[rungs[px]]
+                    order.rung = False
+                    del rungs[px]
+                    self.rung_qty[k] -= order.remaining
+                    if not order.cancel_sent:
+                        order.cancel_sent = True
+                        self.cancel_order(order.order_id)
+                        self.n_cancels += 1
+        if pulled:
+            return
+        for i in range(1, depth + 1):
+            px = touch - sign * i
+            if px in rungs or px <= 0 or (other_quote - px) * sign <= 0:
+                continue
+            if self.active[k] and self.quote_px[k] == px:
+                continue
+            if self.parked[k] and any(self.orders[o].price == px for o in self.parked[k]):
+                continue
+            free = self.max_pos - sign * self.inv - self.out[k]
+            if free <= 0:
+                return
+            order_id = self._send(k, sign, side, px, min(self.ladder_size, free), False, 4)
+            if order_id is not None:
+                rungs[px] = order_id
 
     def _pull(self, k: int) -> None:  # k = slot
         """Cancel the side's active quote (retreats are never throttled)."""
@@ -727,9 +536,6 @@ class MarketMaker(BaseStrategy):
                     self._unpark(self.parked[k][0])
 
         have = self.act_qty[j]
-        if have > size and act:
-            self._cap(j, size)
-            return
         want = size - have
         if want <= 0 or px <= 0:
             return
@@ -737,7 +543,7 @@ class MarketMaker(BaseStrategy):
             return
         free = self.max_pos - sign * self.inv - self.out[k]
         if want > free:
-            if self.out[k] > self.act_qty[k] + self.act_qty[k + 2] + self.parked_qty[k]:
+            if self.out[k] > self.act_qty[k] + self.act_qty[k + 2] + self.parked_qty[k] + self.rung_qty[k]:
                 return  # in-flight cancels/IOCs hold the room; wait for them rather than fragment the quote
             want = free
             if want <= 0:
@@ -769,7 +575,12 @@ class MarketMaker(BaseStrategy):
         )
         self.orders[order_id] = _Order(order_id, k, sign, px, qty, ioc, j)
         self.out[k] += qty
-        if not ioc:
+        if j == 4:
+            o = self.orders[order_id]
+            o.active = False
+            o.rung = True
+            self.rung_qty[k] += qty
+        elif not ioc:
             self.active[j].append(order_id)
             self.act_qty[j] += qty
         self.n_orders += 1
@@ -828,30 +639,8 @@ class MarketMaker(BaseStrategy):
             self.act_qty[order.slot] -= qty
         if order.parked:
             self.parked_qty[order.k] -= qty
-
-    def _cap(self, j: int, size: int) -> None:
-        """Shrink slot j's active quote to `size` lots: keep the oldest order (queue place), modify it down,
-        cancel newer ones. Pending modifies are remembered so they are not resent every event."""
-        act = self.active[j]
-        orders = self.orders
-        keep = size
-        for order_id in list(act):
-            order = orders[order_id]
-            eff = order.remaining if order.target < 0 else min(order.remaining, order.target)
-            if keep <= 0:
-                order.active = False
-                act.remove(order_id)
-                self.act_qty[j] -= order.remaining
-                order.cancel_sent = True
-                self.cancel_order(order_id)
-                self.n_cancels += 1
-            elif eff > keep:
-                if order.target != keep:
-                    order.target = keep
-                    self.modify_order(order_id, keep)
-                keep = 0
-            else:
-                keep -= eff
+        if order.rung:
+            self.rung_qty[order.k] -= qty
 
     def _unpark(self, order_id: str) -> None:
         """Cancel a parked stub (it stays counted in OUT until CANCELED arrives)."""
@@ -867,6 +656,10 @@ class MarketMaker(BaseStrategy):
     def _forget(self, order: _Order) -> None:
         """Drop a dead order from the book-keeping."""
         self.orders.pop(order.order_id, None)
+        if order.rung:
+            order.rung = False
+            del self.rungs[order.k][order.price]
+            self.rung_qty[order.k] -= order.remaining
         if order.parked:
             order.parked = False
             self.parked[order.k].remove(order.order_id)
