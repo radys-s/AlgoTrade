@@ -571,3 +571,14 @@ originál** → strategie je stranově symetrická, žádný bias. **Umělý tre
 +120 ticků přes celé kolo; ledger `r1-drift-stress`): oba kladné, min 448 795, součet 899 332 (≈ −1 % vs 452 651),
 breach 0. Pomalý trend (0,01 ticku/s vs 1 s volatilita 0,92) maker neohrozí; rychlejší režim takto syntetizovat nejde.
 **Závěr:** riziko záporného PnL na privátní pásce stejného trhu je malé; finál `submission/best_strategy.py` beze změny.
+
+## 2026-11-07 14:25 — H13 `move_min`: sledovat zlepšení ceny jen při „substanci“ nové hladiny: REJECT (home, mozek, R1)
+
+**Hypotéza:** malý improver (medián 14 lotů, život 0,34 s) brzy zmizí; přesun bulku za něj a následný návrat na konec
+staré fronty stojí pozici → přesunout se jen když má nová hladina ≥ N tržních lotů.
+**Změna:** `strategies/exp_move_min.py` = mm_park + `move_min_qty` (0 = off), parita 452 651 ✔, check PASS.
+**Výsledek** (ledger `r1-move-min`, round1 + sample_v2): monotónně horší s prahem: round1 4 → 447 663 (−1,1 %), 8 → 445 266,
+15 → 438 371, 30 → 429 511, 250 → 341 317 (−25 %); sample_v2 ≈ 0 do 30 lotů, pak záporné. Compare {8}: round1 −7 385
+(0/8), sample_v2 +8 (šum) → REJECT.
+**Závěr:** sledovat i drobné improvery se vyplácí — nová hladina je tam, kde jsou filly, a stub už staré místo drží.
+Tím je rodina „pořadí ve frontě“ kolem mm_park prozkoumaná: 13 mechanik, jediný zisk je parkování (Tomáš).
