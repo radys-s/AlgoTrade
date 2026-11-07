@@ -1031,3 +1031,15 @@ taker −2,1 až −2,4 M; risk grid makera nejlépe max_position 20 → −11 k
 **Flow-pull maker** (`exp_flow_pull_home`: nekotovat stranu, proti které teče podepsaný tok posledních N taker příkazů): okno 30, práh 200,
 max_position 20 → **round2 +20 151 (8/8, chunk_min +364), zrcadlo +20 151, round1 +48 527 (8/8), sample_v2 +36 073 (8/8)**; plató 150–300 ×
 okno 30 × max_pos 20–30 (19–24 k). Zapečeno `strategies/mm_r2_insurance.py`. Běží: trend-gated maker, hybrid maker+taker po toku.
+
+## 2026-11-07 20:20 — R2 anatomy: holes in the book, queue age, where the gate's pnl comes from (home, mozek)
+
+Report `research/reports/round2_anatomy.md`. Round2 = round1 generator with deeper placement and deeper IOC limits:
+the book behind the touch has holes, 34 transient jumps (> 20 ticks, snap back in ms) are 63 % of the mid
+variance; robust (spread <= 3) 1 s std 3.9 ticks vs 0.92. No consistent predictability at 10-120 s (weak VR
+1.2-1.5 at 60-300 s). Queue age (`research/diag/queue_age.py`): an order parked 1 s before its level becomes the
+touch has 0 lots ahead 84 % of the time (2 s: 97 %). Front-of-queue oracle: gate maker 84k -> 232k.
+`exp_r2_ladder.py` (exp_ladder_home + trend gate with robust drift `gate_max_spread`): parity 84,025 ✔; robust
+drift 3 -> 86,333 (8/8, chunk_min +95); parking -20k, ladder 15 +1k. Fill decomposition (`fill_decomp.py`):
+spread +0.37/lot at the fill, -0.32/lot adverse within 1 s, +0.10/lot trend over 60 s. Next: cut the first-second
+adverse selection, then the trend estimate.
