@@ -10,7 +10,7 @@ Aktualizováno: 2026-11-07 10:15
 ## Checklist před Round 1
 
 - [x] Soukromé týmové repo se starterem
-- [ ] Honza (`Herz1c`) jako collaborator
+- [x] Honza (`Herz1c`) jako collaborator
 - [ ] `antoninkriz` jako collaborator s Read
-- [ ] `uv sync` + referenční běh na `sample.csv`
+- [x] `uv sync` + referenční běh na `sample.csv` (Honza, `pnl=1878`)
 - [ ] Playground data v `data/`, první submise na dashboardu

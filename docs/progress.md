@@ -11,6 +11,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | Datum čas | Okno/branch | Krok |
 |---|---|---|
 | 2026-11-07 10:15 | radys / main | Import starteru, repo a větve `main`, `radys`, `herzic`, kontext soutěže |
+| 2026-11-07 10:22 | herzic | Honza: uv + `uv sync`, napojení na týmové repo, referenční běh `pnl=1878` ověřen |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -25,6 +26,17 @@ a merge do `main` drží historii čitelnou.
 
 **Další krok:** `uv sync`, rozbalit `data/sample.csv.gz`, ověřit referenční běh
 `trend_follower.py` (`pnl=1878`), pozvat `antoninkriz` (Read), stáhnout playground data.
+
+## 2026-11-07 10:22 — Setup u Honzy (herzic)
+
+**Co:** nainstalované `uv` 0.13.7, `uv sync` (Python 3.13 + balíčky), rozbalený `data/sample.csv`.
+Lokální složka napojená na týmové repo (`origin` = `radys-s/AlgoTrade`, `upstream` = starter),
+práce ve větvi `herzic`.
+
+**Výsledek:** referenční běh `trend_follower.py` na `sample.csv` → `fills=305,
+breach_penalty=0.00, pnl=1878.00` (shodné s workshopem). Plné logy ~12 s, `--no-logs` rychleji.
+
+**Další krok:** stáhnout playground data z dashboardu, první vlastní strategie.
 
 ## Šablona experimentu
 
