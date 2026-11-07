@@ -1020,3 +1020,14 @@ prioritou +85 k, normálně +51 k). ~850 k hodnoty je ve skoku *hlubokých* fron
 V FIFO legitimně jen stářím příkazu: nechat kapacitu zrát na hladině místo re-kotace při každém pohybu (2,6×/s). Dřívější „trpělivé“
 varianty (requote_tolerance 1 −27 % na mm_v2, move_min −1 %, hold_inside −8 %) byly špatně postavené nebo na jiné bázi → R2 výzkum
 = jak legitimně získat stáří/prioritu: velký park (běží `r1-stay-big`), zpožděné následování zlepšení, relokace místo shrinku.
+
+## 2026-11-07 20:05 — Round 2 kickoff: trendový režim, všechny makery záporné; pojistka = flow-pull maker (home, mozek)
+
+**Data card round2** (2,19 M řádků, 6 000 s): spread 1 tick 84 %, 2 ticky 12 %; **P(reverze) 0,38, autokorelace změn midu +0,18, VR 60 s
+1,27, 1 s std 3,79 ticku (R1 0,92)**; crash −500 ticků v minutách 60–75, celkem 10 000 → 9 689. mm_edge: čelo +0,07/fill (1 s), konec
+fronty −0,57; filtr „kotovat stranu jen když proti ní neteče tok 100 ms“ +0,25 na 70 % fillů. Taker scan nejlépe +19,7 k (slabé).
+**Baseliny na round2:** exp_full_capacity −216 739, mm_park −229 893, mm_ml_b −174 560, mm_r1_final2 −170 833 (3/8 chunků); momentum
+taker −2,1 až −2,4 M; risk grid makera nejlépe max_position 20 → −11 k; imb_pull −83 k; refit B na round2 −93 k (max_position 20 → +1 k).
+**Flow-pull maker** (`exp_flow_pull_home`: nekotovat stranu, proti které teče podepsaný tok posledních N taker příkazů): okno 30, práh 200,
+max_position 20 → **round2 +20 151 (8/8, chunk_min +364), zrcadlo +20 151, round1 +48 527 (8/8), sample_v2 +36 073 (8/8)**; plató 150–300 ×
+okno 30 × max_pos 20–30 (19–24 k). Zapečeno `strategies/mm_r2_insurance.py`. Běží: trend-gated maker, hybrid maker+taker po toku.
