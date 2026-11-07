@@ -326,6 +326,47 @@ Explore file: `playground/explore_data.py` (cells, reproduces all numbers above)
   thr {0.3,0.5,0.8,1.2}; report R2 and R1 pnl vs baseline.
 - T4: try fair estimators (EWMA tau 10-300 ms, median of last N inserts, touch-only inserts) -> corr at 100 ms / 1 s.
 
+## 12. Review of the R2 best model `exp_r2_ladder.py` (home, 86,333) — what is in it, what is missing (radys, read only)
+
+**In it (with the 86k params gate_thr 4 / window 30 s / gate_max_spread 3, park 0, ladder 0):** mm.py core,
+one quote per side at the touch, quote_size 200 under the I + OUT <= 100 invariant; the 30 s mid-drift gate
+(drift sampled only while spread <= 3 so transient gaps do not trip it) pulls the against-trend side and clears its
+rungs/stubs. Every other filter is OFF (no ML, no flow/thin/imbalance pull, no skew, no parking). 5,575 fills only,
+inv q95 = 100.
+
+**Missing / weak, by expected value:**
+1. **No short-horizon adverse-selection filter.** Honza's own fill decomposition: +0.37/lot spread, **-0.32/lot
+   adverse within 1 s**. The hidden-fair signal (section 11, corr +0.41 at 100 ms) targets exactly this: pull or
+   modify-down the side when fair is moving away from it. This is the single biggest hole.
+2. **Inventory pinned at 100 (q95).** With the gate, the with-trend side fills and the invariant then leaves the
+   adding side zero room, so for long stretches we are effectively one-sided. No skew, no target inventory, no
+   passive unload when the gate releases. Measure share of time |I| = 100 and pnl of those stretches.
+3. **Binary gate without hysteresis.** Drift oscillating around +-4 cancels and re-sends the touch quote -> back of a
+   1,000-lot queue each time. Add enter 4 / exit 2 hysteresis, or modify-down to a 1-3 lot stub instead of cancelling.
+4. **Queue position unused (oracle +150k).** Ladder/park lost because rung fills happen when the touch RETREATS onto
+   them (-0.57/lot first 200 ms). Fair signal decides that: keep the rung only while fair is not below it (bid side),
+   i.e. the retreat is a transient sweep, not a fair move. Rungs + fair filter is the combination never tried.
+5. **Gate uses the mid**, which carries the 34 transient gaps; a fair-price drift (from inserts) is cleaner and
+   faster -> try gate on fair drift with shorter windows (5-15 s).
+6. **Few fills (5.6k)** vs the R1 winner's 10x fill count — size/queue structure, not signal, limits volume.
+
+## 13. Next data questions (for Tomáš's agents; each answerable with pandas on `data/features/round2.npz`)
+
+- D1 **Is the fair price a random walk or does it trend?** Build F_t (section 11 estimator), take 1/5/30/60 s
+  increments: autocorrelation, variance ratio, jump share. If F increments are positively autocorrelated, a fair-based
+  trend gate beats the mid-based one.
+- D2 **Do IOC takers trade toward F?** P(next IOC is a buy | F - mid bin) and IOC size by bin. If yes, the fill
+  probability of our bid/ask depends on the signal -> exact maker rule.
+- D3 **Markout of a hypothetical touch fill by signal bin**: for every trade at the bid/ask, mid move 1 s later,
+  bucketed by sig at that moment (-2..+2). Gives the threshold for the maker filter without a sim.
+- D4 **Cancels vs fair:** are orders far from F cancelled sooner (lifetime vs |price - F|)? If yes, queue ahead of us
+  thins predictably and cancels are another fair readout.
+- D5 **Order size vs distance from F** (are big orders placed deeper / closer?) -> size-weighted estimator.
+- D6 **Empty-side events (1,207 rows on R2):** where does the book refill relative to F, how fast; any price where
+  a resting order would be filled far from F (e.g. deep asks during a buy sweep through holes)?
+- D7 **Rung fills conditioned on F:** for levels that became the touch by retreat, split markout by sig at that
+  moment. If sig >= 0 makes them positive, rungs + fair filter (section 12 item 4) is a go.
+
 ## Tools from this window
 
 - `research/analyze_tape.py` — 1-minute tape overview (spread, momentum vs reversion, signal correlations).
