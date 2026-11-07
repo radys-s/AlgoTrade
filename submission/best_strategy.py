@@ -1,4 +1,6 @@
-"""mm_ml (radys): mm_park + ridge 100 ms signal shrinks the side predicted to be run over to a 5-lot stub
+"""mm_ml_r1tuned (home): mm_ml with ml_thr 0.12 and ml_stub 3 baked (round1-regime tune: 497,292 vs 490,460 on round1, -4 % on sample_v2; sharp peak, neighbours 0.10 and 0.20 are -5 %).
+
+mm_ml (radys): mm_park + ridge 100 ms signal shrinks the side predicted to be run over to a 5-lot stub
 (ml_thr 0.15 ticks, ml_stub 5) baked in. round1 local pnl 490,460 vs mm_park 452,651, 8/8 chunks.
 
 exp_ml_shrink (radys): exp_shrink + a walk-forward ridge model that SHRINKS (never cancels) the side it
@@ -314,8 +316,8 @@ class MarketMaker(BaseStrategy):
         'park_depth': 1,
         'park_max': 3,
         # ML shrink: cap the side predicted to be run over at ml_stub lots when |pred| > ml_thr ticks; 0 disables.
-        'ml_thr': 0.15,
-        'ml_stub': 5,
+        'ml_thr': 0.12,
+        'ml_stub': 3,
         # Thin-level cap: while a side's market touch qty < thin_cap lots, cap its quote at thin_cap_size (shrink,
         # never cancel the oldest order); 0 disables.
         'thin_cap': 0,
