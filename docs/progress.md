@@ -30,6 +30,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 13:45 | radys | R1 tuning on full_capacity: layers/size/imb_pull/jump/flow_pull all <= 426k; fill analysis: inventory-adding fills lose |
 | 2026-11-07 14:15 | radys | Queue-position diagnostics on R1; imb/thin/requote pulls all lose; handoff `docs/radys-findings.md` |
 | 2026-11-07 14:45 | radys | Park stubs via modify instead of cancel: `mm_park` round1 452,651 (+6.3 %), compare ACCEPT -> submission |
+| 2026-11-07 15:10 | radys | k-fold: mm_park not overfit (oof +6.3 %, 8/9 blocks); back-pull and ladder rejected; ridge IC +0.38 stable |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -408,3 +409,13 @@ check_submission OK, research.check PASS, 2.3 min projected for 8.8M rows.
 **Result:** `mm_park` -> `submission/best_strategy.py` (not uploaded; Tomáš waits for a bigger jump).
 **Caveat:** helps on momentum tapes, costs a little on mean-reverting ones.
 **Next:** `exp_backpull` quick screen; heavy experiments listed in [radys-findings.md](radys-findings.md) section 5-6.
+
+## 2026-11-07 15:10 — Overfit check, back-pull, ladder, ML signal (radys, our model)
+
+- **Blocked k-fold of mm_park** (`research/diag/kfold.py`, 12 full runs, 9 time blocks): params chosen on 8 blocks,
+  scored on the 9th. Out-of-fold 452,550 vs champion 425,708 (+6.3 %), in-sample best 453,321, wins 8/9 blocks.
+  Not overfit on round1. Plateau: park 10-30 at depth 1 = 444-453k; park 50 / depth 2 drops.
+- **Back-pull** (`exp_backpull.py`): all 9 settings below off on the 25 % screen. Rejected.
+- **Standing ladder** (`exp_ladder.py`): best 452,244 = off; ladder first -15..-60 %. Rejected.
+- **Ridge signal** (100 ms): walk-forward IC +0.38 in 7/7 folds, stable coefficients. Embedded in `exp_ml_shrink.py`
+  (shrinks the predicted-adverse side via modify, never cancels the oldest order). Screen running.
