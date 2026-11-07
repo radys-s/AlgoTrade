@@ -1,37 +1,35 @@
-# Round 2: final candidates (home, 2026-11-07 ~23:25)
+# Round 2: final summary (home, 2026-11-08 00:05)
 
-The leaderboard tape is a different, ~2x longer realization of the round-2 generator (mark-out price 10,482). Taker
-improvements transferred ~x2.5 (mm_r2_pred +58k, mm_r2_zd +52k); gate tweaks worth +2..7k locally lost ~11k there.
-Final scoring is on private data from the same market, so pick the best EXPECTED strategy, not the luckiest upload.
+The leaderboard tape is a different, ~2x longer realization of the round-2 generator (mark-out price 10,482). Final
+scoring is on private data from the same market. Mark as final the upload with the highest leaderboard pnl; the safe
+fallback is `strategies/mm_r2_rth.py` (970,101).
 
-## Leaderboard results so far
+## Leaderboard progression
 
-| file | local round2 | leaderboard | note |
-|---|---:|---:|---|
-| strategies/mm_r2_fq2.py | 349,077 | 740,067 | aggressive hidden-fair IOC taker + F-side touch quotes + 30 s gate |
-| strategies/mm_r2_pred.py | 371,961 | 797,904 | + ridge predictor for the taker (blend 0.5) |
-| strategies/mm_r2_pred2.py | 378,507 | 787,414 | gate 20 s / thr 10 - worse |
-| strategies/mm_r2_pred_g6.py | 373,833 | 786,205 | gate 6 / 30 s - worse |
-| **strategies/mm_r2_zd.py** | **392,436** | **849,747** | + zero-delay flip take and requote - **current final** |
+| file | local round2 | local mirror | leaderboard | what it added |
+|---|---:|---:|---:|---|
+| strategies/mm_r2_fq2.py | 349,077 | - | 740,067 | hidden-fair IOC taker + F-side touch quotes + 30 s gate |
+| strategies/mm_r2_pred.py | 371,961 | 369,664 | 797,904 | ridge predictor for the taker (blend 0.5) |
+| strategies/mm_r2_pred2.py | 378,507 | 374,093 | 787,414 | gate 20 s / thr 10 - worse |
+| strategies/mm_r2_pred_g6.py | 373,833 | - | 786,205 | gate 6 / 30 s - worse |
+| strategies/mm_r2_zd.py | 392,436 | 390,836 | 849,747 | zero-delay flip take and requote |
+| strategies/mm_r2_rtq.py | 406,182 | 404,769 | 891,735 | no quote 20 ms after our touch retreats; 100-lot quote on a weak lean |
+| strategies/mm_r2_rts.py | 420,715 | 419,434 | 957,133 | at spread >= 2 quote only on a 0.7-tick lean |
+| **strategies/mm_r2_rth.py** | **430,781** | **429,296** | **970,101** | stricter quote over a >= 3-tick hole behind the touch |
+| strategies/mm_r2_rth3.py | 436,496 | 439,487 | 954,077 | + pred_blend 0.6 (taker) - worse, gain was in the ridge fit window |
+| strategies/mm_r2_final.py | 434,477 | 432,324 | (last upload) | rth + sp2 0.75, sp3 0.15, hk_k 0.6, qs_k 0.3; taker unchanged |
 
-Public chart at 22:53: 75th percentile ~860k (+-10k), median 288k; the top edge of the band moved with our own uploads.
+## What worked
 
-## Rejected after mm_r2_zd (round2 + mirror sum, base 783,271)
+1. Trade with the hidden fair price F (limit inserts land at F -+ D): aggressive IOC taker when F_hat is past the far
+   touch, passive touch quotes only on the side F favours, inventory held at +-100.
+2. Execution latency: the flip IOC in the same callback as the cancel of our blocking quote (zd).
+3. Passive-side state filters, where pulling costs no queue place: a just-retreated touch, a wide spread, a hole behind
+   the touch. They transferred x1.3-4.5 to the leaderboard; taker-side tweaks transferred x2.5-3 when real, and the
+   in-sample-only ones (pred_blend 0.6) lost.
 
-| idea | result |
-|---|---|
-| F-guarded small-order ladder (queue age) | +80 / -730 (pred_qs), -336 / -190 (zd) |
-| order-statistic F (max bid / min ask insert) in taker or quotes | 529-755k |
-| deeper taker IOC when F_hat is far (sk) | never triggers (0) |
-| taker needs ridge AND fair_sig | 727-737k |
-| over-cap trade on hidden-F jumps | 768-781k (jump inserts are > 20 ticks away = invisible; the book collapses in 20-50 ms) |
-| follow / fade big sweeps with the taker | -390k..682k / -99k..663k |
-| taker slip 1 / 2 ticks | 661k / 615k |
-| thin-touch pull | 706-744k |
-| flow pull after big sweeps (300 lots, 200-300 ms) | 789-795k (+6..11k) but round1 -45k, sample_v2 -18k: noise-level, not used |
+## What did not (all logged in docs/progress.md)
 
-## Where the remaining money is
-
-- A perfect 150 ms predictor would make 935k locally: precision at the taker's threshold crossings is the lever.
-  Bulk correlation gains (order statistics, multi-tau, pred2) do not carry over; only the ridge did (+23k / +58k LB).
-- Queue priority (+239k oracle) cannot be reached with resting orders: deep rungs only fill on informed sweeps.
+Queue-age ladders, order-statistic F, over-cap trades on F jumps (jump inserts are outside the 20-tick snapshot),
+following or fading sweeps, taker slip, AND-taker, thin-touch / shallow-depth / few-orders / imbalance / own-fill /
+trade-at-touch pulls, new-only filter variants, mid-jump filter, refitted ridges with extra features, gate retunes.

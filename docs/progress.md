@@ -1291,3 +1291,13 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
 - Subagents on rth2: fine grid (qs_weak, qs_k, sp2/sp3, hk) - no gain; merged small filters (taker-over-hole, few orders,
   fresh level) +0.9k; taker retune: fq_take_k 0.15-0.17 and pred_blend 0.55-0.6 up on both tapes (mirror more).
 - Mark as final whichever of mm_r2_rth (970,101), mm_r2_rth2, mm_r2_rth3 scores highest on the leaderboard.
+
+## 2026-11-08 00:05 — Leaderboard mm_r2_rth3 = 954,077 (worse); last upload mm_r2_final (home)
+
+- `mm_r2_rth3` (rth2 + pred_blend 0.6) scored **954,077** on the leaderboard, -16k under mm_r2_rth: the taker gain sat
+  in the ridge's fit window (holdout was flat), as feared.
+- **`strategies/mm_r2_final.py`** = mm_r2_rth + passive refinements only (fq_k_sp2 0.75, fq_k_sp3 0.15, hk_k 0.6, qs_k 0.3),
+  pred_blend back to 0.5: round2 434,477, mirror 432,324 (+3.7k / +3.0k over mm_r2_rth), round1 450,065 (+0.4k),
+  sample_v2 221,596 (-10.6k, another generator), check PASS 1.5 min. Last upload.
+- Final choice: the highest leaderboard pnl among mm_r2_rth (970,101) and mm_r2_final. Summary for the presentation:
+  research/reports/round2_final.md.
