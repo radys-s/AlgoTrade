@@ -944,3 +944,9 @@ Ledger `r1-final2-retune` (thr 0,095/0,105/0,115 × thr_lo 0,06/0,07/0,08): 0,11
 131 716; 0,115/0,07 → 515 098 (holdout −705). Zisk ≤ 0,3 % s horším holdoutem = šum/přefit → **finál R1 zůstává `mm_r1_final2`
 (514 093, nahráno, server = lokál, final)**. Tomášův agent chystá strukturální prediktor do shrinku — varování s čísly posláno
 (na home −8 132, 0/8); do 18:00 žádné další uploady bez compare ≥ 6/8 proti final2.
+
+## 2026-11-07 17:55 — Audit Tomášova `mm_r1_final3` (quote_size 180, park_max 6): REJECT, final zůstává final2 (home, mozek)
+
+Diff proti final2 jen dvě čísla. Compare final2 vs final3: round1 514 093 → 515 687 (+1 594, 7/8), **holdout −166**; sample_v2 +472 (5/8),
+holdout +143 → REJECT protokolem (holdout horší); check PASS. Zisk v šumu (~0,01 bodu), přepínání finalu 20 min před koncem bez
+přínosu → doporučeno nenahrávat. **Final R1 = `mm_r1_final2` 514 093.**
