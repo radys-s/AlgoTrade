@@ -1,7 +1,13 @@
 """Momentum s držením pozice: vstup IOC po směru čistého toku obchodů, výstup po HOLD_US.
 
-Parametry jsou konstanty třídy (grid je přepisuje v research/grid.py).
+Parametry jsou konstanty třídy (grid je přepisuje v research/grid.py i research/run.py).
 Inventář se počítá výhradně z fillů; strop |I| <= MAX_POS drží rezervu pod pokutovým pásmem ±100.
+
+v2 oproti momentum_hold: konec dat. Původní FLATTEN_AT_US byl absolutní čas pásky (3 590 s), takže
+na delším kole strategie po hodině přestala obchodovat a na pásce, která nezačíná v čase 0, by
+neobchodovala vůbec. FLATTEN_AFTER_US se měří od první události a je ve výchozím stavu vypnutý:
+markout na konci je sám IOC likvidace pozice do knihy, tedy totéž, co by udělalo zavření, a díky
+|I| <= MAX_POS a HOLD_US je ta pozice na konci malá.
 """
 
 from __future__ import annotations
@@ -18,38 +24,42 @@ from simulator.models import (
 from simulator.strategy import BaseStrategy
 
 
-class MomentumHoldStrategy(BaseStrategy):
+class MomentumHoldV2Strategy(BaseStrategy):
     QTY = 50  # lotů na vstup (grid na samplu: nad ~25 už málo pomáhá, likvidita na touch ~25)
     MAX_POS = 80  # tvrdý strop inventáře (pokuta nad 100)
     MIN_FLOW = 1  # minimální |čistý tok| v callbacku pro vstup
     HOLD_US = 5_000_000  # jak dlouho držet pozici (grid: 5 s nejlepší)
     SLIP_TICKS = 3  # o kolik ticků přes touch smí IOC sweepnout
-    FLATTEN_AT_US = 3_590_000_000  # od kdy jen zavírat (konec dat)
+    FLATTEN_AFTER_US = 0  # jen zavírat po tolika µs od první události; 0 = vypnuto (délka kola není známá)
 
     def __init__(self) -> None:
         super().__init__()
         self.inv = 0
         self.in_flight = False
         self.entry_us = 0
+        self.start_us = -1
 
     def _ioc(self, side: Side, price: int, qty: int) -> None:
         self.send_order(OrderRequest(side=side, price=price, quantity=qty, order_type=OrderType.IOC))
         self.in_flight = True
 
     def on_order_book_change(self, snapshot: OrderBookSnapshot, trades: list[Trade]) -> None:
+        now = snapshot.timestamp_us
+        if self.start_us < 0:
+            self.start_us = now
         if self.in_flight or not snapshot.bids or not snapshot.asks:
             return
-        now = snapshot.timestamp_us
         bid, ask = snapshot.bids[0].price, snapshot.asks[0].price
+        flatten = self.FLATTEN_AFTER_US > 0 and now - self.start_us >= self.FLATTEN_AFTER_US
 
-        # Výstup: po uplynutí HOLD_US nebo na konci dat
-        if self.inv != 0 and (now - self.entry_us >= self.HOLD_US or now >= self.FLATTEN_AT_US):
+        # Výstup: po uplynutí HOLD_US, nebo ve fázi zavírání
+        if self.inv != 0 and (now - self.entry_us >= self.HOLD_US or flatten):
             if self.inv > 0:
                 self._ioc(Side.SELL, max(1, bid - self.SLIP_TICKS), self.inv)
             else:
                 self._ioc(Side.BUY, ask + self.SLIP_TICKS, -self.inv)
             return
-        if now >= self.FLATTEN_AT_US:
+        if flatten:
             return
 
         flow = 0

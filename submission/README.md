@@ -26,6 +26,7 @@
 | Updated | Round / data | Source | Local pnl | Server pnl |
 |---|---|---|---|---|
 | 2026-11-07 11:40 | Playground / `sample.csv` | `strategies/momentum_hold.py` (QTY 50, HOLD 5 s, SLIP 3) | 50,965 | 50,965 (final) |
+| 2026-11-07 11:50 | Playground / `sample.csv` | `strategies/momentum_hold_v2.py` (same params, end-of-data flatten off and relative to the first event) | 51,225 | not uploaded yet |
 
 Absolute path for upload (Tomáš's PC):
 `C:\Users\tomas\OneDrive\Desktop\Projekty\Ostatni\AlgoTradeArena\submission\best_strategy.py`
@@ -33,5 +34,6 @@ Absolute path for upload (Tomáš's PC):
 ## Before each new round
 
 `best_strategy.py` was tuned on the previous round's data. On new data, run
-`research/analyze_tape.py` first. Also check `FLATTEN_AT_US` (end-of-data time, hard-coded to
-3,590 s for the 1 h sample) before uploading.
+`research/analyze_tape.py` first. End of data is no longer hard-coded: v2's `FLATTEN_AFTER_US` is
+off by default and, when set, counts from the first event. v1's absolute `FLATTEN_AT_US = 3,590 s`
+stopped trading after one hour and would never trade on a tape not starting at 0 (see progress log 11:50).
