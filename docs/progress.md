@@ -918,3 +918,11 @@ nejlepší buňka**; sousedé 505–509 k, nejhorší 500,9 k → plató ±1 %, 
 12 buněk: všechny ≤ baseline na obou datasetech; nejlepší (95/0,2/20) round1 −505 (2/8), v2 −176; při častějším spouštění
 (thr 0,105, qty 50) až −10 k / −7 k. Půlspread IOC + footprint > ušetřený drift; graded shrink už případ „predikce proti
 inventáři“ pokrývá. Rychlejší obrat inventáře aktivně nejde ani s načasováním modelem.
+
+## 2026-11-07 17:30 — Strukturální prediktor z pravidel generátoru: IC +0,032 na 100 ms (nelinearita, ne nová informace) (home, mozek)
+
+`research/features_struct.py`, report `research/reports/round1_struct_predictor.md`. Uzavřená forma bez parametrů: P_dep(strana) z Poissona
+takerů × lognormal velikosti × cancel člen; E[dm] = 0,5·(P_dep_ask − P_dep_bid). Sám o sobě IC 0,351 (92 % fitnutého ridge 0,380);
+ridge 23 + E[dm]: **0,412 (+0,032)** na 100 ms, HGB +0,001 (strom to má), 1 s nic. Cross-fit: nefitnutý E[dm] přenáší líp (0,310 vs
+ridge 0,278). Kalibrace P_dep na round1 od 10 % výš dobrá; na v2 2–10× nadhodnoceno (jiné mu). Stejná povaha jako krychle (+0,03 IC,
+PnL −1 %) → rozhodne jen strategie: běží port `edm_100` jako 24. feature cíle B (`exp_b_struct.py`), compare do 17:45.
