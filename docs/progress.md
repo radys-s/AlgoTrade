@@ -1177,3 +1177,12 @@ adverse selection, then the trend estimate.
 - Rejected since 22:05: slow F-mid gate (sg), taker-only faster tau, Tobit for the taker (+7.6k, hold +0.6k), over-cap
   for extreme signals only (k 4-9: -7..-53k, penalty 4-17k), direction model at 1-10 s (F-mid corr at 1-10 s is an
   artefact of a few big jumps: by quarter +0.21/+0.13/+0.07/-0.01 at 1 s).
+
+## 2026-11-07 22:30 — R2 frontier check: everything below rejected; mm_r2_pred2 stays the upload (home)
+
+Tested on mm_r2_pred / mm_r2_pred2 / fq2 (round2 local): asymmetric maker threshold for adds (-9..-32k), trend-gated
+taker (-20..-120k), over-cap only for extreme signals (-7..-53k), CUSUM level F (16-225k), surprise-weighted inserts,
+longer tau (90-220 ms), taker-only faster tau, Tobit for the taker (+7.6k noise), tail-region predictors (pred3: +1.3k,
+hold worse), oracle-labelled entry filter, liquidity replacement after sweeps (+2.4k per tape, noise), slow F-mid gate,
+cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| are -0.18/lot at 1 s but +0.02 at
+10 s and removing them hurts. On the leaderboard our inventory is at +-100 for >= 99.7 % of the time.
