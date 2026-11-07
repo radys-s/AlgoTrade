@@ -80,9 +80,25 @@ what runs next, and at most one yes/no question.
   `sample_v2` 237 306 → **263 618 (+11 %)**, holdout +12,7 %, párové chunky 8/8 (+2,1 až +2,8 k
   každý), breach 0, runtime stejný (68 s / 8,8 M). 200 = 300 (saturace). Soubor
   `strategies/exp_full_capacity.py` (champion + jedno číslo), check PASS.
-- **Otevřené otázky:** platí to na datech Round 1? `imb_pull` 0,9–0,95 a `alpha_imbalance` v
-  kombinaci s `quote_size` 200? `max_position` 80–90 jako pojistka proti trendující privátní pásce
-  (cena ~−7 %)? Odkud přesně jsou filly (fresh level vs. depletion) → další páka na frekvenci fillů.
+- **Round 1 (13:30):** spread 1 tick 93 % času, náhodná procházka, mírné momentum po obchodech.
+  `exp_full_capacity` 425 708 vs champion 321 024 (**+33 %**, 8/8 párových chunků, holdout +34 %);
+  Tomáš ho povýšil do `submission/best_strategy.py` (main 1ab3b4d). Efekt větší než na sample_v2,
+  protože R1 má víc IOC toku.
+- **Na R1 nic dalšího nepomáhá (wave 1, ~80 běhů):** imb_pull 0,5–0,95 (−5 až −55 %), alpha 1,0
+  (−44 %), min_requote 100 ms (−14 %), max_position 90/80 (−4/−9 %), hold_inside (−8 %), jump_imb,
+  flow_pull (0/8 chunků), queue_join (vstup jen do tenkých hladin −2 až −44 %, pull při hluboké
+  frontě −9 až −61 %). Vzorec: každý filtr ubírá filly s kladnou hodnotou a pull ztrácí místo ve frontě.
+- **Fill attribution kandidáta na R1** (`research/reports/round1_fill_attribution.md`): markout 1 s
+  ≈ PnL (431 k vs 426 k); edge při fillu 0,505 $/lot, markout 0,16 → 0,34 ticku driftu proti nám.
+  Filly z konce fronty (201+ lotů před nami) jsou **kladné** (+0,12 $/lot; sweepy ≥ 100 lotů
+  +0,10), protože příkazy před nami se ruší (medián života 0,34 s) – mm_edge statická pozice to
+  podhodnocuje. Jediná záporná kategorie: imbalance proti straně **a zároveň** > 200 lotů před nami
+  (−46 k na 276 k lotů); s imbalance pro nás vydělává každá pozice (+0,37 až +0,51 $/lot).
+  Čas bez živé kotace 26 % na stranu: strop 12–15 %, in-flight 0,5 %, **„jiné“ 10–14 %** v úsecích
+  100–800 ms při |I| 70–89 → podezření na kódovou cestu (replacement až po potvrzení cancelu?).
+- **Otevřené otázky:** H7 `deep_pull` (pull jen při imbalance proti + hluboká fronta); proč 10–14 %
+  času bez kotace mimo strop (trace běží); `max_position` 100 je monotónně nejlepší, trendující
+  privátní páska je riziko sdílené s championem.
 
 ## Rozhodnutí (append-only)
 
@@ -93,3 +109,6 @@ what runs next, and at most one yes/no question.
 | 12:44 | Kandidát na pojistnou submisi R1 = `strategies/exp_full_capacity.py` (`quote_size` 200), pokud `research.compare` na R1 public řekne ACCEPT; jinak champion | +11 % na sample_v2, 8/8 párových chunků, žádná nová mechanika (jen víc lotů na odvíjející straně v mezích invariantu) |
 | 12:44 | H3 `improve_unwind` a H4 `hold_inside` zamítnuty, flagy zůstávají v `strategies/exp_*.py` vypnuté | −16 % / −11 % na sample_v2; filly uvnitř spreadu jsou adverzní |
 | 12:45 | Wave 1 na R1 = CPU sweep championa (quote_size × imb_pull × alpha_imbalance × min_requote_us, + max_position 80/90), žádný nový kód, dokud nepřečtu data card R1 | nejdřív režim, pak mechaniky; tokeny šetřit na interpretaci |
+| 13:05 | Doporučení: `exp_full_capacity` jako submise R1 (ACCEPT na round1 + sample_v2, check PASS) | +33 %, 8/8 chunků, žádná nová mechanika |
+| 13:08 | Honza: nespěchat se submisí (10 slotů, server = lokál); submitovat až promyšleně | slot je vzácnější než čas |
+| 13:30 | Wave 1 uzavřena bez změny kandidáta; wave 2 = H7 `deep_pull` + rozbor času bez kotace (kódová cesta) místo dalších filtrů | všech ~80 běhů filtrů prodělává; jediný záporný segment fillů je imbalance proti × hluboká fronta |

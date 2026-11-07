@@ -424,3 +424,21 @@ sweepy ≥ 100 lotů +0,10 $/lot), protože příkazy před nami se ruší (medi
 čekáním; mm_edge měří statickou pozici při fillu a to podhodnocuje. Pull navíc po návratu zase skončí na konci fronty.
 **Další krok:** rozklad času bez živé kotace (74 % času živá kotace na stranu, strop vysvětlí jen ~17 %) a společná
 tabulka imbalance × pozice ve frontě z fill attribution; pak rozhodnout, zda zbývá jiná páka než `exp_full_capacity`.
+
+## 2026-11-07 13:40 — H7 `deep_pull` REJECT; fill attribution kandidáta na R1: strop drží 50 % času (home, mozek)
+
+**H7 (`strategies/exp_deep_pull.py`, ledger `r1-deep-pull`):** pull strany jen při imbalance proti ní **a** > N lotů
+před nami (jediný záporný segment z fill attribution: imbalance < −0,5 × queue_ahead 201+ = −46 k na 276 k lotů).
+Parita 425 708 ✔, check PASS. 9 buněk: jen 0,85/400 je +217 (4/8 chunků, holdout −70, šum), ostatní −0,3 až −12 %;
+compare → REJECT. Stažený tok byl v průměru ziskový, i když podmnožina měřená markoutem při fillu vypadala záporně:
+pravidlo pro zrušení příkazu musí být podmíněné stavem při odeslání, ne při fillu.
+
+**Fill attribution (`research/reports/round1_fill_attribution.md`, `research/fill_attribution.py`), opraveno o 131
+taker fillů (limitky, které v 5 ms letu překřížily trh):** kandidát sedí na |I| = 100 **50,4 % času** (champion
+28 %); čas bez živé kotace na stranu 26 % = strop 25 % + in-flight 0,6 % + jiné 0,2 % → **žádná kódová cesta
+s mrtvým časem**, dřívější podezření bylo chybou rekonstrukce inventáře. Markout 1 s ≈ PnL; edge při fillu
+0,505 $/lot, markout 0,16; filly snižující pozici +437 k, filly zvyšující ≈ 0; |I| ≥ 90 vydělává nejvíc na lot
+(0,24). Filly z konce fronty kladné (+0,12 $/lot), sweepy ≥ 100 lotů +0,10.
+**Závěr:** limit objemu = strop pozice (polovina času jedna strana mrtvá). Všechny pokusy o rychlejší odvíjení za
+cenu spreadu prodělaly; zbývá zkusit (a) asymetrickou velikost (menší kotace na straně, která |I| zvyšuje, aby
+sweep nehodil pozici na strop jedním fillem), (b) hold_inside jen pro odvíjející stranu při |I| ≥ N.
