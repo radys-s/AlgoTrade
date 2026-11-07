@@ -1153,3 +1153,17 @@ adverse selection, then the trend estimate.
 - PnL curve of mm_r2_fq: no catastrophic windows (worst 10 s -4.7k); seconds with |dmid| > 8 earn +115k.
 - Running: ridge predictor with build_matrix features (exp_r2_pred.py), oracle-labelled taker entry filter
   (exp_r2_tkfilt.py).
+
+## 2026-11-07 22:10 — Leaderboard: mm_r2_fq2 = 740,067 (local 349k); mm_r2_pred = 371,961 local -> next upload (home)
+
+- Honza uploaded `mm_r2_fq2.py`: leaderboard **+740,067** (22,521 filled orders, 2.25M lots, end position -100,
+  mark-out price 10,482, penalty 0, sim 1 min 5 s). The leaderboard tape is a different, ~2x longer/more active one
+  (local round2: 10.4k fills, ends ~9,690) -> local gains scale ~x2.1. 75th percentile ~700k at that time.
+- **Next upload `strategies/mm_r2_pred.py`** (subagent): mm_r2_fq2 + ridge predictor of the 150 ms move (fair taus,
+  queue/spread/flow features, fit on round2's first 75 %) used ONLY by the IOC taker, blended 50/50 with fair_sig.
+  round2 **371,961** (8/8; compare ACCEPT: +22.9k, 6/8 paired, hold +4.3k), mirror 369.7k, round1 441.6k, sample_v2
+  265.9k, breach 0, check PASS 1.4 min.
+- Centered-F oracle (`research/diag/oracle_centf.py`, F from inserts within +-50/100 ms, no future trades): 586k / 684k
+  local -> a lag-free low-noise F estimate is worth +240-335k, but every causal attempt fails: longer tau (90-220 ms)
+  208-312k, CUSUM level reset 16-225k, surprise-weighted inserts 215-339k, Tobit for the taker 356.7k (hold +0.6k,
+  noise), oracle-labelled taker entry filter (no out-of-sample power at the holding horizon), higher flip threshold.

@@ -137,7 +137,7 @@ s*I + R + q <= M <= 100, and s*I >= -M, so the value lies in [-100, 100].
 """
 
 from collections import deque
-from math import exp, floor
+from math import erf, exp, floor, sqrt
 
 from simulator.models import (
     OrderBookSnapshot,
@@ -261,6 +261,21 @@ class MarketMaker(BaseStrategy):
         'unw_cool_ms': 50.0,
         'unw_slip': 0,
         'fq_keep': -1.0,
+        'fq_far_k': 0.0,
+        'fq_far_max': 3,
+        'fq_far_tol': 0,
+        'fq_flip_k': -1.0,
+        'cus_on': 0,
+        'cus_m': 4,
+        'cus_c': 1.0,
+        'cus_tau_ms': 300.0,
+        'cus_max': 80,
+        'ad_c': 0.0,
+        'ad_k': 1.0,
+        'tob_on': 0,
+        'tob_q': 5.0,
+        'tob_r': 0.5,
+        'tob_blend': 1.0,
         'fair_mid_any': 1,
     }
 
@@ -336,6 +351,30 @@ class MarketMaker(BaseStrategy):
         self.unw_slip = max(0, int(params['unw_slip']))
         self.unw_next = 0
         self.fq_keep = float(params['fq_keep'])
+        self.fq_far_k = float(params['fq_far_k'])
+        self.fq_far_max = int(params['fq_far_max'])
+        self.fq_far_tol = int(params['fq_far_tol'])
+        self.fq_flip_k = float(params['fq_flip_k'])
+        self.cus_on = int(params['cus_on'])
+        self.cus_m = max(1, int(params['cus_m']))
+        self.cus_c = float(params['cus_c'])
+        self.cus_tau_us = max(1.0, float(params['cus_tau_ms']) * 1000.0)
+        self.cus_max = max(2, int(params['cus_max']))
+        self.ad_c = float(params['ad_c'])
+        self.ad_k = float(params['ad_k'])
+        self.tob_on = int(params['tob_on'])
+        self.tob_q = max(0.0, float(params['tob_q'])) * 1e-6
+        self.tob_r = max(1e-3, float(params['tob_r']))
+        self.tob_blend = float(params['tob_blend'])
+        self.tob_m = 0.0
+        self.tob_P = 1.0
+        self.tob_t = 0
+        self.tob_pbb = 0
+        self.tob_pba = 0
+        self.cus_s = 0.0
+        self.cus_w = 0.0
+        self.cus_t = 0
+        self.cus_recent = deque()
         self.n_unw = 0
         self.fair_mid_any = int(params['fair_mid_any'])
         self.fq_next_take = [0, 0]  # earliest time of the next IOC take per side
@@ -528,6 +567,10 @@ class MarketMaker(BaseStrategy):
     def _fair_update(self, now: int, bids, asks, bb: int, ba: int) -> None:
         """Fold a new market limit order (if this row inserted one) into the hidden-fair signal."""
         prev2 = self.fair_prev_mid2
+        pbb = self.tob_pbb
+        pba = self.tob_pba
+        self.tob_pbb = bb
+        self.tob_pba = ba
         if self.fair_mid_any or ba - bb <= 3:
             self.fair_prev_mid2 = bb + ba
         if prev2 <= 0:
@@ -565,10 +608,72 @@ class MarketMaker(BaseStrategy):
         dev = x - self.fair_off[k]
         a = exp(-(now - self.fair_t) / self.fair_tau_us)
         self.fair_t = now
-        self.fair_s = self.fair_s * a + dev
+        if self.tob_on:
+            self._tobit(now, k, px, dev, pbb, pba, prev2)
+        wi = 1.0
+        if self.ad_c > 0.0 and self.fair_w > 0.0:
+            # A surprising insert (far from the current estimate) is evidence that F moved: weigh it more.
+            sur = abs(dev - self.fair_s / self.fair_w) - self.ad_c
+            if sur > 0.0:
+                wi += self.ad_k * sur
+        self.fair_s = self.fair_s * a + wi * dev
         self.fair_ls = self.fair_ls * a + (px - self.fair_off[k])
-        self.fair_w = self.fair_w * a + 1.0
+        self.fair_w = self.fair_w * a + wi
         self.fair_sig = self.fair_s / self.fair_w
+        if self.cus_on:
+            # Jump-adaptive fair level: average every insert since the last detected change of F (slow forgetting),
+            # reset to the last cus_m inserts when their mean departs from the running level by > cus_c ticks.
+            fi = px - self.fair_off[k]
+            rec = self.cus_recent
+            rec.append(fi)
+            if len(rec) > self.cus_m:
+                rec.popleft()
+            ca = exp(-(now - self.cus_t) / self.cus_tau_us)
+            self.cus_t = now
+            if self.cus_w > 0.0:
+                lvl = self.cus_s / self.cus_w
+                rm = sum(rec) / len(rec)
+                if len(rec) >= self.cus_m and abs(rm - lvl) > self.cus_c:
+                    self.cus_s = rm * len(rec)
+                    self.cus_w = float(len(rec))
+                else:
+                    self.cus_s = self.cus_s * ca + fi
+                    self.cus_w = self.cus_w * ca + 1.0
+                    if self.cus_w > self.cus_max:
+                        f = self.cus_max / self.cus_w
+                        self.cus_s *= f
+                        self.cus_w = float(self.cus_max)
+            else:
+                self.cus_s = fi
+                self.cus_w = 1.0
+            self.fair_sig = self.cus_s / self.cus_w - prev2 / 2.0
+
+    def _tobit(self, now: int, k: int, px: int, dev: float, pbb: int, pba: int, prev2: int) -> None:
+        """Kalman / Tobit estimate of F - mid (exp_r2_fair2 mode 2), kept beside the EWMA for the taker only."""
+        P = self.tob_P + self.tob_q * (now - self.tob_t)
+        self.tob_t = now
+        m = self.tob_m
+        r = self.tob_r
+        if pba > pbb > 0 and (px >= pba - 1 if k == 0 else px <= pbb + 1):
+            sg = 1.0 if k == 0 else -1.0
+            c = (pba - 1.5 if k == 0 else pbb + 1.5) - self.fair_off[k] - prev2 / 2.0
+            s = sqrt(P + r)
+            z = sg * (m - c) / s
+            if z > -8.0:
+                cdf = 0.5 * (1.0 + erf(z * 0.7071067811865476))
+                lam = exp(-0.5 * z * z) * 0.3989422804014327 / (cdf if cdf > 1e-12 else 1e-12)
+                m += sg * P / s * lam
+                P -= P * P / (s * s) * lam * (z + lam)
+            else:
+                m = c - sg * 0.5
+            if P < 1e-4:
+                P = 1e-4
+        else:
+            g = P / (P + r)
+            m += g * (dev - m)
+            P *= 1.0 - g
+        self.tob_P = P
+        self.tob_m = m
 
     def _fq(self, now: int, bb: int, ba: int, fshift: float, pull_bid: bool, pull_ask: bool):
         """Fair-centric prices: quote around F_hat, cross with an IOC when F_hat - k is beyond the far touch."""
@@ -586,8 +691,19 @@ class MarketMaker(BaseStrategy):
         dask = -floor(-(f + k))
         tk = self.fq_take_k
         if tk > 0.0:
-            take_buy = floor(f - tk) >= ba
-            take_sell = -floor(-(f + tk)) <= bb
+            ft = f
+            if self.tob_on:
+                b_ = self.tob_blend
+                ft = mid + self.fq_scale * (b_ * self.tob_m + (1.0 - b_) * sig) + fshift
+            take_buy = floor(ft - tk) >= ba
+            take_sell = -floor(-(ft + tk)) <= bb
+            fk = self.fq_flip_k
+            if fk >= 0.0:
+                # Reversing an existing position needs a stronger signal than entering from flat.
+                if take_sell and self.inv > 0 and -floor(-(f + fk)) > bb:
+                    take_sell = False
+                if take_buy and self.inv < 0 and floor(f - fk) < ba:
+                    take_buy = False
         else:
             take_buy = dbid >= ba
             take_sell = dask <= bb
@@ -615,6 +731,24 @@ class MarketMaker(BaseStrategy):
             pull_bid = True
         if ask - ba > mb:
             pull_ask = True
+        if self.fq_far_k > 0.0:
+            # The side F_hat is against is not pulled but parked BEHIND fair: a fresh, non-stale order early in its queue.
+            fk = self.fq_far_k
+            ftol = self.fq_far_tol
+            if pull_bid and not in_pb and not take_buy and not take_sell:
+                pb = floor(f - fk)
+                if self.active[0] and abs(self.quote_px[0] - pb) <= ftol and self.quote_px[0] < bb:
+                    pb = self.quote_px[0]
+                if 0 < bb - pb <= self.fq_far_max:
+                    pull_bid = False
+                    bid = pb
+            if pull_ask and not in_pa and not take_buy and not take_sell:
+                pa = -floor(-(f + fk))
+                if self.active[1] and abs(self.quote_px[1] - pa) <= ftol and self.quote_px[1] > ba:
+                    pa = self.quote_px[1]
+                if 0 < pa - ba <= self.fq_far_max:
+                    pull_ask = False
+                    ask = pa
         keep = self.fq_keep
         if keep >= 0.0:
             # Queue priority: keep a resting quote at the market touch until F_hat is clearly against it.
