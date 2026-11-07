@@ -973,3 +973,11 @@ veřejnou pásku (pevný práh shrinku 0,105 na škále predikce, graded 0,07, p
 **Další krok:** (1) zjistit privátní PnL našich pěti submisí (mm_park 452 k, mm_ml 490 k, r1tuned 497 k, final 510 k, final2 514 k
 veřejně) → která vrstva se přenesla; (2) adaptivní práh shrinku (klouzavý kvantil |pred|, konstantní podíl spouštění) a velikosti
 relativní k rozdělení IOC → robustnost vůči parametrům generátoru; (3) na R2 preferovat robustní variantu před veřejně doladěnou.
+
+## 2026-11-07 18:55 — H24 adaptivní práh shrinku (klouzavý kvantil |pred|): funguje mechanicky, zisk žádný (home, mozek)
+
+`strategies/exp_adaptive.py` (ml_adaptive, ml_share 0,28 / ml_share_lo 0,49, histogram 400 binů, O(1); parita 514 093 ✔, check PASS),
+ledger `r1-adaptive`. Prahy sledují škálu predikce (round1 0,105/0,069 = baked; v2 0,0915/0,0495). round1 514 160 (±0), sample_v2
+258 293 (−1,8 k) při stejném podílu; podíl 0,22 → +1,0 k / +0,8 k (šum). Compare {0,28} REJECT (3/8). **Závěr:** pojistka proti posunu
+škály predikce na novém kole (pro R2 užitečné, pokud nebudeme refitovat), ne zdroj PnL. Privátní R1 navíc ukázal, že se final2 přenesl 1:1,
+takže křehkost prahů nebyla příčinou rozdílu k lídrům.
