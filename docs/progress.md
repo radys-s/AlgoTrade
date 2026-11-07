@@ -870,3 +870,12 @@ strop 100ms toxicity filtru 540–600 k; 650 k lídra touto rodinou nejde.
 - Honza's home PC: `mm_ml_r1tuned.py` (thr 0.12 / stub 3) 497,292 is the current best; sweeps are unpredictable.
 - Full state and ranked next steps: `docs/radys-findings.md` section 9. Next: fill diagnostic `research/diag/queue_fills2.py`
   on mm_ml_r1tuned, then capacity/inventory-turnover experiments.
+
+## 2026-11-07 16:45 — R1 stack nad mm_ml_b: tight_only + graded + park_max 5 → round1 510 469 (home, mozek)
+
+Na pokyn Honzy („fit tenhle trh“) naskládáno vše, co na round1 vydělává: `strategies/exp_b_stack.py` = mm_ml_b + graded cap
+(`ml_thr_lo` 0,07 / `ml_frac_lo` 0,5) + Tomášův `ml_tight_only` (ML stub jen při spreadu 1) + `park_max` 5. Ledger `r1-b-stack`:
+tight_only sám +1 742 (7/8, holdout +683; v2 +1 418, holdout +595); tight + graded 507 905 (+4 757, 8/8, holdout +524; v2 +1 087).
+**Compare mm_ml_b vs plný stack: round1 503 148 → 510 469 (+7 321, 7/8, holdout +566); sample_v2 258 042 → 258 573 (+531, 5/8,
+holdout +504) → ACCEPT.** Zapečeno do `strategies/mm_r1_final.py`; check s runtime běží. Je to režimové ladění pro round1
+(privátní R1 = stejný trh); v jiném režimu znovu naladit park/prahy.
