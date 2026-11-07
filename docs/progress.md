@@ -1167,3 +1167,13 @@ adverse selection, then the trend estimate.
   local -> a lag-free low-noise F estimate is worth +240-335k, but every causal attempt fails: longer tau (90-220 ms)
   208-312k, CUSUM level reset 16-225k, surprise-weighted inserts 215-339k, Tobit for the taker 356.7k (hold +0.6k,
   noise), oracle-labelled taker entry filter (no out-of-sample power at the holding horizon), higher flip threshold.
+
+## 2026-11-07 22:20 — Leaderboard mm_r2_pred = 797,904; next: mm_r2_pred2 (gate 20 s / thr 10) (home)
+
+- Leaderboard: `mm_r2_pred` **797,904** (+57.8k over mm_r2_fq2's 740,067; sim 1 min 30 s). Local -> leaderboard ~x2.1-2.15.
+- **`strategies/mm_r2_pred2.py`** = mm_r2_pred + gate window 20 s, gate_thr 10 (robust across regimes): round2 378,507
+  (+6.5k), mirror 374,093, round1 480,854 (+39k), sample_v2 267,440 (+1.5k), check PASS 1.4 min. (gate 6 / take_k 0.15
+  was +3k more on round2 but -64k on round1: rejected as regime-fragile.)
+- Rejected since 22:05: slow F-mid gate (sg), taker-only faster tau, Tobit for the taker (+7.6k, hold +0.6k), over-cap
+  for extreme signals only (k 4-9: -7..-53k, penalty 4-17k), direction model at 1-10 s (F-mid corr at 1-10 s is an
+  artefact of a few big jumps: by quarter +0.21/+0.13/+0.07/-0.01 at 1 s).
