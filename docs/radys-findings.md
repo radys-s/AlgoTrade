@@ -273,6 +273,25 @@ showed a better-IC MLP lost in the shrink, so validate on pnl, not IC.
   budget; (3) filters/threshold tuning only after that; (4) compare with the leaderboard every 30 min: if the leader is
   > 20 % ahead after 2 h, switch architecture instead of tuning.
 
+## 10. R1 official results: what the winner did (radys, from the organizers' slides)
+
+- Public vs private PnL rank correlation **0.995**: the public tape is a faithful proxy. Tune directly on the public R2
+  tape; robustness checks (chunks, other tapes) are a tie-breaker, not a veto.
+- Winner GammaStrike 792,696, +91k over 2nd; **426k fills on the private tape, over 12x the rest of the top 5**
+  (~35k each; our champion has ~40k fills on public R1). Same order of lots, ~10x more fills => many SMALL orders.
+- Private R1 book: touch queues 450-1,500 lots, L2/L3 often 1,000+. Joining at the back of a 1,500-lot queue is the
+  worst spot (500+ ahead = -0.26..-0.48 $/lot).
+- Consistent with the front-of-queue oracle (1.3-1.4M): the winner buys queue age with many small orders placed
+  EARLY (on deeper levels before the price arrives, on fresh levels, right after a sweep empties a level) and keeps
+  them. Fill count explodes because each small order is a separate fill when a sweep passes.
+- Lever we never used: the exchange rejects only POTENTIAL |pos| > 1000; |I| > 100 is a penalty on ACTUAL inventory.
+  Our I + OUT <= 100 invariant is self-imposed. A small-order ladder over L1..L5 with ~300-600 lots per side resting
+  only breaches when a deep sweep fills much of it; then cancel the rest of that side at once and unwind passively/IOC.
+  Honza's deep ladder failed (-82..-98 %) UNDER the 100-lot invariant (capacity starvation), not without it.
+- Test plan: ladder of k-lot orders (k 1-10) on L1..Ln, placed when a level is fresh/short, never cancelled while
+  behind the touch; cap resting per side R in {200, 400, 600}; on |I| > 80 cancel the adding side. Measure fills,
+  pnl/lot, breach seconds, penalty $. Combine with the R2 trend gate (drop the against-trend ladder).
+
 ## Tools from this window
 
 - `research/analyze_tape.py` — 1-minute tape overview (spread, momentum vs reversion, signal correlations).
