@@ -32,6 +32,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 14:45 | radys | Park stubs via modify instead of cancel: `mm_park` round1 452,651 (+6.3 %), compare ACCEPT -> submission |
 | 2026-11-07 15:10 | radys | k-fold: mm_park not overfit (oof +6.3 %, 8/9 blocks); back-pull and ladder rejected; ridge IC +0.38 stable |
 | 2026-11-07 15:40 | radys | ML shrink: ridge 100 ms signal caps the predicted-adverse side at 5 lots -> `mm_ml` round1 490,460 (+8.4 %) -> submission |
+| 2026-11-07 16:30 | radys | Rejected on mm_ml: over-cap quoting, inventory lockout/threshold, post-fill freeze, gap jump; structural levers for Honza in radys-findings s.8 |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -765,3 +766,17 @@ skór AUC 0,50. Ridge trigger (|pred| > 0,15) označí 9,7 % sweepů při 9,6 % 
 Přidání skóru k 23 features: IC 0,3802 → 0,3812. sample_v2 totéž.
 **Závěr:** sweepy nelze předvídat 5 ms dopředu; obrana je jen velikost a pozice ve frontě (mm_park/mm_ml). Hypotéza
 „otisky účastníků“ zamítnuta.
+## 2026-11-07 16:30 — Ideas on top of mm_ml, all rejected so far (radys)
+
+All on round1, full tape unless noted, vs mm_ml 490,460 (`strategies/exp_overcap.py`, every flag off = mm_ml).
+- **Over-cap** (quote 150-300 lots, IOC-cut anything above the 100 band): -133k..-316k on a 25 % slice vs +113k.
+  Breaches cost the spread on the cut plus 10 $/ms; far more than the extra fills earn.
+- **Holding 900 lots for 1-2 s** (Tomas' question): 2 s round trip averages -1.07 ticks/lot, best case on the whole
+  tape +5 ticks; 20k of penalty needs a 22-tick move. Dead.
+- **Inventory lockout** (stub the growing side from |I| >= 60): 475k. **Inventory-shifted ML threshold**: 477-479k.
+- **Post-fill freeze** (stub a side 20/100 ms after its fill): dropped on the 25 % screen.
+- **ML stub only at 1-tick spread**: 492,254 (+1.8k, noise).
+- **Gap jump** (post inside a 2-tick spread, side by ML pred): 405k (always) .. 492,783 (thr 0.4). The more it jumps the
+  worse: orders inside a fresh gap get hit by the sweep's continuation.
+- **Why it matters:** the price range is only 105 ticks in 3.3 h; profit is purely spread capture under a 100-lot budget.
+  Next: queue-aware stub (`ahead_stub`), park re-tune on the ML base; heavy levers for Honza in radys-findings s.8.

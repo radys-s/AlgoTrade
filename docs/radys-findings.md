@@ -149,6 +149,45 @@ plain quoting comes from queue priority and from the replay artefacts (`.claude/
 6. **Per-round regime detection.** The round data differs a lot (v2: mean-reverting, spread 2 for 58 %;
    round1: momentum, spread 1 for 93 %); a team that adapts settings online beats one tuned on public data.
 
+## 7. External idea list, checked against round1 evidence (radys, 15:55)
+
+Current best: `mm_ml` (our model, radys) = mm_park + ridge-signal 5-lot stub, round1 490,460 (server = local).
+
+| Idea | Verdict | Why |
+|---|---|---|
+| OFI / VOI alpha | **Try (Honza, retrain)** | Ridge already has L1-L5 imbalance, micro, count imbalance and trade flow; true Cont OFI (delta of touch qty between events) is missing. Add as a feature in `research.signals`, retrain ridge h100, re-embed. Expect a small IC gain; only the stub decision uses it. |
+| Hawkes sweep detection, pull the opposite side | Covered / rejected | `flow_pull` (pull after big aggressive volume) = +0.2 % noise; the ML shrink already uses flow_ev/flow_ms features. Pulling = cancelling = losing the queue. |
+| Micro-price centred quotes | Rejected | Moving our price = cancel + requote at the back. `alpha_imbalance`/skew > 0 lost. Micro is a ridge feature already. |
+| Pre-emptive queue farming 1-2 ticks out | Rejected | = standing ladder (`exp_ladder.py`): standing = off, ladder-first -15..-60 %. |
+| Depletion sniping (shrink when V_ahead < 5 %) | Partly done | `thin_pull` (-8..-65 %), `thin_cap` (no gain); the ML stub is the version that works. A depletion-RATE feature in the ridge model is untested -> add with OFI. |
+| Avellaneda-Stoikov inventory skew | Rejected for price, open for size | Price skew lost (skew 0 best). Size asymmetry already comes from the invariant I + OUT <= M. |
+| Mark-out by queue age | Diagnostic, worth it | Add time-in-queue to `research/diag/queue_fills.py`; if fills < 50 ms after joining are toxic, feed age into the stub rule. |
+| Phantom stub recycling | Done | That is `park_size` (mm_park). |
+| Markov LOB fill-EV matrix | Open (heavy) | Same as section 5 "fill-quality model": EV per (level qty bucket, queue ahead bucket, spread, pred sign). Needs a fills dataset over many configs. |
+| End-of-tape unwind to 0 | Skip | End position is marked at the mark-out price, no fees; flattening only pays the spread. Expected gain ~0. |
+
+**New lever being tested (radys):** the exchange rejects only POTENTIAL |position| > 1000; the 100 band is a flat
+10,000 $/s penalty on actual inventory. `exp_overcap.py` quotes 150-300 lots and IOC-cuts any excess above 100.
+
+## 8. Why leaders are ~2x ahead: structural levers (radys, 16:20)
+
+Facts (round1): price range only 9,990-10,095 over 12,000 s, 2 s mid std 1.3 ticks, so directional/taker
+trading is dead (2 s round trip averages -1.07 ticks/lot; holding 900 lots past the 100 band would need a
+22-tick move, which never happens). Aggressor flow = 15.4M lots in 96k IOCs (median 61, p99 1,543). We catch
+2.2M lots (~14 %) at +0.22 $/lot. The ceiling is ~0.5 $/lot (half spread) x more volume. Rejected today:
+over-cap quoting (max_position 150-300 + IOC cut: -133k..-316k on a 25 % slice vs +113k), inventory lockout
+(-15k), inventory-shifted ML threshold (-11k), post-fill freeze (dropped on screen), ML stub at 1-tick spread
+only (+1.8k = noise).
+
+| # | Lever | Status | Why it can be big |
+|---|---|---|---|
+| 1 | **Be first at a new level**: spread 2 opens 1.2x/s (14,832 times), 84 % of gaps last > 5 ms (median 23 ms). Post inside the gap (side by ML pred) and park the old touch order. | **Rejected (radys 16:30)**: jump on any pred 412,936, thr 0.1 470,627, thr 0.4 492,783 vs off 492,254. The gap opens after a sweep and the order inside it is hit by the sweep's continuation. | Do not retest. |
+| 2 | **Queue-aware stub**: shrink (not cancel) the touch order while > X market lots are ahead of it. | radys testing (`ahead_stub`) | Fills with 500+ lots ahead lose 0.22-0.52 $/lot; back-pull failed only because it cancelled. |
+| 3 | **Fill-quality model instead of mid model**: label = 1 s markout of OUR fill; features = lots ahead, level qty, depletion rate, OFI, cancel vs trade share, pred. Use it to size every order (budget goes where EV/lot > 0). | Honza (heavy: needs fills from many configs) | Directly optimises what we earn; the mid model is a proxy. |
+| 4 | **Budget allocator**: the per-side budget M - I is split between fresh touch size, parked stubs and gap orders by expected EV per lot. | Honza | The 100-lot cap is THE binding constraint; using it only where EV is high is the main multiplier. |
+| 5 | **Cancel-adjusted queue** using order ids/ages in the snapshot (market orders have ids; old big orders cancel at known-ish rates). | Honza (diagnostic first) | Real queue ahead is smaller than shown -> more orders count as "front". |
+| 6 | **Signal v2**: add OFI, touch depletion rate/acceleration, cancel volume at touch, micro-price velocity; try GBM; horizons 20/50/100 ms. | Honza (retrain + re-embed) | ML stub alone gave +8 %; a sharper toxicity signal scales that. |
+
 ## Tools from this window
 
 - `research/analyze_tape.py` — 1-minute tape overview (spread, momentum vs reversion, signal correlations).
