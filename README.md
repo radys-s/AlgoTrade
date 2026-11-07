@@ -5,7 +5,7 @@ Kontext soutěže a pravidla: [docs/kontext.md](docs/kontext.md) · deník: [doc
 
 Workflow: každý pracuje ve své větvi (`radys` = Tomáš, `herzic` = Honza), commit aspoň
 každých 30 minut i u neúspěšných experimentů, do `main` jen merge (žádný rebase, squash ani force-push).
-Strategie v `strategies/`, nové mechaniky za parametrem/flagem místo mazání.
+**Submission: only `submission/best_strategy.py` is uploaded** (see [submission/README.md](submission/README.md)). Strategie v `strategies/`, nové mechaniky za parametrem/flagem místo mazání.
 
 ---
 
