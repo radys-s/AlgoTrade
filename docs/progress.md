@@ -15,6 +15,8 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 11:05 | radys | Analýza playground dat (`research/analyze_tape.py`), grid runner, `momentum_hold.py`: sample `pnl=50 965` |
 | 2026-11-07 11:15 | radys | Playground submise `momentum_hold` (výchozí parametry): server `pnl=44 116` = lokálně přesně; výchozí parametry přepnuty na nejlepší z gridu |
 | 2026-11-07 11:20 | radys → main | Submise s nejlepšími parametry: server `pnl=50 965` (final). Předávka `docs/poznatky.md`, merge `radys` do `main` |
+| 2026-11-07 11:20 | herzic | Research infrastruktura: paralelní runner + ledger, compare, check, MM baseline, workflow, skills |
+| 2026-11-07 11:25 | herzic | Data/ML pipeline: features (1 průchod simulátorem), data card, walk-forward signály, export modelu; sample: ridge IC +0.79 (7/7 foldů) |
 | 2026-11-07 11:40 | radys → main | Added `submission/best_strategy.py` (the single file to upload, always the current best) + `submission/README.md` |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
@@ -91,6 +93,27 @@ Nahraná `momentum_hold.py` omylem s výchozími parametry (QTY 20, HOLD 3 s, SL
 Server: `pnl=44 116`, fills 1 000, objem 11 932, pokuta 0, |I| q99,7 = 36, simulace 0,9 s.
 Lokální běh se stejnými parametry dal **přesně stejná čísla** → lokální simulátor = hodnocení,
 lokální grid je spolehlivý odhad veřejného skóre. Výchozí parametry přepnuty na QTY 50, HOLD 5 s, SLIP 3 (lokálně 50 965).
+
+## 2026-11-07 11:20 — Research infrastruktura (herzic)
+
+**Co a proč:** v 5h kole je úzké hrdlo CPU na backtesty a disciplína proti overfittingu, ne
+nápady. Postaveno (plán kola a protokol v [workflow.md](workflow.md)):
+- `research/run.py` — paralelní sweep strategie × mřížka parametrů × datasety; PnL po 8 časových
+  chuncích + holdout (posledních 25 % času); `--halving` (successive halving přes prefixy dat);
+  každý běh do ledgeru `research/results/` se snapshotem strategie. `research/ledger.py` výpis.
+- `research/compare.py` — champion vs challenger po párových chuncích, verdikt ACCEPT/REJECT.
+- `research/check.py` — statická kontrola pravidel sandboxu + odhad doby běhu na 8,8 M řádků.
+- `strategies/mm.py` — parametrický market maker s dokázaným invariantem |I| + čekající ≤ 100.
+- `research/train_mlp.py` — PyTorch MLP (Colab/GPU) → váhy jako numpy kód do strategie.
+- `research/workflows/research_wave.js` — vlna výzkumu se subagenty (návrh → experimenty → skeptik → integrace).
+- `.claude/skills/` — vlastní skills (mechanika simulátoru, kickoff kola, experiment, pre-submit)
+  + 5 prověřených cizích (walk-forward validace, mikrostruktura, backtest review, sklearn, statsmodels).
+
+**Výsledek (sample, syntetický trend):** runner reprodukuje `pnl=1878`; MM s výchozími parametry
+`pnl=-9056`, breach 0 (trend na samplu MM přejede do 1 s po fillu, 77 % fillů); halving na 32
+sadách najde dobré, ne nutně nejlepší nastavení → halving na široký scan, pak úzký plný sweep.
+
+**Další krok:** playground = sample (viz radys 11:05), takže první reálná data jsou Round 1: kickoff podle `.claude/skills/round-kickoff`, data card, MM i `momentum_hold` na nových datech.
 
 ## Šablona experimentu
 
