@@ -690,3 +690,16 @@ s park_max 5 → 480 818 / 216 248; park_max 5 samo → round1 492 490 (+2 030, 
 Compare {20, 5}: round1 −9 642 (1/8), sample_v2 −37 813 (0/8) → REJECT.
 **Závěr:** co stub dovnitř na mm_park přidával (+0,5 %), ML shrink už bere lépe; „R1 stack“ (thr 0,12/3 + park_max 5 +
 improve_stub) tedy nemá smysl — zbývá jen thr 0,12/3 (+1,4 %, režimové). Další zisk musí přijít z kvality signálu.
+
+## 2026-11-07 15:05 — Čistý (neleakující) model potvrzuje mm_ml; runtime; horizont 1 s REJECT (home, mozek, R1)
+
+**Leak:** ridge v mm_ml byl fitnut na celém round1. Čistý fit (čas ≤ 75 %, purge 1 s, stejný formát) → `strategies/exp_ml_clean.py`
+(`research/reports/round1_ml_clean.md`): IC train 0,383 / holdout 0,375 (žádný přefit). round1 490 905 (leaky 490 460),
+holdout +8 242 nad mm_park (leaky +8 405), **8/8 párových chunků**; sample_v2 253 400 (+2 164, 4/8) → **ACCEPT, zisk ML je
+skutečný out-of-sample**. Pro finální soubor je fit na všech veřejných datech správný (leak se týkal jen našeho odhadu).
+**Runtime** (`ml_every`, `ml_on_touch_change`, check --rows 0 pod zátěží): every 1 → 24,4 µs/ev, 4,2 min / 8,8 M, 490 905;
+touch_change 1 → 18,4 µs, 3,3 min, 490 809 (−96); every 2 → 3,1 min, −0,3 %; every 4 → 2,5 min, −0,7 %. Doporučení:
+`ml_on_touch_change` 1 bez ztráty; `ml_every` 2 jen při nedostatku rezervy.
+**H16 horizont 1 s** (`strategies/exp_ml_h1000.py`, ledger `r1-ml-h1000`, model 1 s fit na 75 %, prahy sladěné na stejnou
+četnost): 0,39 → 490 440, 0,49 → 484 026, 0,6 → 467 615; compare {1000, 0,49}: round1 −6 434 (1/8), v2 −1 198 → REJECT.
+Pro shrink rozhoduje načasování 100 ms signálu, ne velikost 1 s pohybu.
