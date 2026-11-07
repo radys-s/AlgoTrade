@@ -896,3 +896,33 @@ v 70 % epizod (proto P(reverze) 0,46).
 **Důsledek:** naše mechaniky (plná kapacita, park, shrink podle imbalance) jsou v souladu s generátorem; lineární ridge už
 P(vyprázdnění) zhruba nese (krychle IC +0,03 bez PnL). Pro R2: stejná rodina modelu s jinými parametry → strategie se přenáší,
 přeladit prahy/park; „aritmetika fillů“ umožňuje spočítat optimální velikost stubů/bulku z parametrů kola (námět).
+
+## 2026-11-07 17:10 — Věk příkazů (naplánované cancely) jako feature: +0,007 IC na round1 → neportovat (home, mozek)
+
+`research/features_age.py` (numba replay pásky, 6 s; touch množství sedí se simulátorem na 100 % řádků), report
+`research/reports/round1_age_feature.md`. Očekávaný cancel objem touch do 200 ms z věkového profilu koreluje 0,68 s realizovaným,
+ale velikost fronty sama vysvětlí skoro totéž (R² 0,461 vs 0,474 s věky): cancel čas každého příkazu je jeden i.i.d. los a fronta
+o desítkách příkazů to zprůměruje. Walk-forward ridge 100 ms round1: 0,3828 → 0,3900 (+0,007), HGB +0,002. Na sample_v2 +0,022
+(100 ms) / +0,076 (1 s) a cross-fit round1 → v2 0,283 → 0,337 — věky jsou podíly, přenášejí se líp. **Závěr:** na round1 nic;
+levný robustnostní přídavek pro R2, pokud bude páska jako v2. Port popsán v reportu (ins_t[id] z prvního výskytu v snapshotu).
+
+## 2026-11-07 17:20 — Doladění finálního stacku: zapečené hodnoty jsou optimum (home, mozek)
+
+Ledger `r1-final-retune` (mm_r1_final, round1, thr 0,095/0,105/0,115 × stub 3/5 × frac 0,25/0,5/0,75): **0,105 / 3 / 0,5 = 510 469 je
+nejlepší buňka**; sousedé 505–509 k, nejhorší 500,9 k → plató ±1 %, finál beze změny. Nahráno a označeno final (server 510 469,
+3 min 2,8 s; 54 229 fillů, 1,97 M lotů = 0,259 $/lot, PnL SE 9 391, |I| kvantily 57/80/100/100).
+
+## 2026-11-07 17:25 — H23 ML-načasovaný IOC unwind: REJECT (home, mozek)
+
+`strategies/exp_ml_unwind.py` (IOC jen při |I| ≥ N a predikci proti pozici; parita 510 469 ✔, check PASS), ledger `r1-ml-unwind`,
+12 buněk: všechny ≤ baseline na obou datasetech; nejlepší (95/0,2/20) round1 −505 (2/8), v2 −176; při častějším spouštění
+(thr 0,105, qty 50) až −10 k / −7 k. Půlspread IOC + footprint > ušetřený drift; graded shrink už případ „predikce proti
+inventáři“ pokrývá. Rychlejší obrat inventáře aktivně nejde ani s načasováním modelem.
+
+## 2026-11-07 17:30 — Strukturální prediktor z pravidel generátoru: IC +0,032 na 100 ms (nelinearita, ne nová informace) (home, mozek)
+
+`research/features_struct.py`, report `research/reports/round1_struct_predictor.md`. Uzavřená forma bez parametrů: P_dep(strana) z Poissona
+takerů × lognormal velikosti × cancel člen; E[dm] = 0,5·(P_dep_ask − P_dep_bid). Sám o sobě IC 0,351 (92 % fitnutého ridge 0,380);
+ridge 23 + E[dm]: **0,412 (+0,032)** na 100 ms, HGB +0,001 (strom to má), 1 s nic. Cross-fit: nefitnutý E[dm] přenáší líp (0,310 vs
+ridge 0,278). Kalibrace P_dep na round1 od 10 % výš dobrá; na v2 2–10× nadhodnoceno (jiné mu). Stejná povaha jako krychle (+0,03 IC,
+PnL −1 %) → rozhodne jen strategie: běží port `edm_100` jako 24. feature cíle B (`exp_b_struct.py`), compare do 17:45.
