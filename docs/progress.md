@@ -671,3 +671,13 @@ druhořadá (±2 k).
 → **na R2 se musí po refitu modelu práh znovu naladit**. Round1-optimum 0,12/3 (+1,4 %) je režimové ladění (na v2 −4 %);
 robustní volba 0,15 se stubem 3 (round1 +2,2 k, v2 ±0). Baked 0,15/5 zatím neměnit, dokud nedojde čistý (neleakující)
 model; pak sestavit „R1 final“ stack (thr 0,12/3 + park_max 5 + improve_stub 20) a zvážit jako druhý upload.
+
+## 2026-11-07 14:55 — H15 asymetrické prahy ML shrinku: REJECT (home, mozek, R1)
+
+**Hypotéza:** zmenšovat dychtivěji stranu zvyšující |I| (filly ~0 $/lot) a líně stranu snižující |I| (filly +0,21).
+**Změna:** `strategies/exp_ml_asym.py` = mm_ml + `ml_thr_add` / `ml_thr_red` (0 = ml_thr), parita 490 460 ✔, check PASS.
+**Výsledek** (ledger `r1-ml-asym`, 16 buněk, round1): symetrický 0,15 je optimum. Líná odvíjející strana stojí hodně:
+red 0,25/0,4/nikdy → 472 k (−19 k); dychtivá přidávající strana add 0,10/0,08 → 487/483 k. Jediný „zisk“ 0,15/0,10 →
+491 898 (+1,4 k, 6/8, holdout −370; sample_v2 −19 k, 0/8) → REJECT.
+**Závěr:** shrink odvíjející strany je cenný (adverzní fill tam nás nechá v horší pozici); fill attribution se do
+asymetrie prahů nepřekládá. mm_ml beze změny.
