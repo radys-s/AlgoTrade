@@ -139,5 +139,25 @@ explicit over-cap one and the penalty is counted), R1 not negative, sandbox chec
 
 ## Results (appended as they arrive)
 
-- (pending) A3 turnover grid on radys PC: 36 runs, gate {0,4} x fair_thr {0.3,0.6,1.0} x skew {0,0.02,0.05} x
-  quote_size {50,200}.
+- **A3 turnover grid — REJECTED** (36 runs, ledger `research/results/20261107-211334_radys-s_r2-turnover-grid.csv`):
+  best is still the champion (gate 4, fair 0.3, q 200, skew 0) 101,933. skew 0.02 -> 20k, 0.05 -> 4k; gate off ->
+  +50k at best (q 50, fair 0.3), down to -500k. fair_thr 0.6 / 1.0 worse (92.7k / 85k). Lesson: **the trend
+  inventory IS the edge; blind turnover destroys it.** Free capacity only at signal-timed moments (A1), not by skew.
+  => A2 (split cap) is lower priority than thought; try trend_target 80-100 only.
+- **A1 fair-signal unload — WORKS**: exp_r2_take take_exit_thr 1.5 (size 50, cool 20 ms, entry off) = **113,491**
+  (+11.6k), 8/8 chunks, holdout 43.6k -> 47.9k, penalty 0. Flag-off parity exact (101,933). Baked single file:
+  `strategies/mm_r2_take.py`.
+- **A1 full sweep (132 runs, `research/results/20261107-212138_radys-s_r2-take-sweep.csv`) — bigger than 1.5**:
+  exit_thr 1.0 + size 100 + cool 100 ms + entry off = **131,984** (+30,051 vs mm_r2_fair), 8/8 chunks,
+  chunk_min +2,513, holdout 48,714, penalty 0, 3,987 fills. exit 1.0/size 100/cool 20 ms = 128,847.
+  Shape of the surface: **cross the whole pinned side in one go, rarely** (size 100 > 50 everywhere, cool 100 ms >
+  20 ms, exit 1.0 > 1.2 > 1.5 > 2.0). `take_entry_thr` adds nothing (3.0 = 132,086 vs entry off = 131,984, +0.1 %,
+  noise) — confirming there is no capacity for entries; unload only. `take_max_spread` 1 is best (a wide or one-sided
+  book has a garbage touch to cross into).
+  => Baked as `strategies/mm_r2_take.py`, R2 131,984; this is the champion to beat.
+- **B1/B2 queue position on top of the unload — REJECTED** (18 runs, `20261107-213132_radys-s_r2-park-ladder.csv`):
+  park_size 20 costs -16.4k (115,564) and park_depth 2 -23.5k (108,480). Standing rungs at touch-1..-3 are flat:
+  ladder 15 = 131,773 (-211), ladder 40 = 131,912 (-72, holdout +1,198 = noise). Best run is the champion itself.
+  Why: with the unload in place the pinned side is already crossed out, so a parked stub only re-enters at a worse
+  price and a rung only ties up capacity the unload wants; the queue-age edge of R1 does not survive on R2 because
+  the R2 touch queue is 1,000+ lots (R1 was ~100). **Do not spend more time on park/ladder on R2.**

@@ -1,4 +1,11 @@
-"""mm_r2_fair (home, R2 candidate): exp_r2_fair with fair_thr 0.3, fair_tau_ms 50 baked in (gate as mm_r2_gate).
+"""mm_r2_take (radys, R2 candidate): mm_r2_fair + fair-signal inventory unload (exp_r2_take baked).
+Baked after the 132-run sweep (research/results/20261107-212138_radys-s_r2-take-sweep.csv):
+take_exit_thr 1.0, take_size 100, take_cool_us 100 ms, take_entry_thr 0 (entries add nothing: no capacity).
+round2 131,984 (8/8 chunks, chunk_min +2,513, holdout 48,714, penalty 0) vs mm_r2_fair 101,933.
+take_exit_thr 1.5 / size 50 / cool 20 ms gave 113,491: the unload is better as a rare, full-size sweep.
+The whole side is crossed when the fair signal says the price is about to run through our inventory.
+
+mm_r2_fair (home, R2 candidate): exp_r2_fair with fair_thr 0.3, fair_tau_ms 50 baked in (gate as mm_r2_gate).
 round2 101,933 (8/8 chunks, chunk_min +2,067) vs mm_r2_gate 86,333.
 
 exp_r2_fair (home, R2): mm_r2_gate + the hidden-fair filter (radys findings s.11).
@@ -159,7 +166,7 @@ class _Order:
         self.active = not ioc  # part of the side's current quote (not cancelling, not an IOC)
 
 
-class MarketMaker(BaseStrategy):
+class _FairMM(BaseStrategy):
     """Two-sided passive quoting with inventory skew; see the module docstring for the invariant."""
 
     PARAMS = {
@@ -749,3 +756,80 @@ class MarketMaker(BaseStrategy):
             self.act_qty[order.slot] -= order.remaining
         if order.order_id == self.unwind_id:
             self.unwind_id = None
+
+
+
+class MarketMaker(_FairMM):
+    PARAMS = dict(_FairMM.PARAMS)
+    PARAMS.update({
+        'take_exit_thr': 1.0,
+        'take_entry_thr': 0.0,
+        'take_size': 100,
+        'take_cool_us': 100000,
+        'take_max_spread': 1,
+    })
+
+    def __init__(self) -> None:
+        super().__init__()
+        p = self.PARAMS
+        self.take_exit_thr = float(p['take_exit_thr'])
+        self.take_entry_thr = float(p['take_entry_thr'])
+        self.take_size = max(1, int(p['take_size']))
+        self.take_cool_us = int(p['take_cool_us'])
+        self.take_max_spread = int(p['take_max_spread'])
+        self.take_id = None
+        self.take_last = _NEVER_US
+        self.n_takes = 0
+
+    def on_order_book_change(self, snapshot, trades) -> None:
+        super().on_order_book_change(snapshot, trades)
+        if self.take_exit_thr <= 0.0 and self.take_entry_thr <= 0.0:
+            return
+        if self.take_id is not None:
+            return
+        now = snapshot.timestamp_us
+        if now - self.take_last < self.take_cool_us:
+            return
+        bb = ba = -1
+        for v in snapshot.bids:
+            if v.owner == 'market':
+                bb = v.price
+                break
+        for v in snapshot.asks:
+            if v.owner == 'market':
+                ba = v.price
+                break
+        if bb < 0 or ba < 0 or ba - bb > self.take_max_spread:
+            return
+        sig = self.fair_sig
+        inv = self.inv
+        if sig > 0:
+            k, sign, side, px = 0, 1, _BUY, ba
+        else:
+            k, sign, side, px = 1, -1, _SELL, bb
+        reducing = sign * inv < 0
+        thr = self.take_exit_thr if reducing else self.take_entry_thr
+        if thr <= 0.0 or abs(sig) <= thr:
+            return
+        want = min(self.take_size, abs(inv)) if reducing else self.take_size
+        if want <= 0:
+            return
+        free = self.max_pos - sign * inv - self.out[k]
+        if free < want:
+            # our own quote on that side holds the room: pull it, the IOC goes out once CANCELED frees OUT
+            if self.act_qty[k] > 0:
+                self._pull(k)
+                self._pull(k + 2)
+            if free <= 0:
+                return
+            want = free
+        oid = self._send(k, sign, side, px, want, True, k)
+        if oid is not None:
+            self.take_id = oid
+            self.take_last = now
+            self.n_takes += 1
+
+    def _forget(self, order) -> None:
+        super()._forget(order)
+        if order.order_id == self.take_id:
+            self.take_id = None

@@ -978,3 +978,16 @@ at thresholds 1.0 / 1.5 / 2.0 (500 ms hold, optimistic overlapping samples). No 
 
 - Offline markout of a deep (k ticks past touch) resting order filled only by IOC sweeps: median negative for
   k >= 2 (-0.5 .. -4.5 ticks), only 1.8 % of IOCs reach 2+ ticks. Details: radys-findings s.14. No sim spent.
+
+## 2026-11-07 22:00 — R2 upload: mm_r2_take (radys) — signal-timed full unload, 131,984
+
+- Fitted the A1 overlay with a 132-run sweep (`research/results/20261107-212138_radys-s_r2-take-sweep.csv`):
+  take_exit_thr 1.0, take_size 100, take_cool_us 100 ms, entry off = **131,984** on round2 8/8 chunks,
+  chunk_min +2,513, holdout 48,714, penalty 0, 3,987 fills (+30,051 vs mm_r2_fair 101,933).
+  Surface shape: cross the WHOLE pinned side rarely (size 100 > 50, cool 100 > 20 ms, thr 1.0 < 1.2 < 1.5);
+  take_entry_thr is worth nothing (132,086 with 3.0, i.e. +0.1 %, and it adds risk) => unload only, no entries.
+- Verified on round1 too: **226,168** (8/8 chunks, chunk_min +15,885, holdout 54,042, penalty 0) — R1 not negative.
+- Sandbox check OK; promoted to `submission/best_strategy.py` (was mm_r2_fair 101,933).
+- Queue-position variants on top of the unload are DEAD on R2 (`20261107-213132_radys-s_r2-park-ladder.csv`):
+  park_size 20 -16.4k, park_depth 2 -23.5k, ladder 15 -211, ladder 40 -72 (holdout +1.2k = noise). R2 touch queues
+  are 1,000+ lots, so the R1 queue-age edge does not transfer; a parked stub only re-enters at a worse price.
