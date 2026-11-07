@@ -22,6 +22,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 11:50 | herzic | `momentum_hold_v2`: konec dat relativní a vypnutý; v1 na pásce od 10 h neobchoduje vůbec a na 2h pásce stojí po hodině; v2 → `submission/best_strategy.py` |
 | 2026-11-07 12:10 | herzic | Pipeline kola `research.round` + taker scan + MM edge; generálka na `sample_v2`: momentum -2,44 M, MM +28 025 (8/8), trh mean-reverting |
 | 2026-11-07 12:15 | radys | Playground v2: momentum loses (-1.52M server). Passive MM on Honza's `mm.py` core, sweep -> `mm_v2` pnl 237,306, now `submission/best_strategy.py` |
+| 2026-11-07 12:20 | herzic | Practice round: 3. místo (+240 995, server ≈ lokál ±1,5 %); MM sweep na `sample_v2`: velikost dominuje, microprice skew +11 % |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -162,6 +163,27 @@ než syntetický sample. Celá pipeline 6 min (z toho upload ~6 min souběžně,
 realistických datech). Pro Round 1 je výchozí rodina market making; momentum champion bez nových
 dat nesubmitovat.
 **Další krok:** sweep MM na `sample_v2` (běží, tag `sample_v2-mm-wave0`), pak vlna 1 na domácím PC.
+
+## 2026-11-07 12:20 — Practice round: 3. místo; MM sweep na `sample_v2` (herzic)
+
+**Practice round (leaderboard):** tým `p<0.05` **3. místo, +240 995** s `mm_v2` (Tomáš). Lokálně na
+veřejném `sample_v2` 237 306 → server vs. lokál ~1,5 % → soukromá data se chovají jako veřejná, lokální
+ladění se přenáší. Vedoucí: ThatsMyQuant +291 456, Podbranč +286 942 (náskok ~20 %). Naše PnL křivka
+roste plynule celým kolem (zisk rozložený v čase, ne jeden úsek). Spousta týmů je v mínusu.
+
+**Sweep `mm.py` na `sample_v2`** (36 kombinací, ledger tag `sample_v2-mm-wave0`), všechny 8/8 chunků, breach 0:
+
+| quote_size | skew_per_lot | alpha_imbalance | improve | pnl | holdout |
+|---|---|---|---|---|---|
+| 20 | 0.1 | 1.0 | off | **39 704** | 9 059 |
+| 20 | 0.1 | 0 | off | 35 661 | 9 001 |
+| 20 | 0.1 | 1.0 | 3 | 38 804 | 8 836 |
+| 5 | 0.05 (výchozí) | 0 | off | 28 025 | 7 084 |
+
+Závěr: velikost kotace dominuje (Tomášův `mm_v2` se 100 loty: 237 306); zlepšování ceny uvnitř spreadu
+(`improve_min_spread` 3) je v každém páru mírně horší → vypnuto; microprice skew (`alpha_imbalance` 1.0)
+při větší velikosti +11 % a lepší holdout → kandidát na `mm_v2` (tam je 0).
+Další krok: domácí PC ladí `mm_v2` (quote_size, max_position 80–100, skew, alpha_imbalance, imb_pull) s halvingem.
 
 ## Šablona experimentu
 
