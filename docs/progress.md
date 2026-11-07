@@ -347,3 +347,32 @@ trhu je informovaný a držená kotace je první na ráně.
 i `improve_unwind` shodně prodělávají.
 **Další krok:** po kickoffu R1 compare champion vs `exp_full_capacity` na round1 + sample_v2; CPU sweep
 championa na R1 (quote_size 100/200 × imb_pull × alpha_imbalance × min_requote_us, max_position 80/90).
+
+## 2026-11-07 13:15 — Round 1: `exp_full_capacity` ACCEPT (+33 %), sweep os = nic dalšího nepomáhá (home, mozek)
+
+**Režim R1** (data card `research/reports/round1.md`, 4,41 M řádků, 3,33 h): spread 1 tick 93 % času (sample_v2 41 %),
+touch ~900 lotů / 17 příkazů, mid ~náhodná procházka (P(reverze) 0,46, lag-1 autokorelace +0,08), po obchodech
+mírné momentum (flow_100ev IC +0,16 na 100 ms, +0,24 na 1 s, 8/8), imb_l1 IC +0,30 na 100 ms. mm_edge: maker na
+čele fronty +0,25 ticku/fill na 1 s (efektivní půlspread 0,53, impact −0,28), joiner na konci fronty (fill jen při
+vyprázdnění hladiny) **−0,22**, „swept beyond“ −0,37; edge podle lotů před nami Q: 0 → +0,25, 100 → +0,10,
+200 → 0, 500 → −0,21. Taker scan 1 152 konfigurací: nic (+206, 1/8). Baseliny: champion 321 024, mm.py 27 626.
+
+**Compare champion vs `strategies/exp_full_capacity.py` (round1 primární + sample_v2):** round1 **321 024 → 425 708
+(+104 684, +33 %)**, holdout 82 271 → 110 280, B vyhrává 8/8 párových chunků (+7,8 k až +11,3 k), fills 42 193 →
+30 548; sample_v2 jako dřív (+26 312, 8/8). **ACCEPT.** `research.check` na round1 PASS, 24 s, projekce 49 s na 8,8 M.
+Notebook výsledek nezávisle reprodukoval. Efekt je na R1 silnější než na sample_v2 (víc IOC toku → víc depletion
+fillů, kde se kapacita 200 na odvíjející straně uplatní). Honza: nespěchat se submisí (10 slotů, server = lokál).
+
+**Sweep os kolem kandidáta na round1** (ledger `r1-fullcap-axes`, 36 buněk, všechny 8/8, breach 0): výchozí
+nastavení vyhrává všechno. max_position 90 −4 %, 80 −9 %; imb_pull 0,95 −4,6 %, 0,9 −11 %; min_requote_us 100 ms
+−14 %; alpha_imbalance 1,0 **−44 %** (při spreadu 1 jen sundá stranu z touch). `r1-fullcap-imbpull-low`: imb_pull
+0,8 → 329 519 (−23 %), 0,7 → 271 936, 0,6 → 227 837, 0,5 → 190 913 (−55 %), monotónně. `r1-hold-inside-cap200`:
+hold_inside 1 → 389 859 (−8,4 %). `r1-jump-imb-cap200` (Tomášův exp_imb_pull, pozor: jeho výchozí hodnoty dávají
+jinou základnu 203 144): jump_imb 0,6 −1,5 %, 0,3 −3,7 %.
+
+**Závěr:** na R1 platí ještě silněji než na sample_v2: **cokoliv, co nás sundá z touch nebo nás posune dovnitř,
+prodělává**, včetně imbalance filtru, který mm_edge doporučuje (+0,33 vs +0,25 na fill). Důvod: filtr pull
+odstraňuje právě naše nejlepší filly (čelo svěží hladiny = tenká vlastní fronta = „imbalance proti nám“) a při
+návratu jsme zase na konci fronty. Páka zůstává objem na touch a pozice ve frontě.
+**Další krok:** H5 `exp_queue_join` (vstupovat jen do tenkých hladin / pull při hluboké frontě), H6 `exp_flow_pull`,
+fill attribution kandidáta na round1 (`research/reports/round1_fill_attribution.md`).
