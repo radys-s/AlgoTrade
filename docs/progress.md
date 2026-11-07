@@ -996,3 +996,8 @@ at thresholds 1.0 / 1.5 / 2.0 (500 ms hold, optimistic overlapping samples). No 
 
 - zd grid (take_k, blend, min_ahead) on round2: baseline 392,436 local (8/8 chunks) is the max; blend 0.75 = 391,843; min_ahead 100 = 383,129; take_k 0.1/0.3 = 365-379k. No gain, zd params are a local optimum.
 - Strategy (7) mm_r2_rtq (rt_ms 20 + qs_k 0.45/qs_weak 100 over zd) scored 891,734 on the public leaderboard, best so far. Small rtq grid (rt_ms 20/40, qs_k 0.45/0.7) running as the last check.
+
+## 2026-11-08 radys: R2 final standing, note for next round
+- Final R2 leaderboard (public): 1 delfini 1,875,116; 2 Codehorses 1,302,831; 3 Southeast Fortress 1,269,037; 10 Půl Kelliho 1,017,551; 12 p<0.05 (us) 952,725.
+- The leader is about 2x us and 1.97x the median of the top 10. Small knob tuning (+0.4% to +7%) will not close that gap. The next round needs a structural change, not grids.
+- To do first next round: find what delfini does differently (likely much higher volume or a stronger hidden-fair-price use). Check turnover, fills and end position of our run against it.
