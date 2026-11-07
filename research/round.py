@@ -145,7 +145,7 @@ def lane_a(csv_path: Path, prior: list[Path], name: str, workers: int, log_dir: 
     return steps
 
 
-def lane_b(csv_path: Path, name: str, log_dir: Path) -> list[Step]:
+def lane_b(csv_path: Path, name: str, workers: int, log_dir: Path) -> list[Step]:
     """Quick look, features, data card, signals, taker scan, market-making edge (each needs the previous)."""
     steps = []
     stem = csv_path.stem
@@ -157,9 +157,9 @@ def lane_b(csv_path: Path, name: str, log_dir: Path) -> list[Step]:
     for horizon in (100, 1000):
         command = [sys.executable, '-m', 'research.signals', str(npz), '--horizon-ms', str(horizon)]
         steps.append(run_step(f'signals_h{horizon}ms', command, log_dir))
-    for module, argument in (('taker_scan', str(npz)), ('mm_edge', str(csv_path))):
+    for module, arguments in (('taker_scan', [str(npz), '--workers', str(workers)]), ('mm_edge', [str(csv_path)])):
         if Path(f'research/{module}.py').exists():
-            steps.append(run_step(module, [sys.executable, '-m', f'research.{module}', argument], log_dir))
+            steps.append(run_step(module, [sys.executable, '-m', f'research.{module}', *arguments], log_dir))
         else:
             steps.append(skipped(module, 'tool not built yet'))
     return steps
@@ -317,7 +317,7 @@ def main() -> None:
     with ThreadPoolExecutor(max_workers=3) as pool:
         publishing = pool.submit(publish, gz_path, csv_path, name, log_dir) if args.publish else None
         a = pool.submit(lane_a, csv_path, prior, name, args.workers, log_dir)
-        b = pool.submit(lane_b, csv_path, name, log_dir)
+        b = pool.submit(lane_b, csv_path, name, args.workers, log_dir)
         steps = ([publishing.result()] if publishing else []) + a.result() + b.result()
 
     table = baseline_table(steps)

@@ -23,6 +23,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 11:50 | home | Domácí výpočetní uzel (desktop Core Ultra 7 265KF, 20 vláken, RTX 5060 Ti 16 GB): ověřené referenční běhy, benchmark 20 workerů = 12,8 plných běhů/min, CUDA torch env, MLP test IC +0,80 |
 | 2026-11-07 12:10 | herzic | Pipeline kola `research.round` + taker scan + MM edge; generálka na `sample_v2`: momentum -2,44 M, MM +28 025 (8/8), trh mean-reverting |
 | 2026-11-07 12:15 | radys | Playground v2: momentum loses (-1.52M server). Passive MM on Honza's `mm.py` core, sweep -> `mm_v2` pnl 237,306, now `submission/best_strategy.py` |
+| 2026-11-07 12:30 | radys | Tuning on mm_v2 core: skew, unwind, one-sided jump, 2nd level all <= champion; fill markout shows ~no adverse selection, volume-limited |
 | 2026-11-07 12:20 | herzic | Practice round: 3. místo (+240 995, server ≈ lokál ±1,5 %); MM sweep na `sample_v2`: velikost dominuje, microprice skew +11 % |
 | 2026-11-07 12:30 | home | Generálka `research.round --fetch sample_v2`: 144 s end-to-end (kroky ~2,2× rychlejší než laptop), baseliny sedí; přesný runtime championa 14,1 s / 2 M řádků → 65 s na 8,8 M; sweep kolem `mm_v2` (162 halving + 144 + 8 běhů): výchozí parametry na hraně mřížky, `imb_pull` 0,875–0,975 plató +1,2–1,8 %, ale compare REJECT (4/8 chunků) |
 
@@ -253,6 +254,28 @@ earns the spread instead.
 A max_position 80 variant (219,994) is the safer fallback.
 
 **Next:** Round 1 data at 13:00 -> rerun the same sweep (quote_size, max_position, skew) on it before submitting.
+
+## 2026-11-07 12:30 — Why mm_v2 is capped at ~237k on sample_v2 (radys)
+
+**Experiments on the champion (ledger `v2-skew-unwind-jump`, `v2-layers`), all at quote 100 / max_pos 100:**
+
+| change | best pnl | vs 237,306 |
+|---|---|---|
+| skew_per_lot 0.01 / 0.02 | 159k / 118k | -33% / -50% |
+| IOC unwind at |I| >= 90 (10 lots) | 212,680 | -10% |
+| one-sided +1 tick at spread 2 when |imb| > 0.6 (`jump_imb`) | 235,223 | -1% |
+| second level 20-40 lots, 1-2 ticks behind (`strategies/exp_layers.py`) | 237,237 | 0% (layer 0 = exact parity) |
+
+**Fill analysis (14,819 fills, 453k lots):** edge vs mid at fill 0.61 $/lot; markout 10 ms 0.48, 1 s 0.50,
+60 s 0.53 -> almost no adverse selection, the price even reverts slightly in our favour. Spread-2 fills earn
+0.94 $/lot, spread-1 fills 0.38. So pnl ~= lots x 0.52: the strategy is **volume-limited**, not
+selection-limited. Anything that moves us off the touch (skew, pull, deeper levels) loses volume and pnl.
+
+**Penalty mechanics (simulator.py `_accrue_breach_penalty`):** prorated per microsecond, 10,000 $/s = 10 $/ms
+while |I| > 100. Going over the cap for extra volume is not worth it at ~0.5 $/lot.
+
+**Next ideas for more volume:** queue position (don't lose priority on requote), quoting earlier into a fresh
+spread-2 level, different sizes per spread state. Re-test everything on Round 1 data first.
 
 ## 2026-11-07 12:30 — Generálka kola a sweep kolem championa `mm_v2` (home, sample_v2)
 

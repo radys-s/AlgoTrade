@@ -119,6 +119,9 @@ class MarketMaker(BaseStrategy):
         'imb_pull': 0.0,
         # Stop quoting the side that grows |I| once |I| >= inv_stop; 0 disables.
         'inv_stop': 0,
+        # Spread == 2 and |imbalance| > jump_imb: improve ONLY the favoured side by 1 tick
+        # (bid if bid-heavy, ask if ask-heavy), so bid < ask still holds; 0 disables.
+        'jump_imb': 0.0,
     }
 
     def __init__(self) -> None:
@@ -138,6 +141,7 @@ class MarketMaker(BaseStrategy):
         self.book_scan_orders = max(1, int(params['book_scan_orders']))
         self.imb_pull = float(params['imb_pull'])
         self.inv_stop = int(params['inv_stop'])
+        self.jump_imb = float(params['jump_imb'])
 
         # Position and order state (index k: 0 = buy, 1 = sell).
         self.inv = 0
@@ -171,7 +175,7 @@ class MarketMaker(BaseStrategy):
         if not bids or not asks:
             return
         scan = self.book_scan_orders
-        need_qty = self.alpha_imbalance != 0.0 or self.imb_pull > 0.0
+        need_qty = self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0
 
         # Market touch and its quantity, skipping our own orders (only market orders count
         # towards the scan limit, so our own fragments can never hide the touch).
@@ -218,6 +222,12 @@ class MarketMaker(BaseStrategy):
         else:
             bid = bb
             ask = ba
+        if self.jump_imb > 0.0 and ba - bb == 2 and qb + qa > 0:
+            jimb = (qb - qa) / (qb + qa)
+            if jimb > self.jump_imb:
+                bid = bb + 1
+            elif jimb < -self.jump_imb:
+                ask = ba - 1
         inv = self.inv
         fair_shift = -self.skew_per_lot * inv
         if need_qty and qb + qa > 0:

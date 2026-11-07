@@ -12,8 +12,11 @@ export const meta = {
 }
 
 // args: { data: 'data/round1.csv', prior: ['data/playground.csv'], champion: 'submission/best_strategy.py',
-//         wave: 1, slots: 6, workers: 2, recon: false, focus: 'optional steer from the team' }
+//         wave: 1, slots: 6, workers: 2, recon: false, focus: 'optional steer from the team',
+//         models: { propose, experiments, skeptic, integrate } }  // e.g. {experiments: 'sonnet'}; omitted = session model
 const A = args || {}
+const MODELS = A.models || {}
+const withModel = (phaseKey, opts) => (MODELS[phaseKey] ? { ...opts, model: MODELS[phaseKey] } : opts)
 const DATA = A.data
 if (!DATA) throw new Error('args.data (the current round CSV) is required')
 const PRIOR = A.prior || []
@@ -115,11 +118,11 @@ if (A.recon) {
 Task: prepare the new round data. If data/features/${STEM}.npz is missing run research.features on ${DATA};
 then run research.profile on ${DATA} (writes research/reports/${STEM}.md). Read the report and add at its end a
 section "## Opportunities" with 5-8 concrete, testable trading ideas this data suggests (cite the numbers).
-You own research/reports/${STEM}.md. Return a 10-line summary of the market and the ideas.`, { label: 'recon:data-card', phase: 'Recon' }),
+You own research/reports/${STEM}.md. Return a 10-line summary of the market and the ideas.`, withModel('experiments', { label: 'recon:data-card', phase: 'Recon' })),
     () => agent(`${CTX}
 Task: baselines. Run research.run (no grid) for ${CHAMPION}, strategies/mm.py and strategies/trend_follower.py
 on ${ALL_DATA} with --tag w${WAVE}-baseline (skip files that do not exist). Return the table of pnl, hold_pnl,
-chunk_wins, breach, fills per strategy and dataset, and 3 lines on what it means.`, { label: 'recon:baselines', phase: 'Recon' }),
+chunk_wins, breach, fills per strategy and dataset, and 3 lines on what it means.`, withModel('experiments', { label: 'recon:baselines', phase: 'Recon' })),
   ])
 }
 
@@ -136,7 +139,7 @@ docs/progress.md, earlier wave reports in research/reports/wave_*.md, and the ch
 Propose up to 4 experiments for wave ${WAVE} that are NOT already tried (check the ledger and progress log).
 Each must be a small change to the champion behind a PARAMS flag, testable within ~30 minutes, with a grid of
 <= 9 combos. Prefer ideas with a mechanism that should survive on unseen data over curve fitting.`,
-  { label: `propose:${lens}`, phase: 'Hypotheses', schema: PROPOSALS })))
+  withModel('propose', { label: `propose:${lens}`, phase: 'Hypotheses', schema: PROPOSALS }))))
 const pool = proposals.filter(Boolean).flatMap(p => p.experiments)
 log(`${pool.length} proposals from ${proposals.filter(Boolean).length} lenses`)
 if (!pool.length) return { error: 'no proposals' }
@@ -145,7 +148,7 @@ const slate = await agent(`${CTX}
 You are the research lead. Pick the ${SLOTS} experiments with the highest expected value from these proposals,
 merging duplicates and keeping the slate diverse (not all from one lens). Return them unchanged in shape
 (you may tighten the grid). Proposals:
-${JSON.stringify(pool, null, 1)}`, { label: 'select-slate', phase: 'Hypotheses', schema: PROPOSALS })
+${JSON.stringify(pool, null, 1)}`, withModel('propose', { label: 'select-slate', phase: 'Hypotheses', schema: PROPOSALS }))
 const selected = (slate && slate.experiments.length ? slate.experiments : pool).slice(0, SLOTS)
 log(`slate: ${selected.map(e => e.slug).join(', ')}`)
 
@@ -165,7 +168,7 @@ Steps:
    shows a trend toward an edge, extend it once in that direction.
 4. Pick the most robust overrides (plateau, chunk wins, holdout, earlier datasets) — not the single max.
 Set promising=true only if it beats the champion on the primary dataset in train AND holdout without hurting
-earlier datasets. Report honestly, including failure.`, { label: `exp:${exp.slug}`, phase: 'Experiments', schema: RESULT }),
+earlier datasets. Report honestly, including failure.`, withModel('experiments', { label: `exp:${exp.slug}`, phase: 'Experiments', schema: RESULT })),
   (res, exp) => {
     if (!res) return null
     if (!res.promising) return { slug: exp.slug, verdict: 'REJECT', reasons: `not promising: ${res.summary}`, result: res }
@@ -177,7 +180,7 @@ Check: (1) research.compare --a ${CHAMPION} --b ${res.file} --b-set '${res.best_
 (2) plateau: run research.run with the neighbouring values of each tuned parameter — is the gain still there?
 (3) is the gain spread over chunks or one lucky window? (4) read the diff for look-ahead, invariant violations,
 sandbox-rule violations, per-event cost (research.check with runtime). ACCEPT only if compare says ACCEPT and
-(2)-(4) hold. Do not edit any file.`, { label: `skeptic:${exp.slug}`, phase: 'Skeptic', schema: VERDICT })
+(2)-(4) hold. Do not edit any file.`, withModel('skeptic', { label: `skeptic:${exp.slug}`, phase: 'Skeptic', schema: VERDICT }))
       .then(v => (v ? { ...v, result: res } : null))
   },
 )
@@ -196,6 +199,6 @@ ${JSON.stringify(done.map(o => ({ slug: o.slug, verdict: o.verdict, overrides: o
 3. Append to docs/progress.md one section per experiment using the template at the end of that file
    (branch herzic, round ${STEM}); add rows to the timeline table. Append only, never rewrite old text.
 Return whether the candidate should be submitted (the team decides and promotes it to champion by hand).`,
-  { label: 'integrate', phase: 'Integrate', schema: INTEGRATION })
+  withModel('integrate', { label: 'integrate', phase: 'Integrate', schema: INTEGRATION }))
 
 return { wave: WAVE, data: DATA, accepted: accepted.map(o => o.slug), rejected: done.filter(o => o.verdict !== 'ACCEPT').map(o => o.slug), integration }
