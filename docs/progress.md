@@ -1271,3 +1271,14 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
   behind mark out -1.5/lot). round2 **430,781** (+10.1k), mirror 429,296 (+9.9k), check PASS 2.2 min.
 - Rejected on rts: own-fill pull (758k), imbalance pull (693-766k), quote inside the spread (778k), fq_k 0.15 / 0.0,
   separate spread-3 threshold (+0.9k), rt / qs retune (+-2k).
+
+## 2026-11-07 23:50 — Leaderboard mm_r2_rth = 970,101 (+13k); filter search on rth (home)
+
+- Leaderboard: `mm_r2_rth` **970,101.26** (22,590 filled orders, penalty 1,821) -> final unless beaten. Two submissions left.
+- Tried on rth (round2 + mirror sum, base 860,077), all within noise or worse: thin touch qty (761-829k), shallow depth
+  1-2 ticks behind (829-850k), few orders at the touch (822-861k), mid-jump filter (850-860k), fresh-level looser join
+  (859-861k), taker threshold over a hole (857-861k), fq_k_sp2 0.55 / 0.85 and rt 30 (849-860k).
+- Subagents on rts: taker retune (fq_take_k, pred_blend, quote_size, fair_tau, fq_k) - nothing on both tapes; passive
+  filters (pull after a trade at our touch -65..-70k, queue-ahead pull, spread-change lean, stale-signal lean) - nothing.
+  Lesson: pulling a RESTING quote loses its queue place; filters only win where there is no queue place to lose
+  (retreated touch, wide spread, a hole behind the touch).
