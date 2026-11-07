@@ -96,3 +96,14 @@ move continues 67 %).
 `exp_fresh.py` (no gate -217k -> -36k, flow 200 -> +40k, with gate no gain); improving ourselves at spread 2-3
 (-300..-600k: inside orders get crossed by the next market inside insert); thin-touch pull (thin_pull 100-1000:
 helps the no-gate maker, hurts the gate); parking -20k; ladder +1k.
+
+## 8. Hidden-fair filter (radys finding, home strategy `strategies/exp_r2_fair.py`), 20:45
+
+Online signal: new market limit orders = market ids above the highest id seen, found as the LAST order of each of the
+first 3 price levels per side; dev = price - side offset (running mean, ~ -1.2 bid / +1.2 ask) - mid before;
+sig = time-decayed mean (tau 50 ms). Offline (`research/diag/fair_fills.py`): plain-maker fills with sig against us
+lose -305k at 1 s, with sig for us +106k. Filter (pull bid while sig < -thr, ask while sig > thr) on mm_r2_gate:
+tau 50 ms: thr 0.1 84.8k, 0.2 94.4k, **0.3 101.9k (8/8, chunk_min +2,067)**, 0.45 101.9k; tau 20: 73-87k; tau 150:
+88-95k. Plain maker (no gate): -217k -> -31..-52k. round1 / sample_v2 stay positive (242k -> 223k-ish combined -60k).
+Subagent results: depletion-EV filter REJECT (no gain); trend-layer variants: 30 s / thr 4 is a spike (neighbours
+53-84k), 120 s plateau 84-105k but loses chunks; synthetic generator could not reproduce the holes (inconclusive).
