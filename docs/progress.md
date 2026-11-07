@@ -356,6 +356,34 @@ i `improve_unwind` shodně prodělávají.
 **Další krok:** po kickoffu R1 compare champion vs `exp_full_capacity` na round1 + sample_v2; CPU sweep
 championa na R1 (quote_size 100/200 × imb_pull × alpha_imbalance × min_requote_us, max_position 80/90).
 
+## 2026-11-07 13:15 — Round 1: `exp_full_capacity` ACCEPT (+33 %), sweep os = nic dalšího nepomáhá (home, mozek)
+
+**Režim R1** (data card `research/reports/round1.md`, 4,41 M řádků, 3,33 h): spread 1 tick 93 % času (sample_v2 41 %),
+touch ~900 lotů / 17 příkazů, mid ~náhodná procházka (P(reverze) 0,46, lag-1 autokorelace +0,08), po obchodech
+mírné momentum (flow_100ev IC +0,16 na 100 ms, +0,24 na 1 s, 8/8), imb_l1 IC +0,30 na 100 ms. mm_edge: maker na
+čele fronty +0,25 ticku/fill na 1 s (efektivní půlspread 0,53, impact −0,28), joiner na konci fronty (fill jen při
+vyprázdnění hladiny) **−0,22**, „swept beyond“ −0,37; edge podle lotů před nami Q: 0 → +0,25, 100 → +0,10,
+200 → 0, 500 → −0,21. Taker scan 1 152 konfigurací: nic (+206, 1/8). Baseliny: champion 321 024, mm.py 27 626.
+
+**Compare champion vs `strategies/exp_full_capacity.py` (round1 primární + sample_v2):** round1 **321 024 → 425 708
+(+104 684, +33 %)**, holdout 82 271 → 110 280, B vyhrává 8/8 párových chunků (+7,8 k až +11,3 k), fills 42 193 →
+30 548; sample_v2 jako dřív (+26 312, 8/8). **ACCEPT.** `research.check` na round1 PASS, 24 s, projekce 49 s na 8,8 M.
+Notebook výsledek nezávisle reprodukoval. Efekt je na R1 silnější než na sample_v2 (víc IOC toku → víc depletion
+fillů, kde se kapacita 200 na odvíjející straně uplatní). Honza: nespěchat se submisí (10 slotů, server = lokál).
+
+**Sweep os kolem kandidáta na round1** (ledger `r1-fullcap-axes`, 36 buněk, všechny 8/8, breach 0): výchozí
+nastavení vyhrává všechno. max_position 90 −4 %, 80 −9 %; imb_pull 0,95 −4,6 %, 0,9 −11 %; min_requote_us 100 ms
+−14 %; alpha_imbalance 1,0 **−44 %** (při spreadu 1 jen sundá stranu z touch). `r1-fullcap-imbpull-low`: imb_pull
+0,8 → 329 519 (−23 %), 0,7 → 271 936, 0,6 → 227 837, 0,5 → 190 913 (−55 %), monotónně. `r1-hold-inside-cap200`:
+hold_inside 1 → 389 859 (−8,4 %). `r1-jump-imb-cap200` (Tomášův exp_imb_pull, pozor: jeho výchozí hodnoty dávají
+jinou základnu 203 144): jump_imb 0,6 −1,5 %, 0,3 −3,7 %.
+
+**Závěr:** na R1 platí ještě silněji než na sample_v2: **cokoliv, co nás sundá z touch nebo nás posune dovnitř,
+prodělává**, včetně imbalance filtru, který mm_edge doporučuje (+0,33 vs +0,25 na fill). Důvod: filtr pull
+odstraňuje právě naše nejlepší filly (čelo svěží hladiny = tenká vlastní fronta = „imbalance proti nám“) a při
+návratu jsme zase na konci fronty. Páka zůstává objem na touch a pozice ve frontě.
+**Další krok:** H5 `exp_queue_join` (vstupovat jen do tenkých hladin / pull při hluboké frontě), H6 `exp_flow_pull`,
+fill attribution kandidáta na round1 (`research/reports/round1_fill_attribution.md`).
 ## 2026-11-07 13:20 — Round 1 kickoff (radys)
 
 The browser download of `round1.csv` was corrupt (two runs of zero bytes, 27 MB, 33-76% of the file); the clean
@@ -374,6 +402,80 @@ Full simulator run of `strategies/exp_full_capacity.py`: pnl 425,708, fills 30,5
 check_submission OK. Higher than mm_v2 on the same data -> promoted to `submission/best_strategy.py`.
 Next: tuning sweep on R1 (20% halving) around quote 200 / max_pos 100.
 
+## 2026-11-07 13:17 — H6 `flow_pull`: pull strany proti toku obchodů nefunguje (home, mozek, R1)
+
+**Hypotéza:** na R1 má podepsaný tok obchodů kladné IC s dalším pohybem midu (flow_100ev +0,16 na 100 ms, +0,24 na 1 s);
+když tok běží proti naší straně, stáhnout ji (nekupovat těsně před poklesem).
+**Změna:** `strategies/exp_flow_pull.py` = exp_full_capacity + `flow_pull` (lotů; 0 = off) a `flow_window_ev`
+(klouzavý součet podepsaného objemu posledních N taker příkazů, O(1)); OR k `imb_pull`. Parita 425 708 ✔, check PASS.
+**Data:** round1 (+ sample_v2 v compare). Prahy = percentily |flow| p70–p95 (3 720 / 4 710 / 6 640 / 8 670).
+**Výsledek** (ledger `r1-flow-pull`, 8 buněk): monotónně horší s častějším pullem: 3 720/100ev → 358 472 (−16 %,
+−20 % fillů); nejméně pullující buňka 8 670/30ev → 425 412 (−296), compare vs exp_full_capacity: B vyhrává **0/8**
+chunků, holdout stejný → REJECT. Na sample_v2 se flag při těchto prazích nespustí (263 618 = parita).
+**Závěr:** stažené filly nejsou netto adverzní: získaný spread převáží ~0,28 ticku post-fill driftu a pull navíc
+ztrácí prioritu ve frontě. Potvrzuje vzorec z os: žádný pull filtr na R1 nepomáhá.
+**Další krok:** tok případně jako posun velikosti (modify zmenšuje a drží místo ve frontě), ne jako pull.
+
+## 2026-11-07 13:19 — H5 `queue_join`: vstup jen do tenkých hladin / pull při hluboké frontě nefunguje (home, mozek, R1)
+
+**Hypotéza:** mm_edge na R1: edge fillu klesá s loty před nami (Q 0 → +0,25, 200 → 0, 500 → −0,21), filly z konce
+fronty při vyprázdnění hladiny −0,22. Kotovat stranu jen tam, kde dostaneme dobrou pozici: `join_max_qty` (vstoupit
+jen když tržní množství na touch ≤ N) a `max_queue_ahead` (stáhnout, když je před nami > N lotů).
+**Změna:** `strategies/exp_queue_join.py` = exp_full_capacity + oba flagy (0 = off). Parita 425 708 ✔, check PASS.
+**Data:** round1, compare i sample_v2 (ledger `r1-queue-join`, 18 buněk).
+**Výsledek:** monotónně horší, čím přísnější: join_max_qty 1800 → 415 545 (−2 %), 1200 → 404 831, 800 → 380 547
+(−11 %), 400 → 306 998, 200 → 239 496 (−44 %); max_queue_ahead 150 samo → 167 333 (−61 %), 300 → 241 237, 1000
+→ −9 %. Compare {join_max_qty 800}: round1 −45 161 (B 0/8 chunků), sample_v2 −26 528 (0/8) → REJECT.
+**Závěr:** filly z konce fronty jsou pro nás netto kladné (fill attribution: queue_ahead 201+ dává +0,12 $/lot,
+sweepy ≥ 100 lotů +0,10 $/lot), protože příkazy před nami se ruší (medián života 0,34 s) a naše pozice se zlepšuje
+čekáním; mm_edge měří statickou pozici při fillu a to podhodnocuje. Pull navíc po návratu zase skončí na konci fronty.
+**Další krok:** rozklad času bez živé kotace (74 % času živá kotace na stranu, strop vysvětlí jen ~17 %) a společná
+tabulka imbalance × pozice ve frontě z fill attribution; pak rozhodnout, zda zbývá jiná páka než `exp_full_capacity`.
+
+## 2026-11-07 13:24 — H7 `deep_pull` REJECT; fill attribution kandidáta na R1: strop drží 50 % času (home, mozek)
+
+**H7 (`strategies/exp_deep_pull.py`, ledger `r1-deep-pull`):** pull strany jen při imbalance proti ní **a** > N lotů
+před nami (jediný záporný segment z fill attribution: imbalance < −0,5 × queue_ahead 201+ = −46 k na 276 k lotů).
+Parita 425 708 ✔, check PASS. 9 buněk: jen 0,85/400 je +217 (4/8 chunků, holdout −70, šum), ostatní −0,3 až −12 %;
+compare → REJECT. Stažený tok byl v průměru ziskový, i když podmnožina měřená markoutem při fillu vypadala záporně:
+pravidlo pro zrušení příkazu musí být podmíněné stavem při odeslání, ne při fillu.
+
+**Fill attribution (`research/reports/round1_fill_attribution.md`, `research/fill_attribution.py`), opraveno o 131
+taker fillů (limitky, které v 5 ms letu překřížily trh):** kandidát sedí na |I| = 100 **50,4 % času** (champion
+28 %); čas bez živé kotace na stranu 26 % = strop 25 % + in-flight 0,6 % + jiné 0,2 % → **žádná kódová cesta
+s mrtvým časem**, dřívější podezření bylo chybou rekonstrukce inventáře. Markout 1 s ≈ PnL; edge při fillu
+0,505 $/lot, markout 0,16; filly snižující pozici +437 k, filly zvyšující ≈ 0; |I| ≥ 90 vydělává nejvíc na lot
+(0,24). Filly z konce fronty kladné (+0,12 $/lot), sweepy ≥ 100 lotů +0,10.
+**Závěr:** limit objemu = strop pozice (polovina času jedna strana mrtvá). Všechny pokusy o rychlejší odvíjení za
+cenu spreadu prodělaly; zbývá zkusit (a) asymetrickou velikost (menší kotace na straně, která |I| zvyšuje, aby
+sweep nehodil pozici na strop jedním fillem), (b) hold_inside jen pro odvíjející stranu při |I| ≥ N.
+
+## 2026-11-07 13:29 — H8 `inc_size` a H9 `hold_unwind` REJECT → výzkum R1 uzavřen s `exp_full_capacity` (home, mozek)
+
+**H8 (`strategies/exp_inc_size.py`, ledger `r1-inc-size`):** menší kotace jen na straně, která |I| zvyšuje (odvíjející
+strana dál celá kapacita), aby jeden sweep nehodil pozici na strop. Parita ✔, check PASS. inc_size 30 → 413 374
+(−2,9 %), 50 → 420 709, 70 → 424 251 (−0,3 %), 100/150 = parita. Compare {70}: round1 −1 457 (1/8 chunků), sample_v2
+−548 (1/8) → REJECT. inv_q997 zůstává 100 i při 30: strop se dosáhne opakovanými sweepy; objem sweepů je kladný.
+**H9 (`strategies/exp_hold_unwind.py`, ledger `r1-hold-unwind`):** hold_inside jen pro odvíjející stranu při |I| ≥ N.
+Parita ✔, check PASS. N 100 → 423 757 (−0,5 %, 3/8 chunků, holdout +24), 80 → 419 833, 50 → 415 875; sample_v2 −0,4 %
+(3/8) → REJECT. Většina ztráty hold_inside (−8 %) šla ze strany zvyšující |I|, ale i odvíjející hold je mírně záporný.
+
+**Bilance wave 1+2 na R1 (~110 běhů, 9 mechanik + 5 os):** jediné zlepšení championa je `quote_size` 200 (+33 %).
+Všechny filtry (imbalance, tok, fronta, hluboká fronta), throttling, posuny dovnitř spreadu, asymetrické velikosti
+i nižší max_position prodělávají, většinou monotónně s intenzitou zásahu. Fill attribution: strop drží 50 % času,
+mimo strop je kotace živá; filly z konce fronty i sweepy jsou kladné. **Kandidát R1 = `submission/best_strategy.py`
+(= exp_full_capacity, main 1ab3b4d), očekávané veřejné PnL 425 708, check PASS (49 s / 8,8 M).**
+**Doporučení:** nahrát nejpozději kolem 17:00 (ověřit server = 425 708, nastavit final); do té doby žádný další
+výzkum na R1 mechanikách, šetřit tokeny na R2 (19:00).
+
+## 2026-11-07 13:33 — Layering s plnou kapacitou na R1: neutrální (home, mozek)
+
+**Hypotéza (návrh z notebooku):** část kapacity o 1–2 ticky za touch, abychom po spotřebování touch byli na čele nové
+fronty. **Změna:** žádný kód, Tomášův `strategies/exp_layers.py` s overrides championa (quote_size 200, max_position
+100, skew 0, book_scan 1000); layer_size 0 = parita 425 708 ✔. **Data:** round1 (ledger `r1-layers-cap200`, 8 buněk).
+**Výsledek:** layer 30 @1 tick → 426 034 (+326, +0,08 %), 30 @2 → 425 940, 60 @1 → 425 589 (−119), 100 @1 → 425 705,
+100 @2 → 425 648; fills +40 až +100. **Závěr:** v šumu (±0,1 %), stejně jako na sample_v2 (0 %); hlubší hladina se
+skoro neplní a nic nepřidá. Neprochází protokolem (zisk < šum). Kandidát beze změny.
 ## 2026-11-07 13:45 — Round 1 tuning on exp_full_capacity (radys)
 
 **Tape (`analyze_tape.py`):** spread 1 tick 93% of the time, touch ~900 lots, 1 s mid vol 0.92 tick. Unlike v2 the
@@ -413,6 +515,98 @@ check_submission OK, research.check PASS, 2.3 min projected for 8.8M rows.
 **Caveat:** helps on momentum tapes, costs a little on mean-reverting ones.
 **Next:** `exp_backpull` quick screen; heavy experiments listed in [radys-findings.md](radys-findings.md) section 5-6.
 
+## 2026-11-07 13:55 — Ověření `mm_park`, jemný grid parkování, ML taker overlay (home, mozek, R1)
+
+**Ověření Tomášova `mm_park` (submission/best_strategy.py, main 96e3506):** `research.compare` exp_full_capacity vs
+mm_park: round1 425 708 → **452 651** (+26 943, holdout 110 280 → 117 886, 8/8 párových chunků +502 až +3 720),
+sample_v2 263 618 → 251 236 (−12 382, 0/8, stále kladné) → **ACCEPT** pro R1. `research.check` na round1 PASS,
+27 s, projekce 54 s na 8,8 M. Shoda s Tomášem i notebookem na jednotku.
+
+**Jemný grid parkování** (ledger `r1-park-grid`, park_size 10/15/20/30/40 × park_depth 1/2/3 × park_max 2/3/5,
+round1 + sample_v2, breach 0 všude): **park_depth 1 je jednoznačně nejlepší** (stub o 2–3 ticky za touch škodí
+na obou datasetech, při max 5 až −25 %). round1 plató depth 1: 20/1/5 455 473, 30/1/3 453 321, 15/1/5 453 009,
+**20/1/3 452 651 (baked)**, 15/1/3 448 999, 10/1/3 444 526 → rozptyl ±0,6 %, baked hodnoty ve středu.
+sample_v2 chce menší stuby: 10/1/2 259 359, 15/1/2 256 696, 20/1/3 251 236 (bez parkování 263 618). Součet
+r1+v2 plochý (15/1/5 703 986 ≈ 20/1/3 703 887 ≈ 20/1/5 703 759). **Závěr: parametry neměnit**; pro R2
+v mean-reverting režimu zvážit park 10/1/2 nebo vypnout (4-buňkový test na kickoffu).
+
+**H10 ML taker overlay (`strategies/exp_ml_taker.py`, ledger `r1-ml-taker`):** ridge model 1 s (fit jen na prvních
+75 % round1), IOC na touch při |predikce| > práh, odvíjení pasivně makerem; parita 425 708 ✔. 12 buněk: nejlepší
+práh 1,2 / 20 lotů / max |I| 60 → 385 612 (**−9 %**), práh 0,6 → 379 k, 50 lotů → 268–292 k (−32 až −37 %), monotónně
+s intenzitou. **REJECT**; „spread jen jednou“ v simulátoru neobstojí (crossing + pozice zabraná takerem stojí víc,
+než horní 1 % predikcí vrátí). GPU/HGB verze se nestaví.
+
+## 2026-11-07 13:55 — H11 standing ladder REJECT, detail H10 ml_taker (home, mozek, R1) → R1 uzavřeno s `mm_park`
+
+**H11 (`strategies/exp_ladder.py`, ledger `r1-ladder`, báze mm_park):** pevné malé příkazy na touch−1..−L, které se
+nehýbou (čekají, až k nim cena přijde → čelo fronty). Parita 452 651 ✔, check PASS. S `ladder_reserve` 1 (touch kotace
+má přednost) jsou příčky jen ze zbytků kapacity: depth 2 → 453 094–453 170 (+0,1 %, compare 5/8 chunků, sample_v2
+−673, 2/8) → REJECT (šum); depth 4 → −1 až −2 %. S `ladder_reserve` 0 (příčky napřed) propad až na 169 693
+(−63 %): kapacita v hloubce se skoro neplní a chybí na touch. Netestováno: příčky místo parkovaných stubů.
+**H10 detail:** `--max-rows` v research.signals je jen krok, ne useknutí → agent fitoval vlastním skriptem (čas ≤ 75 %,
+purge 1 s). Ridge 1 s: walk-forward IC 0,397 (7/7), horní 1 % predikcí +0,81/−0,89 ticku v holdoutu; 100 ms model
+nikdy nepřekročí 0,6 ticku. Plná kotace nenechává IOC žádnou kapacitu → agent přidal `taker_reserve` (rezerva lotů
+na stranu): samotná rezerva 20 lotů stojí 39 k, 50 lotů 129 k. Overlay nad rezervou ještě −1,4 až −18 k; s rezervou 0
+(IOC jen do volné kapacity) −4,5 k (práh 1,2) až −17 k (práh 0,6) při 15–143 k přešlých lotech ≈ −0,1 až −0,3 ticku
+na lot. Compare 1,2/20/60: round1 −40 096 (0/8), sample_v2 −29 375 (0/8). Overhead 18,7 µs/událost (3,3 min / 8,8 M).
+**Závěr R1:** finál `submission/best_strategy.py` = mm_park 20/1/3 (452 651). Celkem na R1 ~180 běhů, 11 mechanik
++ 5 os; jediná vítězná mechanika nad plnou kapacitou je parkování stubů (Tomáš). Kapacita makera na touch je
+cennější než jakýkoli nalezený taker edge; cokoli, co bere kapacitu z touch nebo ruší příkazy, prodělává.
+
+## 2026-11-07 14:15 — H12 stub při ústupu / stub dovnitř při spreadu 2: REJECT (home, mozek, R1)
+
+**Hypotéza:** mm_park ruší příkazy už jen při ústupu trhu (naše kotace zůstane sama o tick uvnitř). (a) `retreat_park`:
+místo cancelu zmenšit přední příkaz přes modify na 10–40 lotů (drží místo; při návratu hladiny jsme první).
+(b) `improve_stub`: při spreadu ≥ 2 poslat stub o tick dovnitř na straně snižující |I| (být před improverem).
+**Změna:** `strategies/exp_retreat_park.py` = mm_park + flagy (0 = off), parita 452 651 ✔, check PASS.
+**Data:** round1 + sample_v2 (ledger `r1-retreat-park`).
+**Výsledek:** (a) monotónně horší s velikostí stubu: round1 10 → 448 017 (−1 %), 20 → 444 958, 40 → 441 313; sample_v2
+10 → 249 370, 40 → 243 739; retreat_depth 1 vs 2 bez rozdílu → stub uvnitř je při pokračujícím pohybu sebrán, stejně
+jako hold_inside. (b) round1 10 → 453 718 (+1 067, 7/8 chunků, holdout −78), 20 → 454 988 (+2 337, **8/8 chunků**,
+holdout −370); sample_v2 10 → −8 050 (0/8), 20 → −16 036 (0/8); fills +20 %. Compare: REJECT (holdout horší, v2 ztráta
+výrazně větší než zisk na round1).
+**Závěr:** poslední „nerušit“ místo v mm_park nemá zisk; stub dovnitř je mírně kladný jen v režimu round1 a v režimu
+v2 je sebrán trendem → nerobustní, nepovyšovat. Pro R2 si pamatovat jako případnou drobnou páku v R1-like režimu.
+
+## 2026-11-07 14:20 — Stres testy finálu `mm_park` (home, mozek, R1)
+
+**Zrcadlená páska** (strany B↔A, cena 20000 − p; `data/round1_mirror.csv`, ledger `r1-mirror-stress`): **452 651 = přesně
+originál** → strategie je stranově symetrická, žádný bias. **Umělý trend** (lineární posun všech inzertů o +40 resp.
++120 ticků přes celé kolo; ledger `r1-drift-stress`): oba kladné, min 448 795, součet 899 332 (≈ −1 % vs 452 651),
+breach 0. Pomalý trend (0,01 ticku/s vs 1 s volatilita 0,92) maker neohrozí; rychlejší režim takto syntetizovat nejde.
+**Závěr:** riziko záporného PnL na privátní pásce stejného trhu je malé; finál `submission/best_strategy.py` beze změny.
+
+## 2026-11-07 14:25 — H13 `move_min`: sledovat zlepšení ceny jen při „substanci“ nové hladiny: REJECT (home, mozek, R1)
+
+**Hypotéza:** malý improver (medián 14 lotů, život 0,34 s) brzy zmizí; přesun bulku za něj a následný návrat na konec
+staré fronty stojí pozici → přesunout se jen když má nová hladina ≥ N tržních lotů.
+**Změna:** `strategies/exp_move_min.py` = mm_park + `move_min_qty` (0 = off), parita 452 651 ✔, check PASS.
+**Výsledek** (ledger `r1-move-min`, round1 + sample_v2): monotónně horší s prahem: round1 4 → 447 663 (−1,1 %), 8 → 445 266,
+15 → 438 371, 30 → 429 511, 250 → 341 317 (−25 %); sample_v2 ≈ 0 do 30 lotů, pak záporné. Compare {8}: round1 −7 385
+(0/8), sample_v2 +8 (šum) → REJECT.
+**Závěr:** sledovat i drobné improvery se vyplácí — nová hladina je tam, kde jsou filly, a stub už staré místo drží.
+Tím je rodina „pořadí ve frontě“ kolem mm_park prozkoumaná: 13 mechanik, jediný zisk je parkování (Tomáš).
+
+## 2026-11-07 14:45 — Fill attribution `mm_park` (home, mozek): kde vzniká +6,3 % a proč na v2 stojí 4,7 %
+
+Report `research/reports/round1_mm_park_attribution.md` (`research/fill_attribution.py`, nové módy `park`, `compare`;
+logy `logs/r1-park-inspect`, `logs/v2-park-inspect`, `logs/v2-fullcap-inspect`). Proxy $ = loty × markout 1 s (round1
++21,1 k vs skutečných +26,9 k; v2 −11,7 k vs −12,4 k).
+- **Stuby:** round1 19 922 vzniklých, ~40 % se naplní (průměr 8 z 20 lotů), 59 % zrušeno nenaplněných; život do fillu
+  1,1 s. **Markout stubu 0,39 $/lot vs 0,18 u touch fillů** (v2: 0,78 vs 0,50) → stuby nejsou adverzní, jsou to naše
+  nejlepší filly; 60 % lotů stubů se na round1 plní s 0 loty před nami (v2 jen 28 %). Stuby +63 k na 160 k lotech (7 %
+  lotů, 14 % $).
+- **Rozklad round1 +26,9 k:** touch filly stejný počet, ale **−472 k lotů (−18 %)** (stuby vážou kapacitu) = −77 k;
+  lepší kvalita touch fillů (0,179 vs 0,163) +34 k; stuby +63 k; zbytek chyba proxy.
+- **Čas na stropu |I| = 100 klesl z 50 % na 26 %** (v2 53 % → 22 %): stuby na odvíjející straně jsou na čele → rychlejší
+  obrat. Filly proti imbalance z −39,7 k na +6,6 k.
+- **v2 náklad:** ztracený bulk 68 k lotů (−13 %) za 0,49 $/lot ≈ −33 k; stuby jen +18 k, kvalita +3 k → −11,7 k. Cena
+  parkování = vytlačený bulk, a ten je na v2 3× cennější než na round1.
+- **Události:** zlepšení ~0,65/s na stranu (round1), ~0,4 (v2); ústupy podobně; **37 % zlepšení se do 500 ms vrátí**
+  (flicker) na obou datasetech — ale sledovat je se přesto vyplácí (H13, min_requote).
+**Závěr:** mechanismus parkování je potvrzený a správně naladěný pro round1 (víc stubů nad max 5 nepomáhá, stuby
+hloubky 2 umírají). Páka pro R2 = režimově závislé parkování (v mean-reverting režimu s cenným bulkem méně/menší
+stuby nebo vypnout): rozhodnout 4-buňkovým testem na kickoffu. Pro R1 žádná nová páka.
 ## 2026-11-07 15:10 — Overfit check, back-pull, ladder, ML signal (radys, our model)
 
 - **Blocked k-fold of mm_park** (`research/diag/kfold.py`, 12 full runs, 9 time blocks): params chosen on 8 blocks,
@@ -423,6 +617,27 @@ check_submission OK, research.check PASS, 2.3 min projected for 8.8M rows.
 - **Ridge signal** (100 ms): walk-forward IC +0.38 in 7/7 folds, stable coefficients. Embedded in `exp_ml_shrink.py`
   (shrinks the predicted-adverse side via modify, never cancels the oldest order). Screen running.
 
+## 2026-11-07 14:35 — R1-only ladění: park_max 5 + improve_stub 20 → 457 288 (+1,0 %), větší stuby dovnitř horší (home, mozek)
+
+**Compare mm_park vs `exp_retreat_park` {"park_max": 5, "improve_stub": 20}:** round1 452 651 → **457 288 (+4 637, +1,0 %)**,
+holdout +786, **6/8 párových chunků** → ACCEPT nástrojem; sample_v2 251 236 → 230 674 (−8,2 %, 0/8, stále kladné).
+Čistě režimové ladění pro round1 (spread 1, rychlé doplnění spreadu 2 do ~50 ms). Větší stub dovnitř (ledger
+`r1-improve-stub-big`, park_max 5): 20 → 457 288, 40 → 454 569, 80 → 436 261, 120 → 424 635 → stub dovnitř je věc
+20 lotů, víc je sebráno pohybem skrz.
+**Závěr:** k dispozici jako „R1-tuned“ druhý upload (+1 % veřejně; privátní data R1 = stejný trh), za cenu robustnosti
+v režimu v2. Výchozí robustní volba zůstává mm_park 20/1/3. Rozhodnutí Honza.
+
+## 2026-11-07 14:40 — H14 `early_join` REJECT: rezerva pro rychlý vstup na svěží hladinu se nevyplatí (home, mozek, R1)
+
+**Hypotéza:** po zlepšení ceny trhem náš bulk přistává na nové hladině až po potvrzení modify (~10 ms), ne za 5 ms;
+držet R lotů stále volných a poslat je na novou hladinu hned ve stejném callbacku.
+**Změna:** `strategies/exp_early_join.py` = mm_park + `early_join` (0 = off), parita 452 651 ✔, check PASS; mechanismus
+ověřen (round1: 12 180 rychlých vstupů, 60 900 lotů, vždy plná rezerva).
+**Výsledek** (ledger `r1-early-join`, round1 + sample_v2): R = 5 → 442 897 (−2,2 %), 10 → 431 529, 20 → 405 844, 40 →
+336 661 (−26 %); sample_v2 stejně monotónně (5 → −3,2 %). Compare {5}: 0/8 chunků na obou → REJECT. Fills +26 %, ale
+horší kvality.
+**Závěr:** trvale nevyužitá kapacita stojí víc než pořadí získané o 5 ms dřív; cizí příkazy v tom okně nerozhodují
+o kvalitě fillů. Potvrzuje: každý lot kapacity musí ležet na touch.
 ## 2026-11-07 15:40 — ML shrink on mm_park (radys)
 
 - **What:** the ridge 100 ms mid-move prediction (walk-forward IC +0.38) runs inside the strategy. When |pred| > 0.15 ticks
@@ -434,6 +649,124 @@ check_submission OK, research.check PASS, 2.3 min projected for 8.8M rows.
 - **Did not help:** thin-level cap (150/300 lots), flow pull, park 30 vs 20 (72-combo screen, 25 % then full).
 - **Next:** server upload to confirm; runtime check on idle CPU (ML adds per-event cost); Honza iterates further.
 
+## 2026-11-07 14:45 — Ověření Tomášova `mm_ml` (home, mozek, R1)
+
+`research.compare` mm_park vs mm_ml (main 1769eaa = submission): round1 452 651 → **490 460 (+37 809, +8,4 %)**, holdout
+117 886 → 126 291 (+8 405), **8/8 párových chunků** (+3 265 až +4 448, rovnoměrně), fills 41 934 → 46 527; sample_v2
+251 236 → 254 061 (+2 825, holdout +1 835, 5/8) s váhami z round1 → signál pomáhá i cross-market. `research.check`
+na round1 (pod zátěží 20 procesů): PASS, 25 µs/událost nad prázdnou strategií, 131 s na 4,4 M, projekce 4,4 min na
+8,8 M (notebook bez zátěže 7,0 min — hranice našeho cíle, sandbox 15 min).
+**Výhrady (notebook):** ridge byl fitnut `--export-linear` na celém round1 včetně holdoutu → holdout zisk je zčásti
+in-sample; řeší agent (čistý fit na prvních 75 % času, `strategies/exp_ml_clean.py`) spolu s `ml_every` kvůli runtime.
+**Sebekritika mozku:** drift 0,33 ticku po fillu byl největší číslo v attribution; odepsal jsem ho kvůli ztrátám
+cancel-filtrů („shrink ≈ cancel“). Shrink přes modify drží čelo fronty → +8,4 %. Pravidlo: každé „kdy nekotovat“
+implementovat jako zmenšení, nikdy jako cancel.
+
+## 2026-11-07 14:50 — Jemný grid `mm_ml`: ml_thr × ml_stub na round1 + sample_v2 (home, mozek)
+
+Ledger `r1-mlml-grid` (15 buněk × 2 datasety, váhy ridge z celého round1 = stejné jako v mm_ml, breach 0 všude, ~130 s/běh):
+round1: **thr 0,12 / stub 3 → 497 292** (+6 832, holdout 127 553), 0,12/5 → 496 001, 0,12/8 → 494 597, 0,15/3 → 492 647
+(holdout 126 652), **0,15/5 → 490 460 (baked)**, 0,10 → 487–488 k, 0,20 → 462–464 k, 0,08 → 458–461 k.
+sample_v2: 0,15–0,20 → 254–255 k, 0,12 → 244–246 k (−10 k), 0,10 → 232 k, 0,08 → 217–222 k. Velikost stubu 3/5/8 je
+druhořadá (±2 k).
+**Závěr:** plató thr 0,12–0,15; vrchol je na práh citlivý (±5 % mezi 0,10 a 0,20) a práh závisí na škále predikce
+→ **na R2 se musí po refitu modelu práh znovu naladit**. Round1-optimum 0,12/3 (+1,4 %) je režimové ladění (na v2 −4 %);
+robustní volba 0,15 se stubem 3 (round1 +2,2 k, v2 ±0). Baked 0,15/5 zatím neměnit, dokud nedojde čistý (neleakující)
+model; pak sestavit „R1 final“ stack (thr 0,12/3 + park_max 5 + improve_stub 20) a zvážit jako druhý upload.
+
+## 2026-11-07 14:55 — H15 asymetrické prahy ML shrinku: REJECT (home, mozek, R1)
+
+**Hypotéza:** zmenšovat dychtivěji stranu zvyšující |I| (filly ~0 $/lot) a líně stranu snižující |I| (filly +0,21).
+**Změna:** `strategies/exp_ml_asym.py` = mm_ml + `ml_thr_add` / `ml_thr_red` (0 = ml_thr), parita 490 460 ✔, check PASS.
+**Výsledek** (ledger `r1-ml-asym`, 16 buněk, round1): symetrický 0,15 je optimum. Líná odvíjející strana stojí hodně:
+red 0,25/0,4/nikdy → 472 k (−19 k); dychtivá přidávající strana add 0,10/0,08 → 487/483 k. Jediný „zisk“ 0,15/0,10 →
+491 898 (+1,4 k, 6/8, holdout −370; sample_v2 −19 k, 0/8) → REJECT.
+**Závěr:** shrink odvíjející strany je cenný (adverzní fill tam nás nechá v horší pozici); fill attribution se do
+asymetrie prahů nepřekládá. mm_ml beze změny.
+
+## 2026-11-07 15:05 — improve_stub + park_max 5 na mm_ml bázi: REJECT (home, mozek, R1)
+
+`strategies/exp_ml_istub.py` = mm_ml + port `improve_stub` (stub o tick dovnitř při spreadu ≥ 2 na odvíjející straně),
+parita 490 460 ✔, check PASS. Ledger `r1-ml-istub`: improve_stub 20 → round1 478 707 (−2,4 %), sample_v2 217 107 (−15 %);
+s park_max 5 → 480 818 / 216 248; park_max 5 samo → round1 492 490 (+2 030, holdout −972), sample_v2 252 323 (−1 738) = šum.
+Compare {20, 5}: round1 −9 642 (1/8), sample_v2 −37 813 (0/8) → REJECT.
+**Závěr:** co stub dovnitř na mm_park přidával (+0,5 %), ML shrink už bere lépe; „R1 stack“ (thr 0,12/3 + park_max 5 +
+improve_stub) tedy nemá smysl — zbývá jen thr 0,12/3 (+1,4 %, režimové). Další zisk musí přijít z kvality signálu.
+
+## 2026-11-07 15:05 — Čistý (neleakující) model potvrzuje mm_ml; runtime; horizont 1 s REJECT (home, mozek, R1)
+
+**Leak:** ridge v mm_ml byl fitnut na celém round1. Čistý fit (čas ≤ 75 %, purge 1 s, stejný formát) → `strategies/exp_ml_clean.py`
+(`research/reports/round1_ml_clean.md`): IC train 0,383 / holdout 0,375 (žádný přefit). round1 490 905 (leaky 490 460),
+holdout +8 242 nad mm_park (leaky +8 405), **8/8 párových chunků**; sample_v2 253 400 (+2 164, 4/8) → **ACCEPT, zisk ML je
+skutečný out-of-sample**. Pro finální soubor je fit na všech veřejných datech správný (leak se týkal jen našeho odhadu).
+**Runtime** (`ml_every`, `ml_on_touch_change`, check --rows 0 pod zátěží): every 1 → 24,4 µs/ev, 4,2 min / 8,8 M, 490 905;
+touch_change 1 → 18,4 µs, 3,3 min, 490 809 (−96); every 2 → 3,1 min, −0,3 %; every 4 → 2,5 min, −0,7 %. Doporučení:
+`ml_on_touch_change` 1 bez ztráty; `ml_every` 2 jen při nedostatku rezervy.
+**H16 horizont 1 s** (`strategies/exp_ml_h1000.py`, ledger `r1-ml-h1000`, model 1 s fit na 75 %, prahy sladěné na stejnou
+četnost): 0,39 → 490 440, 0,49 → 484 026, 0,6 → 467 615; compare {1000, 0,49}: round1 −6 434 (1/8), v2 −1 198 → REJECT.
+Pro shrink rozhoduje načasování 100 ms signálu, ne velikost 1 s pohybu.
+
+## 2026-11-07 15:05 — MLP místo ridge pro ML shrink: vyšší IC, nižší PnL → REJECT (home, mozek, R1)
+
+`strategies/exp_ml_mlp.py` (`ml_model` ridge/mlp, parita 490 460 ✔, check PASS, 34,6 µs/ev, 5,7 min / 8,8 M),
+report `research/reports/round1_mlp_signal.md`. MLP 23-16-1 na GPU (train 55 % / valid 20 % / test 25 % času): **test IC
+0,447 vs ridge 0,375**, horní 1 % edge +0,50/−0,49 ticku (ridge +0,36/−0,41). Všechny architektury 16–32-32 do ±0,005 IC.
+Ale ve strategii: thr 0,10 → 469 064, 0,125 → 466 972, 0,15 → 464 022, 0,25 → 458 567 (ridge 0,15: 490 460); compare
+{mlp, 0,10}: round1 −21 396 (0/8), sample_v2 −55 531 (0/8) → REJECT.
+**Závěr:** IC navíc sedí v „těle“ rozdělení; shrink odměňuje vzácné, jisté predikce přejetí, které lineární kombinace
+toku a imbalance zachytí stejně dobře. Přenos na v2 slabý (trénink jen round1). Případný další pokus: trénink na
+round1 + sample_v2, nebo cíl zarovnaný se ztrátou (adverzní pohyb podmíněný fillem) místo MSE na 100 ms pohybu.
+
+## 2026-11-07 15:10 — Features v2 pro ridge: 12 nových kandidátů skoro nic, krychle imbalance +0,03 IC (home, mozek)
+
+`research/features_v2.py` (12 kandidátů z npz: vyprazdňování touch 100/500 ms, cancel/insert čistý tok 200 ms, počet
+příkazů, avgsz_imb, L2 imbalance, počet změn midu za 1 s, poslední IOC, podíl posledního obchodu, trvání spreadu,
+tok/hloubka), report `research/reports/round1_features_v2.md`. Walk-forward ridge 100 ms round1: baseline 0,380; +všech 12
+→ 0,386 (nic); na sample_v2 pomáhají ins/cxl/dep (+0,03–0,06), cross-market se nepřenáší. **Nelinearita je větší páka:**
+HGB 0,452; **krychle imb1, imb2, micro, cnt_imb1 → ridge 0,410 (+0,03)**, top-1 % edge 0,449 → 0,543 ticku, cross-market IC
+0,278 → 0,293 (robustní). Cena ~0,3 µs. Běží test v strategii (`exp_ml_cubes.py`: refit s krychlemi, práh na stejnou
+četnost, compare vs mm_ml); po lekci s MLP (IC 0,447, ale PnL −4 %) rozhodne jen research.run.
+
+## 2026-11-07 15:15 — Nástroj `research.refit_ml` pro refit modelu na nové kolo (home, mozek)
+
+`uv run python -X utf8 -m research.refit_ml data/<kolo>.csv --template strategies/mm_ml.py --out strategies/mm_ml_<kolo>.py`
+(docs/refit_ml.md): postaví features, fitne ridge přesně jako `--export-linear` (alpha 10, stride, 6 cifer), nahradí v šabloně
+jen LINEAR_MODEL a číselný `ml_thr` (= 0,81-kvantil |pred| na nové pásce → stejná četnost shrinku jako 0,15 na round1),
+vypíše IC/std/kvantily a pustí check. ~10 s. **Validace:** refit na round1 je byte-identický s mm_ml.py, 490 460 ✔.
+**Generálka R2 (`strategies/mm_ml_v2fit.py`, fit na sample_v2):** škála predikce 0,064 vs 0,11 na round1 → auto práh 0,086;
+sample_v2 250 588 (champion s round1 modelem 254 061, −1,4 %, bez follow-up gridu); **model z v2 na round1: 294 677 (−40 %)**
+→ model se mezi trhy přenáší špatně, na R2 je refit na skutečné pásce kola nutný a práh musí jít z kvantilu.
+
+## 2026-11-07 15:20 — H17 odstupňovaný shrink: malý zisk na round1 (+0,8 %, 7/8), na v2 mírně záporný (home, mozek)
+
+`strategies/exp_ml_graded.py` = mm_ml + `ml_thr_lo` / `ml_frac_lo` (částečný cap mezi dvěma prahy), parita 490 460 ✔, check PASS.
+Ledger `r1-ml-graded`: round1 nejlépe 0,10/0,25 → 496 881, 0,12/0,25 → 496 217 (holdout 128 408), 0,10/0,5 → 494 534;
+sample_v2 jen 0,12/0,5 a 0,10/0,5 drží ±0 (253 143 / 252 731), agresivnější frakce 0,25 ztrácí až −5 %.
+Compare {0,10, 0,5}: round1 **+4 074 (7/8), holdout +1 305**; sample_v2 −1 330 (1/8, holdout +168) → nástroj ACCEPT, ale
+datasety nesouhlasí ve znaménku. **Závěr:** reprodukuje trade-off prahu 0,10–0,12, ne nový edge; kandidát jen do R1
+stacku s krychlemi, pokud krychle vyjdou (jeden společný compare, jeden upload).
+
+## 2026-11-07 15:25 — Krychle imbalance v ridge: IC +0,03 drží out-of-sample, PnL na round1 ne → REJECT (home, mozek)
+
+`strategies/exp_ml_cubes.py` (`ml_model` base/cubes/cubes_avg, parita 490 460 ✔, check PASS, +24 µs/ev, 4,1 min / 8,8 M),
+report `research/reports/round1_ml_cubes.md`. IC hold 0,375 → 0,406, top-1 % edge 0,384 → 0,476 ticku (drží v holdoutu).
+Sweep (ledger `r1-ml-cubes`, prahy 0,13/0,16/0,19 sladěné na četnost): round1 486–488 k (−2 až −12 k), sample_v2 253–258 k
+(+3,7 k při 0,16). Compare {cubes, 0,16}: round1 −4 296 (2/8), holdout −1 872; sample_v2 +3 700 (7/8) → REJECT.
+Poctivý holdout (váhy jen z 75 %) 124 496 vs mm_ml 126 128 → leak to nevysvětluje.
+**Závěr (stejná lekce jako MLP):** na round1 shrink už jistý „ocas“ bere; ostřejší signál přidá filly, ne PnL. Krychle
+pomáhají v režimu v2 → nechat jako volbu `ml_model` pro R2, pokud data card připomene v2. **ML shrink na round1 je
+nasycen na ~490–497 k; další zisk v této rodině na R1 nečekat.**
+
+## 2026-11-07 15:45 — Předvídatelnost sweepů z pásky: žádná (home, mozek, R1 + v2)
+
+`research/sweep_predict.py`, report `research/reports/round1_sweeps.md`. Velké IOC (≥ 300 lotů: 12 067; ≥ 1 000: 2 095) jsou
+**Poissonovské**: CV mezer 0,99–1,02, autokorelace velikostí ±0,01, žádné shlukování na stejné straně (lift 1,0), velikosti
+se neopakují, žádný vzor „limit → sweep“ (id jsou striktně +1). Prekurzory (cancely na touch, inzerty, sondovací IOC,
+imbalance, vyprazdňování, čas od změny midu) na 50/100/500 ms: lift 0,9–1,1, nejlepší AUC 0,506; walk-forward logistický
+skór AUC 0,50. Ridge trigger (|pred| > 0,15) označí 9,7 % sweepů při 9,6 % času → předpovídá drift běžného toku, ne sweepy.
+Přidání skóru k 23 features: IC 0,3802 → 0,3812. sample_v2 totéž.
+**Závěr:** sweepy nelze předvídat 5 ms dopředu; obrana je jen velikost a pozice ve frontě (mm_park/mm_ml). Hypotéza
+„otisky účastníků“ zamítnuta.
 ## 2026-11-07 16:30 — Ideas on top of mm_ml, all rejected so far (radys)
 
 All on round1, full tape unless noted, vs mm_ml 490,460 (`strategies/exp_overcap.py`, every flag off = mm_ml).
@@ -449,6 +782,87 @@ All on round1, full tape unless noted, vs mm_ml 490,460 (`strategies/exp_overcap
 - **Why it matters:** the price range is only 105 ticks in 3.3 h; profit is purely spread capture under a 100-lot budget.
   Next: queue-aware stub (`ahead_stub`), park re-tune on the ML base; heavy levers for Honza in radys-findings s.8.
 
+## 2026-11-07 15:50 — H18 cíl zarovnaný se ztrátou: varianta B = první robustní zlepšení nad mm_ml (home, mozek)
+
+`research/fit_target.py`, `strategies/exp_ml_target.py` (`ml_target` base/A/B/C, parita 490 460 ✔, check PASS), report
+`research/reports/round1_ml_target.md`. Stejných 23 features, jiný cíl: A = MSE vážené zásahem takera do 100 ms, **B = pohyb
+midu po prvním zásahu × [zásah]** (0 bez zásahu), C = skór adverzního fillu. IC proti vlastnímu cíli se liší jen o ≤ 0,005;
+lineární model nese totéž. Ale **B při prahu 0,122 (stejná četnost): round1 494 990 (+4 530, 6/8, holdout +1 528),
+sample_v2 258 239 (+4 178, 7/8, holdout +764) → ACCEPT na obou datasetech**, bez runtime nákladu (jen jiný dict).
+A: +2,2 k / +2,1 k; C: −8 k. Nižší práh B 0,097 → round1 499 397 (v2 256 572).
+**Závěr:** malé (+0,9 % / +1,6 %), ale stejné znaménko na obou trzích → kandidát na novou bázi (R2) a na R1 upload.
+Běží dolaďování B (thr 0,09–0,105 × stub 3/5) proti mm_ml_r1tuned (497 292).
+
+## 2026-11-07 15:55 — `mm_ml_b`: cíl B + práh 0,105 / stub 3 → round1 503 148, ACCEPT na obou datasetech (home, mozek)
+
+Dolaďování B (ledger `r1-ml-targetB-tune`, `-tune2`, round1 / sample_v2): thr 0,09 → 494,8 k / 255,2 k; 0,097 → 500,9 k / 256,5 k;
+**0,105 → 503 148 / 258 042**; 0,11 → 501,7 k / 259,6 k; 0,115 → 499,1 k / 259,1 k; 0,122 → 495,0 k / 258,2 k → plató
+0,097–0,115, střed 0,105; stub 3 ≈ 5. **Compare mm_ml vs {B, 0,105, 3}: round1 +12 688 (+2,6 %), holdout +3 397,
+7/8 párových chunků; sample_v2 +3 981, holdout +1 686, 6/8 → ACCEPT.** Zapečeno do `strategies/mm_ml_b.py`
+(= exp_ml_target s B/0,105/3 jako výchozí), check s runtime běží. Doporučení: nahrát jako final R1 místo mm_ml_r1tuned
+(497 292, na v2 −4 %) — víc PnL i robustnější.
+
+## 2026-11-07 15:58 — H19 kratší horizont modelu (50 / 20 ms): REJECT (home, mozek)
+
+`strategies/exp_ml_h50.py`, `exp_ml_h20.py` (přes `refit_ml`, prahy na stejnou četnost), report `round1_ml_short_horizon.md`,
+ledger `r1-ml-short`. h50 @0,080: round1 487 319 (−3,1 k, 1/8), sample_v2 244 176 (−9,9 k, 0/8); h20: −3 % / −9 %.
+Osa horizontu je plochá až záporná oběma směry (1 s −6 k, 50 ms −3 k, 20 ms −16 k) → 100 ms zůstává.
+
+## 2026-11-07 16:10 — Orákulum: strop rodiny „shrink podle toxicity“ na round1 (home, mozek)
+
+`strategies/diag_oracle_ml.py` (DIAGNOSTIKA, lookahead z pásky, nikdy nesubmitovat), report `research/reports/round1_oracle_ceiling.md`,
+ledger `r1-oracle`. Místo ridge skutečný budoucí pohyb midu. Výsledky (round1, mm_park bez ML 452 651, mm_ml 490 460, mm_ml_b 503 148):
+- **Dokonalá znalost 100 ms:** shrink na jakýkoli pohyb 539 181; **jen na pohyb ≥ 0,5 ticku 601 310**; stub 0 (úplný pull)
+  545 760, stub 20 520 324. → strop 100ms-rodiny ≈ 540–600 k; ridge už bere ~40–50 % z něj.
+- **Dokonalá znalost 1 s:** 808 123 (jakýkoli pohyb), 886 570 (≥ 0,5 ticku), stub 0 846 217 — horní mez, 1 s pohyb
+  nelze predikovat s potřebným IC (ridge 1 s měl ve strategii méně než 100 ms).
+- Selektivita se vyplácí: shrink jen při velkých pohybech > shrink při každém (+62 k na 100 ms, +78 k na 1 s).
+**Závěr:** 650 k lídra nejde udělat 100ms toxicity filtrem ani s dokonalou předpovědí → buď předvídá ~1 s pohyb mnohem
+lépe než my, nebo má edge mimo filtrování (fronta, velikost, vrstvy), nebo přefituje veřejná data. Pro nás: cílit shrink
+na VELKÉ adverzní pohyby (klasifikační cíl), ne zpřesňovat průměrný 100 ms pohyb.
+
+## 2026-11-07 16:10 — Graded shrink nad mm_ml_b: +0,8 % round1 (7/8, holdout +225), v2 −0,45 % → držet, nepovyšovat (home, mozek)
+
+`strategies/exp_b_graded.py` (parita 503 148 ✔, check PASS), ledger `r1-b-graded`: thr_lo 0,07 → round1 506 979 (+3 831), v2 256 884
+(−1 158, holdout −1 418); 0,085 → 505 336 / 257 293. Compare {0,07, 0,5}: ACCEPT nástrojem (7/8), ale holdout jen +225 a v2
+záporný → marginální; případně jen do finálního R1 stacku, pokud se sejde víc dílků. park_max 5 nad B: REJECT (holdout −301, v2 −1 k).
+
+## 2026-11-07 16:15 — `refit_ml --target B` hotový; model z round1 je lepší i na v2 než model fitnutý na v2 (home, mozek)
+
+`research/refit_ml.py` umí `--target base|B` (+ `--thr-share`, `--ref-data`): B label přes `fit_target.build_targets`, nahradí jen
+položku 'B' v LINEAR_MODELS a `ml_thr` = kvantil |pred| na nové pásce při stejném podílu událostí jako mm_ml_b na round1
+(27,95 %). Validace: B na round1 → byte-identické s `mm_ml_b.py` (503 148); base → byte-identické s `mm_ml.py`.
+**Generálka R2:** B fitnuté na sample_v2 (`strategies/mm_ml_b_v2fit.py`, IC 0,27, práh 0,037): sample_v2 252 091 vs mm_ml_b
+(model z round1) **258 042**, round1 207 829. → **Model z round1 je lepší i na druhém trhu než lokální fit na 1,6h pásce.**
+Na R2 kickoffu tedy porovnat obojí: mm_ml_b beze změny vs refit na R2 pásce (compare na R2 + round1 + v2), ne refit slepě.
+
+## 2026-11-07 16:20 — H21 klasifikační cíl „velký pohyb“: REJECT (home, mozek)
+
+`research/fit_bigmove.py`, `strategies/exp_ml_bigmove.py` (D1/D4 v LINEAR_MODELS, parita 503 148 ✔), report `round1_ml_bigmove.md`,
+ledger `r1-ml-bigmove`. Precision horních 5/10/20 % na pohyb ≥ 0,5 ticku: B 0,415/0,362/0,278, D1 0,418/0,367/0,287, D4
+0,422/0,368/0,286 → zlepšení ≤ 0,009 na základu 0,135. Ve strategii při stejné četnosti −2 až −12 k na round1, až −20 k na v2;
+compare D4 @0,17: round1 −6 548 (2/8), v2 −20 230 (0/8) → REJECT. 23-feature lineární prostor je na hranici; B vyhrává, protože je
+podmíněné skutečným zásahem takera. Lepší výběr velkých pohybů potřebuje stav fronty, ne jiný lineární cíl.
+
+## 2026-11-07 16:25 — H20 fill-EV model s privátními features: model dobrý, jako shrink pravidlo REJECT (home, mozek)
+
+`research/fill_ev.py`, `strategies/exp_fill_ev.py` (ev_thr/ev_mode, parita 490 460 ✔, check PASS), report `round1_fill_ev.md`, ledger
+`r1-fill-ev`. Dataset: 63 428 fillů mm_ml na round1 (markout 1 s 0,224 $/lot), 15 679 na v2. Walk-forward ridge na markout 1 s:
+pred sám IC 0,28 → tržní features 0,31 → **+ privátní (pozice ve frontě, tloušťka, |I|, snižuje-|I|) 0,36–0,39**, v2 0,13 → 0,62;
+HGB nic navíc; spodní 3 decily nesou −101 k $ markoutu. Ale ve strategii: PnL klesá monotónně s prahem, nejlepší buňka
+(ev_thr −0,5, or) round1 488 065 (−2,4 k, 2/8), v2 253 189 → REJECT.
+**Proč:** zmenšení na stub stojí objem i na lotech, které jsou jen mírně záporné; mm_ml pred už bere hlavní ocas; queue_ahead
+v tréninku je podmíněn sweepem (ne live). Konzistentní s orákulem (strop 100ms filtru 540–600 k).
+**Nezkoušeno:** trénink na každé události s vahou pravděpodobnosti fillu; velikost shrinku úměrná EV; EV jen pro extrémní ocas.
+
+## 2026-11-07 16:30 — H22 OR-trigger z 1 s modelu nad mm_ml_b: šum (home, mozek) → výzkum R1 uzavřen, finál mm_ml_b
+
+`strategies/exp_b_or1s.py` (thr_1s, or_stub_1s; parita 503 148 ✔, check PASS), ledger `r1-b-or1s`. Nejlepší 0,85 / úplný pull:
+round1 +417 (7/8), v2 +43 (4/8) → < 0,1 %, šum; práh 0,6 pomůže round1 (+1,4 k), uškodí v2 (−1,6 k). Velké 1 s pohyby, které ridge
+umí, už 100ms pravidlo B pokrývá; limitem je kvalita 1 s predikce. Nepovyšovat.
+**Bilance R1 (home):** ~30 mechanik/modelů, ~400 běhů. Nad mm_v2 vyhrály 4 věci: plná kapacita (+33 %), parkování stubů
+(Tomáš, +6 %), ML shrink přes modify (Tomáš, +8 %), cíl B (+2,6 %). **Finál R1 = `strategies/mm_ml_b.py` 503 148.** Orákulum:
+strop 100ms toxicity filtru 540–600 k; 650 k lídra touto rodinou nejde.
 ## 2026-11-07 16:55 — Queue-aware stub rejected, handoff (radys)
 
 - `ahead_stub` (shrink the touch order while > X market lots are ahead): X=1200 476,032, 800 462k, 500 440k, 300 402k,
