@@ -1203,3 +1203,12 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
 - On mm_r2_pred (gate 8 / 30 s): quote_size 100 / 125 / 150 / 200 = 383,300 / 382,841 / 381,448 / 371,961 on round2,
   mirror 383,245 / 380,267 / 378,663 / 369,664, all 8/8. **`strategies/mm_r2_pred_qs.py`** (quote_size 100) baked as the
   next leaderboard test.
+
+## 2026-11-07 22:50 — Leaderboard g6 786,205 (worse); queue-priority ceiling on mm_r2_pred_qs = 622k (home)
+
+- Leaderboard: mm_r2_pred_g6 (gate 6 / 30 s) 786,205, mm_r2_pred2 787,414, mm_r2_pred 797,904 (final). Parameter
+  changes worth < ~3-4 % locally behave like +-10k noise on the leaderboard tape.
+- Flatten zone (IOC to flat when the signal is mildly against the inventory): -47..-257k. Rejected.
+- Front-of-queue oracle on mm_r2_pred_qs: 383k -> 622k (+239k); 'fresh' mode (front only on levels with < 200 market
+  lots) 410k: the value is in being early in THICK existing queues -> F-guarded early-placed ladder + taker
+  (`exp_r2_ladderF.py`, subagent running).
