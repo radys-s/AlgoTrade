@@ -1312,3 +1312,5 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
 - Last upload `strategies/mm_r2_final2.py` = mm_r2_final with fq_k_sp2 0.77 (local +0.5k on the two tapes: a coin flip),
   check PASS 1.5 min. Final = the higher of mm_r2_final (974,031) and mm_r2_final2.
 - Round 2 path on the leaderboard: 740,067 -> 797,904 -> 849,747 -> 891,735 -> 957,133 -> 970,101 -> 974,031.
+- mm_r2_final2 local: round2 434,304, mirror 433,044 (vs final 434,477 / 432,324). fq_k_sp2 0.8: 432,801 / 431,517
+  (qs_k 0.35: 433,108 / 431,547) - the 0.75-0.77 peak holds.
