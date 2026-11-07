@@ -1,8 +1,8 @@
-# Round 2: final summary (home, 2026-11-08 00:05)
+# Round 2: final summary (home, 2026-11-08 00:10)
 
 The leaderboard tape is a different, ~2x longer realization of the round-2 generator (mark-out price 10,482). Final
-scoring is on private data from the same market. Mark as final the upload with the highest leaderboard pnl; the safe
-fallback is `strategies/mm_r2_rth.py` (970,101).
+scoring is on private data from the same market. Mark as final the upload with the highest leaderboard pnl: `strategies/mm_r2_final.py`
+(974,031) unless mm_r2_final2 scores higher.
 
 ## Leaderboard progression
 
@@ -17,7 +17,8 @@ fallback is `strategies/mm_r2_rth.py` (970,101).
 | strategies/mm_r2_rts.py | 420,715 | 419,434 | 957,133 | at spread >= 2 quote only on a 0.7-tick lean |
 | **strategies/mm_r2_rth.py** | **430,781** | **429,296** | **970,101** | stricter quote over a >= 3-tick hole behind the touch |
 | strategies/mm_r2_rth3.py | 436,496 | 439,487 | 954,077 | + pred_blend 0.6 (taker) - worse, gain was in the ridge fit window |
-| strategies/mm_r2_final.py | 434,477 | 432,324 | (last upload) | rth + sp2 0.75, sp3 0.15, hk_k 0.6, qs_k 0.3; taker unchanged |
+| **strategies/mm_r2_final.py** | **434,477** | **432,324** | **974,031** | rth + sp2 0.75, sp3 0.15, hk_k 0.6, qs_k 0.3; taker unchanged |
+| strategies/mm_r2_final2.py | 434,304 | 433,044 | (last upload) | final with sp2 0.77 (local coin flip) |
 
 ## What worked
 
