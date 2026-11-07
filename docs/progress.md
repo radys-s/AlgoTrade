@@ -819,3 +819,9 @@ ledger `r1-oracle`. Místo ridge skutečný budoucí pohyb midu. Výsledky (roun
 **Závěr:** 650 k lídra nejde udělat 100ms toxicity filtrem ani s dokonalou předpovědí → buď předvídá ~1 s pohyb mnohem
 lépe než my, nebo má edge mimo filtrování (fronta, velikost, vrstvy), nebo přefituje veřejná data. Pro nás: cílit shrink
 na VELKÉ adverzní pohyby (klasifikační cíl), ne zpřesňovat průměrný 100 ms pohyb.
+
+## 2026-11-07 16:10 — Graded shrink nad mm_ml_b: +0,8 % round1 (7/8, holdout +225), v2 −0,45 % → držet, nepovyšovat (home, mozek)
+
+`strategies/exp_b_graded.py` (parita 503 148 ✔, check PASS), ledger `r1-b-graded`: thr_lo 0,07 → round1 506 979 (+3 831), v2 256 884
+(−1 158, holdout −1 418); 0,085 → 505 336 / 257 293. Compare {0,07, 0,5}: ACCEPT nástrojem (7/8), ale holdout jen +225 a v2
+záporný → marginální; případně jen do finálního R1 stacku, pokud se sejde víc dílků. park_max 5 nad B: REJECT (holdout −301, v2 −1 k).
