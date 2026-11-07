@@ -870,3 +870,29 @@ strop 100ms toxicity filtru 540–600 k; 650 k lídra touto rodinou nejde.
 - Honza's home PC: `mm_ml_r1tuned.py` (thr 0.12 / stub 3) 497,292 is the current best; sweeps are unpredictable.
 - Full state and ranked next steps: `docs/radys-findings.md` section 9. Next: fill diagnostic `research/diag/queue_fills2.py`
   on mm_ml_r1tuned, then capacity/inventory-turnover experiments.
+
+## 2026-11-07 16:45 — R1 stack nad mm_ml_b: tight_only + graded + park_max 5 → round1 510 469 (home, mozek)
+
+Na pokyn Honzy („fit tenhle trh“) naskládáno vše, co na round1 vydělává: `strategies/exp_b_stack.py` = mm_ml_b + graded cap
+(`ml_thr_lo` 0,07 / `ml_frac_lo` 0,5) + Tomášův `ml_tight_only` (ML stub jen při spreadu 1) + `park_max` 5. Ledger `r1-b-stack`:
+tight_only sám +1 742 (7/8, holdout +683; v2 +1 418, holdout +595); tight + graded 507 905 (+4 757, 8/8, holdout +524; v2 +1 087).
+**Compare mm_ml_b vs plný stack: round1 503 148 → 510 469 (+7 321, 7/8, holdout +566); sample_v2 258 042 → 258 573 (+531, 5/8,
+holdout +504) → ACCEPT.** Zapečeno do `strategies/mm_r1_final.py`; check s runtime běží. Je to režimové ladění pro round1
+(privátní R1 = stejný trh); v jiném režimu znovu naladit park/prahy.
+
+## 2026-11-07 16:50 — Otisk generátoru: páska je SYNTETICKÝ queue-reactive simulátor (home, mozek)
+
+`research/generator_fingerprint.py`, report `research/reports/round1_generator.md`. Signatury: inzerty G i IOC přesně Poisson (Fano 1,00),
+celková intenzita inzertů 89,9/s na stranu bez ohledu na stav; **reaguje jen umístění ceny**: podíl inzertů na touch roste s velikostí
+touch fronty (21,6/s při < 74 lotech → 64/s při > 2 200), 1 tick za touch klesá; životy cancelů i.i.d. naplánované při vložení
+(posunutý lognormal, medián 337 ms, max 7,2 s), nezávislé na stavu; **každý limit dostane cancel i když byl vyplněn** (generátor
+filly nesleduje); IOC velikost lognormal(4,106; 1,395) nezávislá na frontě; takeři 4,0/s na stranu; vyprázdnění hladiny je mechanické
+(IOC ≥ fronta → hladina pryč v 97–99 %). sample_v2 = stejný generátor s jinými parametry (limit uniform 20–40, IOC lognormal(3,71; 1,40)).
+Využitelné pravidelnosti: (1) P(touch pryč do 200 ms) = 0,395 při < 35 lotech, 0,19 při 96–262, 0,014 při > 1 991; podle počtu
+příkazů 0,455 (1 příkaz) vs 0,021 (≥ 6); při |imbalance| > 0,89 se tenká strana pohne proti v 34 % vs 1,3 %. (2) Filly jsou
+aritmetika: P(IOC ≥ q) = 1 − Φ((ln q − 4,106)/1,395), takeři 4/s, cancel hodiny známé → doba vyprázdnění fronty před námi je
+spočitatelná. (3) Rozšíření spreadu se zaplní za medián 22 ms (p90 144) inzertem dovnitř na straně s větší frontou → mid pokračuje
+v 70 % epizod (proto P(reverze) 0,46).
+**Důsledek:** naše mechaniky (plná kapacita, park, shrink podle imbalance) jsou v souladu s generátorem; lineární ridge už
+P(vyprázdnění) zhruba nese (krychle IC +0,03 bez PnL). Pro R2: stejná rodina modelu s jinými parametry → strategie se přenáší,
+přeladit prahy/park; „aritmetika fillů“ umožňuje spočítat optimální velikost stubů/bulku z parametrů kola (námět).
