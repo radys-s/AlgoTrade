@@ -28,6 +28,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 12:30 | home | Generálka `research.round --fetch sample_v2`: 144 s end-to-end (kroky ~2,2× rychlejší než laptop), baseliny sedí; přesný runtime championa 14,1 s / 2 M řádků → 65 s na 8,8 M; sweep kolem `mm_v2` (162 halving + 144 + 8 běhů): výchozí parametry na hraně mřížky, `imb_pull` 0,875–0,975 plató +1,2–1,8 %, ale compare REJECT (4/8 chunků) |
 | 2026-11-07 13:20 | radys | Round 1: mm_v2 321,024 vs exp_full_capacity 425,708 (+33%) -> submission |
 | 2026-11-07 13:45 | radys | R1 tuning on full_capacity: layers/size/imb_pull/jump/flow_pull all <= 426k; fill analysis: inventory-adding fills lose |
+| 2026-11-07 14:15 | radys | Queue-position diagnostics on R1; imb/thin/requote pulls all lose; handoff `docs/radys-findings.md` |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -384,3 +385,10 @@ corr +0.30 at 100 ms.
 Spread-2 fills 0.53, spread-1 fills 0.15. Fills that ADD to |I|: 517k lots, 1 s markout -0.015; fills that REDUCE |I|:
 2.13M lots, +0.20. By |I| before the fill: [0,30) 0.02, [30,70) 0.08, [70,200] 0.25.
 **Next:** `research.mm_edge` and `research.taker_scan` on round1 to see if any filter or taker signal has edge.
+
+## 2026-11-07 14:15 — Queue position is the edge (radys)
+
+Full write-up and tables: [radys-findings.md](radys-findings.md). Ledgers `r1-queue-keep`, `r1-thin-pull`:
+requote_tolerance 1 -27 %, imb_pull 0.9 -11 %, thin_pull 30 -8 %. Our fills with 0 lots ahead earn +0.21 $/lot,
+with 500+ ahead -0.22..-0.52; any cancel sends us to the back of a ~900-lot queue, which is why every filter loses.
+Next: shrink via modify_order instead of cancel; pull only when already at the back.
