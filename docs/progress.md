@@ -314,3 +314,36 @@ adverse-selection filtr `imb_pull` zlepší PnL i holdout.
 (+1–2 %), ale neprojde protokolem → nepovyšovat. Pozor: inv_q997 = 100, champion jezdí až na limitu pozice.
 **Další krok:** na Round 1 stejné osy + `alpha_imbalance` (imbalance L1 má na sample_v2 IC +0,35 při 100 ms–1 s)
 a `inv_stop`/`unwind_threshold` kvůli pozici na limitu.
+
+## 2026-11-07 12:45 — Před Round 1: tři rychlé hypotézy nad championem na `sample_v2` (home, mozek)
+
+**Hypotéza H1 (`full_capacity`):** champion `mm_v2` je limitovaný objemem (~0,5 $/lot) a třetinu času sedí
+na stropu |I| = 100. Invariant (B) I + OUT_buy ≤ M, (S) −I + OUT_sell ≤ M dovoluje straně, která |I| snižuje,
+až M + |I| lotů (200 při |I| = 100), ale `quote_size` 100 ji kapoval na 100.
+**Změna:** žádný kód, jen `quote_size` 200 (`_quote` posílá min(quote_size − have, free), takže naprázdno
+kotuje 100/100 jako dřív a při I = +60 má ask 160). Zapečeno v `strategies/exp_full_capacity.py`.
+**Data:** sample_v2 (ledger `home-mmv2-qsize-over`).
+**Výsledek:** quote_size 100 → 237 306 | 125 → 244 627 | 150 → 252 437 | **200 → 263 618 (+11,1 %)** | 300 → 263 618
+(saturace na M + |I|). Holdout 54 929 → 61 917 (+12,7 %), chunk_min 22 010 → 24 340, fills 10 333 → 8 116
+(méně fillů, větší), breach 0, inv_q997 100. `research.compare` champion vs `{"quote_size": 200}`:
+**ACCEPT**, B vyhrává 8/8 párových chunků (+2 141 až +2 802 každý), hold +6 988. `research.check --rows 0`: PASS,
+68 s projekce na 8,8 M řádků.
+**Závěr:** funguje; čistě mechanická páka bez nové mechaniky a bez nového rizika (invariant beze změny,
+|I| ≤ 100 dál platí). Kandidát na pojistnou submisi R1, pokud compare na R1 public řekne ACCEPT.
+
+**Hypotéza H3 (`improve_unwind`, `strategies/exp_improve_unwind.py`):** při |I| ≥ N a spreadu ≥ 2 kotovat
+odvíjející stranu o tick uvnitř (čelo prázdné hladiny) → rychleji flat, uvolněná kapacita zaplatí půl tick.
+**Výsledek** (ledger `v2-improve-unwind`, parita 237 306 ✔, check PASS): N = 100 → 198 395 (−16 %), 90 → 196 187,
+80 → 192 529, 60 → 177 449, 40 → 163 992; fills +1,5 %. **Nefunguje:** filly uvnitř spreadu jsou adverzní
+(cena jde skrz), a to i když se spouští jen na stropu.
+
+**Hypotéza H4 (`hold_inside`, `strategies/exp_hold_inside.py`):** když trh ustoupí od naší hladiny (jsme sami
+o tick uvnitř nového touch), zůstat na čele místo návratu na konec hluboké fronty; trh se na úrovni ticku vrací
+(P = 0,63). **Výsledek** (ledger `v2-hold-inside`, parita ✔, check PASS): hold 1/2/3 ticky → shodně 210 974
+(−11 %) při 13 110 fillech (+27 %), holdout 49 501. **Nefunguje:** víc fillů, každý o třetinu horší; ústup
+trhu je informovaný a držená kotace je první na ráně.
+
+**Poučení:** edge je jen na touch; páka je velikost na touch (H1), ne cena. `improve`, `skew`, `hold_inside`
+i `improve_unwind` shodně prodělávají.
+**Další krok:** po kickoffu R1 compare champion vs `exp_full_capacity` na round1 + sample_v2; CPU sweep
+championa na R1 (quote_size 100/200 × imb_pull × alpha_imbalance × min_requote_us, max_position 80/90).
