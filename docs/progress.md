@@ -703,3 +703,14 @@ touch_change 1 → 18,4 µs, 3,3 min, 490 809 (−96); every 2 → 3,1 min, −0
 **H16 horizont 1 s** (`strategies/exp_ml_h1000.py`, ledger `r1-ml-h1000`, model 1 s fit na 75 %, prahy sladěné na stejnou
 četnost): 0,39 → 490 440, 0,49 → 484 026, 0,6 → 467 615; compare {1000, 0,49}: round1 −6 434 (1/8), v2 −1 198 → REJECT.
 Pro shrink rozhoduje načasování 100 ms signálu, ne velikost 1 s pohybu.
+
+## 2026-11-07 15:05 — MLP místo ridge pro ML shrink: vyšší IC, nižší PnL → REJECT (home, mozek, R1)
+
+`strategies/exp_ml_mlp.py` (`ml_model` ridge/mlp, parita 490 460 ✔, check PASS, 34,6 µs/ev, 5,7 min / 8,8 M),
+report `research/reports/round1_mlp_signal.md`. MLP 23-16-1 na GPU (train 55 % / valid 20 % / test 25 % času): **test IC
+0,447 vs ridge 0,375**, horní 1 % edge +0,50/−0,49 ticku (ridge +0,36/−0,41). Všechny architektury 16–32-32 do ±0,005 IC.
+Ale ve strategii: thr 0,10 → 469 064, 0,125 → 466 972, 0,15 → 464 022, 0,25 → 458 567 (ridge 0,15: 490 460); compare
+{mlp, 0,10}: round1 −21 396 (0/8), sample_v2 −55 531 (0/8) → REJECT.
+**Závěr:** IC navíc sedí v „těle“ rozdělení; shrink odměňuje vzácné, jisté predikce přejetí, které lineární kombinace
+toku a imbalance zachytí stejně dobře. Přenos na v2 slabý (trénink jen round1). Případný další pokus: trénink na
+round1 + sample_v2, nebo cíl zarovnaný se ztrátou (adverzní pohyb podmíněný fillem) místo MSE na 100 ms pohybu.
