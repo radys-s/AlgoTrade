@@ -19,6 +19,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 11:25 | herzic | Data/ML pipeline: features (1 průchod simulátorem), data card, walk-forward signály, export modelu; sample: ridge IC +0.79 (7/7 foldů) |
 | 2026-11-07 11:40 | radys → main | Added `submission/best_strategy.py` (the single file to upload, always the current best) + `submission/README.md` |
 | 2026-11-07 11:45 | herzic → main | Sjednocení nástrojů: runner ladí i konstanty třídy (`QTY`, `HOLD_US`), ledger přeskakuje výstupy `grid.py`, champion = `submission/best_strategy.py`. Sample plató: HOLD 5–8 s všech 8/8 chunků kladných (8 s: pnl 52 029, holdout 12 209; 5 s: 50 965, holdout 12 622), ledger tag `sample-momentum-plateau` |
+| 2026-11-07 11:50 | home | Domácí výpočetní uzel (desktop Core Ultra 7 265KF, 20 vláken, RTX 5060 Ti 16 GB): ověřené referenční běhy, benchmark 20 workerů = 12,8 plných běhů/min, CUDA torch env, MLP test IC +0,80 |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -115,6 +116,39 @@ nápady. Postaveno (plán kola a protokol v [workflow.md](workflow.md)):
 sadách najde dobré, ne nutně nejlepší nastavení → halving na široký scan, pak úzký plný sweep.
 
 **Další krok:** playground = sample (viz radys 11:05), takže první reálná data jsou Round 1: kickoff podle `.claude/skills/round-kickoff`, data card, MM i `momentum_hold` na nových datech.
+
+## 2026-11-07 11:50 — Domácí výpočetní uzel (home)
+
+**Co:** Honzův domácí desktop jako výpočetní uzel týmu, větev `home` (z `main` c65737a), commity jako
+`Herz1c-home`. Stroj: Intel Core Ultra 7 265KF (20 jader / 20 vláken), 31,6 GB RAM,
+RTX 5060 Ti 16 GB (driver 616.92), 462 GB volného disku; git 2.55, gh 2.100, uv 0.12.14, Python 3.13.15.
+
+**Ověření simulátoru (sample):** `trend_follower` pnl 1 878, `submission/best_strategy.py` pnl 50 965
+(hold 12 622, 8/8 chunků), `research.check` PASS (odhad 33 s na 8,8 M řádků).
+Pozn.: `python -m gzip` nezná `-k`; `-d` vstupní `.gz` nemaže, stačí `-d`.
+
+**Benchmark paralelismu:** sample (0,5 s/běh) měří jen start procesů, proto páska velikosti kola:
+sample 160× za sebou (časy, ID a ceny posunuté) = 8,6 M řádků; 1 běh `mm.py` = 76 s (~113 tis. událostí/s).
+Jedna vlna, běhů = workerů:
+
+| workerů | wall | s/běh | plných běhů/min | RAM špička |
+|---|---|---|---|---|
+| 8 | 80 s | 76,5 | 6,0 | 1,0 GB |
+| 12 | 84 s | 80,9 | 8,6 | 1,4 GB |
+| 16 | 88 s | 84,0 | 10,9 | 1,9 GB |
+| 20 | 94 s | 88,0 | 12,8 | 2,3 GB |
+
+Paměť ~150 MB/proces, nehraje roli. **Limit uzlu: 20 workerů celkem** (18, když vedle běží features
+nebo trénink); E-jádra zpomalí běh jen o ~15 %.
+
+**GPU:** separátní `%USERPROFILE%\torch-env` (Python 3.13, torch 2.11.0+cu128, numpy 2.5.4; projektové
+prostředí zůstává shodné s arénou). CUDA ok (sm_120). Sample dataset 13,8 tis. řádků × 23 features
+(h = 1 000 ms; ridge OOS IC +0,79, HGB +0,80, 7/7 foldů): MLP h32, 30 epoch, batch 512 →
+GPU test IC +0,803 za 21 s, CPU test IC +0,801 za 11 s. Na tak malých datech je CPU rychlejší
+(start CUDA); GPU má smysl až na datech celého kola a větších sítích.
+
+**Další krok:** Round 1 (13:00): stáhnout data z release `data-r1`, merge `origin/main` → `home`,
+features + data card na celém kole a široké sweepy s `--halving` na 20 workerech.
 
 ## Šablona experimentu
 
