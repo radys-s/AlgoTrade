@@ -161,3 +161,21 @@ explicit over-cap one and the penalty is counted), R1 not negative, sandbox chec
   Why: with the unload in place the pinned side is already crossed out, so a parked stub only re-enters at a worse
   price and a rung only ties up capacity the unload wants; the queue-age edge of R1 does not survive on R2 because
   the R2 touch queue is 1,000+ lots (R1 was ~100). **Do not spend more time on park/ladder on R2.**
+
+## Results 22:25 — fq2 base (server 740,067 / local 349,077): what is dead
+
+- The local x2.12 = server scaling means local ranking is what matters; all numbers below are local round2.
+- **Dead on the fq2 base**: asymmetric take margins (-1.1 %), hardcoded generator offsets (-3.6 %), fast taker tau
+  (screen), taker slippage 1-2 ticks (-18 % / -25 %), fair_levels 10/30 (inert, identical pnl), gate_thr 12 with
+  10 ms cooldown (+1.5 % total but holdout -16.8k => overfit).
+- **Dead on the maker-only base** (mm_r2_take 131,984): park stubs (-16.4k), ladders (-0.2k), inside-spread unload
+  (-1.5k), fair-stub instead of cancel (-2.3k). Asymmetric MAKER thresholds +2.3k were the only positive.
+- **Still untested and worth a home-PC run**: (a) trend-conditional take margin — crossing margin reduced by
+  `take_gate_bonus` in the 30 s trend direction and increased by `take_counter_penalty` against it; (b) thin-book
+  deep sweep — when the opposite touch holds < N lots, sweep 1 tick deeper (the touch is thin exactly when a sweep
+  pays); (c) gate window 15 s vs 45 s; (d) F from un-clamped inserts only (46 % of inserts are clamped at the
+  opposite touch, so half the devs are censored — drop them and see if the signal sharpens).
+- **Radys special finding**: the oracle says a perfect 150 ms predictor is worth 935k on the fq2 skeleton, and every
+  realistic predictor tried (ridge blends, tau mixes, F velocity) lands at 244-273k. So the remaining value is not in
+  a better estimator but in better USE of the same estimator at the decision points: trend-conditional margins and
+  sweep depth on thin touches are the two untested uses.

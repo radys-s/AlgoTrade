@@ -26,3 +26,18 @@ Local number is a RANKING device only. Coordinates: |I| pinned at 100 almost alw
   250 identical to 200 (capacity-bound). Nothing on those axes beats base.
 - Earlier base-independent results (on mm_r2_take 131,984): park/ladder REJECTED (-16k/-0.2k), asymmetric MAKER
   thresholds +2.3k, inside-spread unload REJECTED (-1.5k), fair-stub REJECTED (-2.3k).
+
+### Wave 2 (taker axes on the fq2 base, all full or halved-full R2)
+- F2 taker slippage `fq_slip` 1 / 2: **286,007 / 261,979** (-18 % / -25 %) => REJECTED. Crossing one tick deeper
+  fills more but at a price the next 5 ms does not recover; the touch is where the edge is. (Ledger 20261107-220730.)
+- `fair_levels` 10 / 20 / 30: **349,077 exactly identical** => the parameter is INERT on round2 (the newest insert
+  is essentially always inside the first 10 levels of a side). Do not spend runs on it.
+- `gate_thr` 12 + `fq_take_cooldown_ms` 10: **354,377** (+1.5 %) with chunk_min +17,967, but holdout **85,554 vs
+  102,347 (-16.8k)** => overfit to the early tape, REJECTED by the holdout rule. gate 10 = 348,367, cooldown 30 =
+  349,519. (Ledger 20261107-221128.)
+- Earlier rejection on this base: `fq_slip` interacts with nothing useful; `take_k_grow/reduce` ladder (-1.1 %);
+  hardcoded offsets (-3.6 %); fast taker tau (dropped in screen).
+- Conclusion after ~60 full-rate runs: the fq2 parameter surface is a sharp local optimum at 349,077 local. Every
+  single-axis move either loses or buys train pnl with holdout. Beating it needs a NEW signal or a new constraint,
+  not a threshold move. Wave 3 (running): trend-conditional take margin (`take_gate_bonus`/`take_counter_penalty`),
+  thin-book deep sweep (`take_slip_qty`), gate window 15 s / 45 s.
