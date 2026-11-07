@@ -1301,3 +1301,5 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
   sample_v2 221,596 (-10.6k, another generator), check PASS 1.5 min. Last upload.
 - Final choice: the highest leaderboard pnl among mm_r2_rth (970,101) and mm_r2_final. Summary for the presentation:
   research/reports/round2_final.md.
+- Stability of mm_r2_final (round2 / mirror vs 434,477 / 432,324): fq_k_sp2 0.72 433,512 / 432,998, 0.78 433,565 / 432,085;
+  hk_gap 2 433,351 / 432,142, hk_gap 4 identical; rt_ms 15 434,063 / 432,144, rt_ms 30 431,696 / 429,039. A plateau.
