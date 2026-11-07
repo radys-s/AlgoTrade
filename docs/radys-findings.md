@@ -258,6 +258,21 @@ qty, pred, inventory sign, a few kB-100 kB) trained on fills from several config
 (top-ups) per side; or a small GBM (pure-python trees, < 500 kB) for the 100 ms toxicity of the next fill. Home
 showed a better-IC MLP lost in the shrink, so validate on pnl, not IC.
 
+
+### 9c. Last R1 runs (radys, 17:55) and the lesson for round 2
+
+- Stack on mm_ml_r1tuned: ml_tight_only=1 + park_max 6-10 + park_size 15-20 = 503.4-503.7k (vs 497,292), 8/8.
+- Fresh-size gate (withhold new lots on thin levels): 50 -> 445-463k, 400 -> 285-354k. Rejected.
+- Final R1: team 511,422 (12th); leader GammaStrike 792,696, 2nd 701k, 5th 655k.
+- **Pattern of the whole round:** every rule that REDUCES resting size lost (pulls, thin, back-pull, ahead_stub,
+  fresh gate, inventory lockout); every change that ADDS resting size won (quote 100 -> 200: +33 %, parking, ML stub
+  via modify instead of cancel). The leaders are ~60 % above us, which is a different architecture, not a filter.
+- **Round 2 plan:** (1) insurance upload of the champion in the first 20 min; (2) spend compute on STRUCTURE first:
+  diagnose over-cap properly (breach count, duration and cost per breach; the R1 run was killed before its ledger was
+  written), inventory turnover that keeps I near 0 so both sides hold 100 lots, multi-level allocation of the 100-lot
+  budget; (3) filters/threshold tuning only after that; (4) compare with the leaderboard every 30 min: if the leader is
+  > 20 % ahead after 2 h, switch architecture instead of tuning.
+
 ## Tools from this window
 
 - `research/analyze_tape.py` — 1-minute tape overview (spread, momentum vs reversion, signal correlations).

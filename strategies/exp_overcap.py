@@ -337,6 +337,10 @@ class MarketMaker(BaseStrategy):
         'ml_jump': -1.0,
         # Queue-aware stub: cap a side at ml_stub while > ahead_stub market lots are ahead of our oldest touch order; 0 = off.
         'ahead_stub': 0,
+        # Fresh-size gate: while the market qty at the touch is < fresh_min_level, never ADD lots beyond
+        # max(current, fresh_stub) (existing orders are kept, only new back-of-queue lots are withheld); 0 = off.
+        'fresh_min_level': 0,
+        'fresh_stub': 3,
         'inv_lock': 0,
         'inv_lock_size': 1,
         # ML threshold shifts with inventory: bid stub when pred < -ml_thr + ml_inv_k * I / 100 (ask mirrored); 0 = off.
@@ -503,6 +507,9 @@ class MarketMaker(BaseStrategy):
         self.ml_stub = max(0, int(params['ml_stub']))
         self.thin_cap = int(params['thin_cap'])
         self.inv_lock = int(params['inv_lock'])
+        self.fresh_min_level = int(params['fresh_min_level'])
+        self.fresh_stub = int(params['fresh_stub'])
+        self.lvl_qty = [1 << 62, 1 << 62]
         self.ahead_stub = int(params['ahead_stub'])
         self.ml_jump = float(params['ml_jump'])
         self.fill_freeze_us = int(params['fill_freeze_us'])
@@ -551,7 +558,7 @@ class MarketMaker(BaseStrategy):
             return
         scan = self.book_scan_orders
         need_qty = (self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0
-                    or self.thin_cap > 0)
+                    or self.thin_cap > 0 or self.fresh_min_level > 0)
 
         # Market touch and its quantity, skipping our own orders (only market orders count
         # towards the scan limit, so our own fragments can never hide the touch).
@@ -669,6 +676,8 @@ class MarketMaker(BaseStrategy):
         if self.inv_stop > 0:
             pull_bid = pull_bid or inv >= self.inv_stop
             pull_ask = pull_ask or inv <= -self.inv_stop
+        self.lvl_qty[0] = qb
+        self.lvl_qty[1] = qa
         lay = self.layer_size
         off = self.layer_offset
         if pull_bid:
@@ -756,6 +765,8 @@ class MarketMaker(BaseStrategy):
             self._cap(j, size)
             return
         want = size - have
+        if self.fresh_min_level and j < 2 and self.lvl_qty[k] < self.fresh_min_level:
+            want = min(want, self.fresh_stub - have)
         if want <= 0 or px <= 0:
             return
         if have > 0 and (want < self.topup_min or now - self.last_action_us[j] < self.min_requote_us):

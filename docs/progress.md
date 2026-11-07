@@ -34,6 +34,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 15:40 | radys | ML shrink: ridge 100 ms signal caps the predicted-adverse side at 5 lots -> `mm_ml` round1 490,460 (+8.4 %) -> submission |
 | 2026-11-07 16:30 | radys | Rejected on mm_ml: over-cap quoting, inventory lockout/threshold, post-fill freeze, gap jump; structural levers for Honza in radys-findings s.8 |
 | 2026-11-07 16:55 | radys | ahead_stub rejected (deep queue = investment); handoff for Honza's Claude in radys-findings s.9 |
+| 2026-11-07 17:55 | radys | R1 end: team 511,422 (12th), leader 792,696; stack 503.7k local; fresh gate rejected; R2 plan in radys-findings 9c |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -926,3 +927,10 @@ takerů × lognormal velikosti × cancel člen; E[dm] = 0,5·(P_dep_ask − P_de
 ridge 23 + E[dm]: **0,412 (+0,032)** na 100 ms, HGB +0,001 (strom to má), 1 s nic. Cross-fit: nefitnutý E[dm] přenáší líp (0,310 vs
 ridge 0,278). Kalibrace P_dep na round1 od 10 % výš dobrá; na v2 2–10× nadhodnoceno (jiné mu). Stejná povaha jako krychle (+0,03 IC,
 PnL −1 %) → rozhodne jen strategie: běží port `edm_100` jako 24. feature cíle B (`exp_b_struct.py`), compare do 17:45.
+
+## 2026-11-07 17:55 — Round 1 closed (radys)
+
+- Final: team 511,422, 12th of 21+; leader 792,696. Our local best stack 503,745 (mm_ml_r1tuned + ml_tight_only + park_max 10 + park_size 15).
+- Fresh-size gate rejected (-35k..-212k). Every size reduction lost all round; every size increase won.
+- What went wrong: too much time on small filters around one architecture, and declaring ceilings instead of searching
+  structure. Round 2 plan: radys-findings section 9c.
