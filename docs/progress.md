@@ -1314,3 +1314,6 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
 - Round 2 path on the leaderboard: 740,067 -> 797,904 -> 849,747 -> 891,735 -> 957,133 -> 970,101 -> 974,031.
 - mm_r2_final2 local: round2 434,304, mirror 433,044 (vs final 434,477 / 432,324). fq_k_sp2 0.8: 432,801 / 431,517
   (qs_k 0.35: 433,108 / 431,547) - the 0.75-0.77 peak holds.
+- Why mm_r2_final loses on sample_v2 (221,596 vs 267,405 for mm_r2_zd): the whole -45k is fq_k_sp2 (off: 266,625); the hole
+  filter never fires there, rt / qs are neutral (220-222k). The wide-spread filter is R2-generator specific (+65k on the
+  R2 leaderboard), so it fits the round-2 private tape but would hurt a sample_v2-like market.
