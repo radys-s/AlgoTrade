@@ -1,4 +1,6 @@
-"""mm_ml_b (home): mm_ml with the loss-aligned ridge target B (mid move after the first taker hit x [hit within 100 ms]), ml_thr 0.105, ml_stub 3 baked. round1 503,148 vs mm_ml 490,460 (+12,688, 7/8 paired chunks, holdout +3,397); sample_v2 258,042 (+3,981, 6/8). Plateau thr 0.097-0.115 (499-503k).
+"""mm_r1_final (home): mm_ml_b (ridge target B, ml_thr 0.105, ml_stub 3) + round1-regime stack baked: graded cap ml_thr_lo 0.07 / ml_frac_lo 0.5, ml_tight_only 1 (no ML stub at a 2-tick spread), park_max 5. round1 510,469 vs mm_ml_b 503,148 (+7,321, 7/8 paired chunks, holdout +566); sample_v2 258,573 (+531, 5/8, holdout +504). Fit for the round1 market; re-tune park/thresholds for other regimes.
+
+mm_ml_b (home): mm_ml with the loss-aligned ridge target B (mid move after the first taker hit x [hit within 100 ms]), ml_thr 0.105, ml_stub 3 baked. round1 503,148 vs mm_ml 490,460 (+12,688, 7/8 paired chunks, holdout +3,397); sample_v2 258,042 (+3,981, 6/8). Plateau thr 0.097-0.115 (499-503k).
 
 mm_ml (radys): mm_park + ridge 100 ms signal shrinks the side predicted to be run over to a 5-lot stub
 (ml_thr 0.15 ticks, ml_stub 5) baked in. round1 local pnl 490,460 vs mm_park 452,651, 8/8 chunks.
@@ -314,10 +316,15 @@ class MarketMaker(BaseStrategy):
         # Park a stub of park_size lots instead of cancelling a quote the market moved past; 0 disables.
         'park_size': 20,
         'park_depth': 1,
-        'park_max': 3,
+        'park_max': 5,
         # ML shrink: cap the side predicted to be run over at ml_stub lots when |pred| > ml_thr ticks; 0 disables.
         'ml_thr': 0.105,
         'ml_stub': 3,
+        # graded shrink: for ml_thr_lo < against-side |pred| <= ml_thr cap at ml_frac_lo x quote_size; 0 = off.
+        'ml_thr_lo': 0.07,
+        # ML stub only while the market spread is 1 tick (a wide-spread fill earns a full tick); 0 = always.
+        'ml_tight_only': 1,
+        'ml_frac_lo': 0.5,
         'ml_target': 'B',  # base | A | B | C: which LINEAR_MODEL(S) entry feeds the shrink
         # Thin-level cap: while a side's market touch qty < thin_cap lots, cap its quote at thin_cap_size (shrink,
         # never cancel the oldest order); 0 disables.
@@ -483,6 +490,9 @@ class MarketMaker(BaseStrategy):
         self.parked_qty = [0, 0]
         self.ml_thr = float(params['ml_thr'])
         self.ml_stub = max(0, int(params['ml_stub']))
+        self.ml_thr_lo = float(params['ml_thr_lo'])
+        self.ml_tight_only = int(params['ml_tight_only'])
+        self.ml_frac_lo = float(params['ml_frac_lo'])
         self.thin_cap = int(params['thin_cap'])
         self.thin_cap_size = max(1, int(params['thin_cap_size']))
         self.full = _FullFeatures() if self.ml_thr > 0 else None
@@ -641,7 +651,7 @@ class MarketMaker(BaseStrategy):
             self._pull(0)
             self._pull(2)
         else:
-            sz = self.ml_stub if self.full is not None and self.pred < -self.ml_thr else self.quote_size
+            sz = self.quote_size if self.ml_tight_only and ba - bb > 1 else self._ml_cap(-self.pred)
             if self.thin_cap > 0 and qb < self.thin_cap and sz > self.thin_cap_size:
                 sz = self.thin_cap_size
             self._quote(0, 1, _BUY, bid, now, sz)
@@ -651,12 +661,22 @@ class MarketMaker(BaseStrategy):
             self._pull(1)
             self._pull(3)
         else:
-            sz = self.ml_stub if self.full is not None and self.pred > self.ml_thr else self.quote_size
+            sz = self.quote_size if self.ml_tight_only and ba - bb > 1 else self._ml_cap(self.pred)
             if self.thin_cap > 0 and qa < self.thin_cap and sz > self.thin_cap_size:
                 sz = self.thin_cap_size
             self._quote(1, -1, _SELL, ask, now, sz)
             if lay:
                 self._quote(3, -1, _SELL, ask + off, now, lay)
+
+    def _ml_cap(self, against: float) -> int:
+        """Quote size for a side given the signed prediction against it (>0 = predicted to be run over)."""
+        if self.full is None:
+            return self.quote_size
+        if against > self.ml_thr:
+            return self.ml_stub
+        if self.ml_thr_lo > 0 and against > self.ml_thr_lo:
+            return max(self.ml_stub, int(self.ml_frac_lo * self.quote_size))
+        return self.quote_size
 
     def _pull(self, k: int) -> None:  # k = slot
         """Cancel the side's active quote (retreats are never throttled)."""
