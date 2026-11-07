@@ -1,0 +1,11 @@
+p<0.05
+
+===
+
+Claude Opus 5.5 (medium / high / extra high)
+Claude Fable 5.1 (extra high / max)
+
+===
+
+Claude Max subscription (Honza)
+Claude Pro subscription (Tomáš)
