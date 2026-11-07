@@ -1,4 +1,8 @@
-"""mm_ml_r1tuned (home): mm_ml with ml_thr 0.12 and ml_stub 3 baked (round1-regime tune: 497,292 vs 490,460 on round1, -4 % on sample_v2; sharp peak, neighbours 0.10 and 0.20 are -5 %).
+"""mm_r1_final2 (home): mm_r1_final with ml_stub 0 (full pull instead of a 3-lot stub), park_size 15, park_max 8; round1 514,093 vs 510,469 (grid r1-final-grid2, holdout +1,462).
+
+mm_r1_final (home): mm_ml_b (ridge target B, ml_thr 0.105, ml_stub 3) + round1-regime stack baked: graded cap ml_thr_lo 0.07 / ml_frac_lo 0.5, ml_tight_only 1 (no ML stub at a 2-tick spread), park_max 5. round1 510,469 vs mm_ml_b 503,148 (+7,321, 7/8 paired chunks, holdout +566); sample_v2 258,573 (+531, 5/8, holdout +504). Fit for the round1 market; re-tune park/thresholds for other regimes.
+
+mm_ml_b (home): mm_ml with the loss-aligned ridge target B (mid move after the first taker hit x [hit within 100 ms]), ml_thr 0.105, ml_stub 3 baked. round1 503,148 vs mm_ml 490,460 (+12,688, 7/8 paired chunks, holdout +3,397); sample_v2 258,042 (+3,981, 6/8). Plateau thr 0.097-0.115 (499-503k).
 
 mm_ml (radys): mm_park + ridge 100 ms signal shrinks the side predicted to be run over to a 5-lot stub
 (ml_thr 0.15 ticks, ml_stub 5) baked in. round1 local pnl 490,460 vs mm_park 452,651, 8/8 chunks.
@@ -312,17 +316,26 @@ class MarketMaker(BaseStrategy):
         'thin_pull': 0,
         'thin_rejoin': 1.0,
         # Park a stub of park_size lots instead of cancelling a quote the market moved past; 0 disables.
-        'park_size': 20,
+        'park_size': 15,
         'park_depth': 1,
-        'park_max': 3,
+        'park_max': 8,
         # ML shrink: cap the side predicted to be run over at ml_stub lots when |pred| > ml_thr ticks; 0 disables.
-        'ml_thr': 0.12,
-        'ml_stub': 3,
+        'ml_thr': 0.105,
+        'ml_stub': 0,
+        # graded shrink: for ml_thr_lo < against-side |pred| <= ml_thr cap at ml_frac_lo x quote_size; 0 = off.
+        'ml_thr_lo': 0.07,
+        # ML stub only while the market spread is 1 tick (a wide-spread fill earns a full tick); 0 = always.
+        'ml_tight_only': 1,
+        'ml_frac_lo': 0.5,
+        'ml_target': 'B',  # base | A | B | C: which LINEAR_MODEL(S) entry feeds the shrink
         # Thin-level cap: while a side's market touch qty < thin_cap lots, cap its quote at thin_cap_size (shrink,
         # never cancel the oldest order); 0 disables.
         'thin_cap': 0,
         'thin_cap_size': 20,
     }
+
+    # H18 loss-aligned targets (research.fit_target, round1 full fit): A = weighted MSE k=10, B = move x hit, C = adverse-fill score
+    LINEAR_MODELS: dict = {'A': {'intercept': -0.00011633, 'coef': {'spread': 0.0013991, 'imb1': 0.0792149, 'imb2': 0.043925, 'imb3': 0.0119941, 'imb5': -0.0593541, 'micro': -0.0344156, 'cnt_imb1': 0.0879723, 'depth1_log': 0.000281984, 'flow_ev1': 0.00118888, 'flow_ev10': 0.00368276, 'flow_ev100': 0.025835, 'flow_ms10': 0.000803595, 'flow_ms100': 0.00198066, 'flow_ms1000': 0.0341407, 'flow_ms10000': 0.00355985, 'ntr_ms1000': -0.000549619, 'nev_ms1000': 0.000324458, 'ret_ms100': 0.0133359, 'ret_ms1000': -0.014181, 'ret_ms10000': -0.00374638, 'last_dmid': 0.0166229, 'dt_mid_log': -0.000235338, 'ltp_dev': 0.0228302}, 'mean': {'spread': 1.0693, 'imb1': 0.00226445, 'imb2': 0.00180018, 'imb3': 0.00210598, 'imb5': 0.00196122, 'micro': 0.00110094, 'cnt_imb1': 0.00302462, 'depth1_log': 7.62745, 'flow_ev1': 0.00831957, 'flow_ev10': 0.109338, 'flow_ev100': 0.75778, 'flow_ms10': 0.0611908, 'flow_ms100': -0.133823, 'flow_ms1000': 1.45438, 'flow_ms10000': 14.4329, 'ntr_ms1000': 31.394, 'nev_ms1000': 369.081, 'ret_ms100': 0.000137964, 'ret_ms1000': 0.00183982, 'ret_ms10000': 0.0215042, 'last_dmid': -0.00232995, 'dt_mid_log': 5.96466, 'ltp_dev': -0.00145316}, 'scale': {'spread': 0.253972, 'imb1': 0.634089, 'imb2': 0.391809, 'imb3': 0.391049, 'imb5': 0.39463, 'micro': 0.332689, 'cnt_imb1': 0.552367, 'depth1_log': 0.724809, 'flow_ev1': 23.1121, 'flow_ev10': 115.745, 'flow_ev100': 414.842, 'flow_ms10': 75.3632, 'flow_ms100': 269.873, 'flow_ms1000': 829.43, 'flow_ms10000': 2626.82, 'ntr_ms1000': 16.4881, 'nev_ms1000': 25.5999, 'ret_ms100': 0.297793, 'ret_ms1000': 0.916508, 'ret_ms10000': 2.89814, 'last_dmid': 0.503705, 'dt_mid_log': 1.49873, 'ltp_dev': 0.55481}, 'lo': {'spread': 1.0, 'imb1': -0.999197, 'imb2': -0.944827, 'imb3': -0.948755, 'imb5': -0.952257, 'micro': -0.918063, 'cnt_imb1': -0.959184, 'depth1_log': 4.07754, 'flow_ev1': -365.0, 'flow_ev10': -1244.13, 'flow_ev100': -2659.0, 'flow_ms10': -972.0, 'flow_ms100': -2155.92, 'flow_ms1000': -3955.96, 'flow_ms10000': -9906.0, 'ntr_ms1000': 2.0, 'nev_ms1000': 294.0, 'ret_ms100': -1.5, 'ret_ms1000': -3.0, 'ret_ms10000': -9.0, 'last_dmid': -1.0, 'dt_mid_log': 0.0, 'ltp_dev': -1.5}, 'hi': {'spread': 2.0, 'imb1': 0.999224, 'imb2': 0.95081, 'imb3': 0.952935, 'imb5': 0.955548, 'micro': 0.91591, 'cnt_imb1': 0.959184, 'depth1_log': 10.1089, 'flow_ev1': 370.0, 'flow_ev10': 1261.13, 'flow_ev100': 2641.0, 'flow_ms10': 939.131, 'flow_ms100': 2090.0, 'flow_ms1000': 3824.0, 'flow_ms10000': 8906.0, 'ntr_ms1000': 98.0, 'nev_ms1000': 451.0, 'ret_ms100': 1.5, 'ret_ms1000': 3.0, 'ret_ms10000': 9.0, 'last_dmid': 1.0, 'dt_mid_log': 8.66873, 'ltp_dev': 1.5}, 'horizon_ms': 100, 'latency_ms': 5}, 'B': {'intercept': 0.000441121, 'coef': {'spread': 0.00133452, 'imb1': 0.0824714, 'imb2': 0.0149258, 'imb3': 0.0144349, 'imb5': -0.0312584, 'micro': -0.0520587, 'cnt_imb1': 0.0505402, 'depth1_log': -0.000421541, 'flow_ev1': -0.000244005, 'flow_ev10': -0.000286522, 'flow_ev100': 0.0151363, 'flow_ms10': -0.000948543, 'flow_ms100': 0.00504899, 'flow_ms1000': 0.0168779, 'flow_ms10000': 0.00168168, 'ntr_ms1000': -0.000859284, 'nev_ms1000': 0.000417404, 'ret_ms100': 0.00504642, 'ret_ms1000': -0.00788903, 'ret_ms10000': -0.0023049, 'last_dmid': 0.00922577, 'dt_mid_log': 0.000422585, 'ltp_dev': 0.00995797}, 'mean': {'spread': 1.0692, 'imb1': 0.00224751, 'imb2': 0.00174989, 'imb3': 0.00204918, 'imb5': 0.0019074, 'micro': 0.00107808, 'cnt_imb1': 0.00305099, 'depth1_log': 7.6274, 'flow_ev1': 0.0138849, 'flow_ev10': 0.0796944, 'flow_ev100': 0.633488, 'flow_ms10': -0.0203193, 'flow_ms100': -0.199753, 'flow_ms1000': 1.38836, 'flow_ms10000': 14.3423, 'ntr_ms1000': 31.3946, 'nev_ms1000': 369.079, 'ret_ms100': 0.000105061, 'ret_ms1000': 0.00183437, 'ret_ms10000': 0.0214286, 'last_dmid': -0.00237398, 'dt_mid_log': 5.96541, 'ltp_dev': -0.00162312}, 'scale': {'spread': 0.253788, 'imb1': 0.634086, 'imb2': 0.391867, 'imb3': 0.391076, 'imb5': 0.394647, 'micro': 0.332665, 'cnt_imb1': 0.552431, 'depth1_log': 0.724585, 'flow_ev1': 23.0386, 'flow_ev10': 115.5, 'flow_ev100': 414.757, 'flow_ms10': 74.7879, 'flow_ms100': 269.905, 'flow_ms1000': 829.333, 'flow_ms10000': 2626.78, 'ntr_ms1000': 16.4882, 'nev_ms1000': 25.5991, 'ret_ms100': 0.297626, 'ret_ms1000': 0.916424, 'ret_ms10000': 2.89809, 'last_dmid': 0.503711, 'dt_mid_log': 1.49741, 'ltp_dev': 0.554799}, 'lo': {'spread': 1.0, 'imb1': -0.999197, 'imb2': -0.944827, 'imb3': -0.948755, 'imb5': -0.952257, 'micro': -0.918063, 'cnt_imb1': -0.959184, 'depth1_log': 4.07754, 'flow_ev1': -365.0, 'flow_ev10': -1244.13, 'flow_ev100': -2659.0, 'flow_ms10': -972.0, 'flow_ms100': -2155.92, 'flow_ms1000': -3955.96, 'flow_ms10000': -9906.0, 'ntr_ms1000': 2.0, 'nev_ms1000': 294.0, 'ret_ms100': -1.5, 'ret_ms1000': -3.0, 'ret_ms10000': -9.0, 'last_dmid': -1.0, 'dt_mid_log': 0.0, 'ltp_dev': -1.5}, 'hi': {'spread': 2.0, 'imb1': 0.999224, 'imb2': 0.95081, 'imb3': 0.952935, 'imb5': 0.955548, 'micro': 0.91591, 'cnt_imb1': 0.959184, 'depth1_log': 10.1089, 'flow_ev1': 370.0, 'flow_ev10': 1261.13, 'flow_ev100': 2641.0, 'flow_ms10': 939.131, 'flow_ms100': 2090.0, 'flow_ms1000': 3824.0, 'flow_ms10000': 8906.0, 'ntr_ms1000': 98.0, 'nev_ms1000': 451.0, 'ret_ms100': 1.5, 'ret_ms1000': 3.0, 'ret_ms10000': 9.0, 'last_dmid': 1.0, 'dt_mid_log': 8.66873, 'ltp_dev': 1.5}, 'horizon_ms': 100, 'latency_ms': 5}, 'C': {'intercept': 0.00102837, 'coef': {'spread': -0.000957659, 'imb1': 0.00304119, 'imb2': 0.0136326, 'imb3': 0.0041803, 'imb5': -0.0203731, 'micro': -0.0167489, 'cnt_imb1': 0.084174, 'depth1_log': -6.01452e-05, 'flow_ev1': 0.000299281, 'flow_ev10': 0.002634, 'flow_ev100': 0.0215704, 'flow_ms10': -0.0010119, 'flow_ms100': 0.0118347, 'flow_ms1000': 0.0290867, 'flow_ms10000': 0.00208868, 'ntr_ms1000': 0.00189649, 'nev_ms1000': 0.000922184, 'ret_ms100': 0.0020093, 'ret_ms1000': -0.0172664, 'ret_ms10000': -0.00404831, 'last_dmid': 0.0139123, 'dt_mid_log': 0.00298355, 'ltp_dev': 0.0226772}, 'mean': {'spread': 1.0692, 'imb1': 0.00224751, 'imb2': 0.00174989, 'imb3': 0.00204918, 'imb5': 0.0019074, 'micro': 0.00107808, 'cnt_imb1': 0.00305099, 'depth1_log': 7.6274, 'flow_ev1': 0.0138849, 'flow_ev10': 0.0796944, 'flow_ev100': 0.633488, 'flow_ms10': -0.0203193, 'flow_ms100': -0.199753, 'flow_ms1000': 1.38836, 'flow_ms10000': 14.3423, 'ntr_ms1000': 31.3946, 'nev_ms1000': 369.079, 'ret_ms100': 0.000105061, 'ret_ms1000': 0.00183437, 'ret_ms10000': 0.0214286, 'last_dmid': -0.00237398, 'dt_mid_log': 5.96541, 'ltp_dev': -0.00162312}, 'scale': {'spread': 0.253788, 'imb1': 0.634086, 'imb2': 0.391867, 'imb3': 0.391076, 'imb5': 0.394647, 'micro': 0.332665, 'cnt_imb1': 0.552431, 'depth1_log': 0.724585, 'flow_ev1': 23.0386, 'flow_ev10': 115.5, 'flow_ev100': 414.757, 'flow_ms10': 74.7879, 'flow_ms100': 269.905, 'flow_ms1000': 829.333, 'flow_ms10000': 2626.78, 'ntr_ms1000': 16.4882, 'nev_ms1000': 25.5991, 'ret_ms100': 0.297626, 'ret_ms1000': 0.916424, 'ret_ms10000': 2.89809, 'last_dmid': 0.503711, 'dt_mid_log': 1.49741, 'ltp_dev': 0.554799}, 'lo': {'spread': 1.0, 'imb1': -0.999197, 'imb2': -0.944827, 'imb3': -0.948755, 'imb5': -0.952257, 'micro': -0.918063, 'cnt_imb1': -0.959184, 'depth1_log': 4.07754, 'flow_ev1': -365.0, 'flow_ev10': -1244.13, 'flow_ev100': -2659.0, 'flow_ms10': -972.0, 'flow_ms100': -2155.92, 'flow_ms1000': -3955.96, 'flow_ms10000': -9906.0, 'ntr_ms1000': 2.0, 'nev_ms1000': 294.0, 'ret_ms100': -1.5, 'ret_ms1000': -3.0, 'ret_ms10000': -9.0, 'last_dmid': -1.0, 'dt_mid_log': 0.0, 'ltp_dev': -1.5}, 'hi': {'spread': 2.0, 'imb1': 0.999224, 'imb2': 0.95081, 'imb3': 0.952935, 'imb5': 0.955548, 'micro': 0.91591, 'cnt_imb1': 0.959184, 'depth1_log': 10.1089, 'flow_ev1': 370.0, 'flow_ev10': 1261.13, 'flow_ev100': 2641.0, 'flow_ms10': 939.131, 'flow_ms100': 2090.0, 'flow_ms1000': 3824.0, 'flow_ms10000': 8906.0, 'ntr_ms1000': 98.0, 'nev_ms1000': 451.0, 'ret_ms100': 1.5, 'ret_ms1000': 3.0, 'ret_ms10000': 9.0, 'last_dmid': 1.0, 'dt_mid_log': 8.66873, 'ltp_dev': 1.5}, 'horizon_ms': 100, 'latency_ms': 5}}
 
     # research.signals data/features/round1.npz --horizon-ms 100 --export-linear (walk-forward ridge, IC +0.38)
     LINEAR_MODEL: dict = {'intercept': -0.00015815,
@@ -479,10 +492,15 @@ class MarketMaker(BaseStrategy):
         self.parked_qty = [0, 0]
         self.ml_thr = float(params['ml_thr'])
         self.ml_stub = max(0, int(params['ml_stub']))
+        self.ml_thr_lo = float(params['ml_thr_lo'])
+        self.ml_tight_only = int(params['ml_tight_only'])
+        self.ml_frac_lo = float(params['ml_frac_lo'])
         self.thin_cap = int(params['thin_cap'])
         self.thin_cap_size = max(1, int(params['thin_cap_size']))
         self.full = _FullFeatures() if self.ml_thr > 0 else None
         self.pred = 0.0
+        tgt = str(params['ml_target'])
+        self.model = self.LINEAR_MODEL if tgt == 'base' else self.LINEAR_MODELS[tgt]
 
         # Position and order state (index k: 0 = buy, 1 = sell).
         self.inv = 0
@@ -515,7 +533,7 @@ class MarketMaker(BaseStrategy):
         asks = snapshot.asks
         if self.full is not None:
             x = self.full.update(snapshot, [t for t in trades if t.taker_owner == 'market'])
-            self.pred = 0.0 if x is None else _predict_linear(self.LINEAR_MODEL, x)
+            self.pred = 0.0 if x is None else _predict_linear(self.model, x)
         if not bids or not asks:
             return
         scan = self.book_scan_orders
@@ -635,7 +653,7 @@ class MarketMaker(BaseStrategy):
             self._pull(0)
             self._pull(2)
         else:
-            sz = self.ml_stub if self.full is not None and self.pred < -self.ml_thr else self.quote_size
+            sz = self.quote_size if self.ml_tight_only and ba - bb > 1 else self._ml_cap(-self.pred)
             if self.thin_cap > 0 and qb < self.thin_cap and sz > self.thin_cap_size:
                 sz = self.thin_cap_size
             self._quote(0, 1, _BUY, bid, now, sz)
@@ -645,12 +663,22 @@ class MarketMaker(BaseStrategy):
             self._pull(1)
             self._pull(3)
         else:
-            sz = self.ml_stub if self.full is not None and self.pred > self.ml_thr else self.quote_size
+            sz = self.quote_size if self.ml_tight_only and ba - bb > 1 else self._ml_cap(self.pred)
             if self.thin_cap > 0 and qa < self.thin_cap and sz > self.thin_cap_size:
                 sz = self.thin_cap_size
             self._quote(1, -1, _SELL, ask, now, sz)
             if lay:
                 self._quote(3, -1, _SELL, ask + off, now, lay)
+
+    def _ml_cap(self, against: float) -> int:
+        """Quote size for a side given the signed prediction against it (>0 = predicted to be run over)."""
+        if self.full is None:
+            return self.quote_size
+        if against > self.ml_thr:
+            return self.ml_stub
+        if self.ml_thr_lo > 0 and against > self.ml_thr_lo:
+            return max(self.ml_stub, int(self.ml_frac_lo * self.quote_size))
+        return self.quote_size
 
     def _pull(self, k: int) -> None:  # k = slot
         """Cancel the side's active quote (retreats are never throttled)."""

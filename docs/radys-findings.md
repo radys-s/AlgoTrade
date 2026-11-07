@@ -228,6 +228,36 @@ only (+1.8k = noise).
 3. **Stack the small wins** on mm_ml_r1tuned: ml_tight_only=1 (+1.8k), graded shrink (home, +0.8 %), best repark.
 4. Fill-quality model / budget allocator / signal v2 (section 8 rows 3-6) for the home PC.
 
+
+### 9b. Fill diagnostic of the champion (mm_ml_r1tuned, round1 497,292; `research/diag/queue_fills2.py`)
+
+Server metrics (101dbdba): 49,112 fills, 2,017,914 lots, |I| quantiles 50/68/95/99.7 % = 60/80/100/100, end position 100.
+
+| Bucket | Lots share | 1 s edge $/lot |
+|---|---|---|
+| 0 lots ahead | 43 % | +0.336 |
+| 1-50 ahead | 32 % | +0.273 |
+| 50-200 ahead | 17 % | +0.137 |
+| 200-500 / 500-1000 / 1000+ ahead | 6 / 1 / 0.4 % | -0.03 / -0.26 / -0.48 |
+| 0 lots behind us | 3 % | -0.149 |
+| 500+ behind us | 67 % | +0.324 |
+| level qty < 100 / > 1000 | 8 / 47 % | +0.08 / +0.35 |
+| fill REDUCES abs(I) (pre-fill I*side < 0) | 77 % | +0.20..+0.29 |
+| fill ADDS to abs(I) | 22 % | +0.18..+0.24 |
+| parked stubs | 9 % | +0.408 (bulk +0.233) |
+| all fills at 0.1 s / 1 s / 5 s | | +0.391 / +0.249 / +0.249 |
+
+Reading: (1) the inventory-adding side is starved (22 % of volume) although its fills are profitable (+0.18..+0.24) ->
+every lot of freed capacity is worth ~0.2 $; the position sits at 60-100 most of the time. (2) Edge decays 0.39 -> 0.25
+between 0.1 s and 1 s (adverse drift after fills; the ML stub fights exactly this). (3) Bad fills are the
+back-of-queue / nobody-behind ones, but shrinking deep orders loses (they mature), so the fix has to be on NEW size:
+do not add fresh lots at the back of a thin level; keep old orders.
+
+**Ideas for the 1 MB budget (we use ~40 kB):** a fill-EV lookup table (e.g. 5-D histogram over ahead, behind, level
+qty, pred, inventory sign, a few kB-100 kB) trained on fills from several configs, used to size only the NEW order
+(top-ups) per side; or a small GBM (pure-python trees, < 500 kB) for the 100 ms toxicity of the next fill. Home
+showed a better-IC MLP lost in the shrink, so validate on pnl, not IC.
+
 ## Tools from this window
 
 - `research/analyze_tape.py` — 1-minute tape overview (spread, momentum vs reversion, signal correlations).
