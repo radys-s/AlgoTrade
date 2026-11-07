@@ -102,8 +102,11 @@ uv run python -m research.compare --a strategies/champion.py --b strategies/exp_
 # před každou submisí
 uv run python -m research.check strategies/champion.py --data data/<kolo>.csv
 
-# signály a ML
+# signály a ML (walk-forward ridge + HGB, export lineárního modelu, dataset pro MLP)
 uv run python -m research.signals data/features/<kolo>.npz --horizon-ms 1000
+uv run python -m research.signals data/<kolo>.csv --horizon-ms 100 --export-linear
+uv run python -m research.signals data/features/<kolo>.npz --horizon-ms 1000 --export-dataset data/features/<kolo>_ml.npz
+uv run --with torch python -m research.train_mlp data/features/<kolo>_ml.npz --hidden 32 --epochs 30
 
 # lidská kontrola v exploreru (plné logy pro konkrétní parametry)
 uv run python -m research.run --strategy strategies/champion.py --data data/<kolo>.csv --full-logs --tag inspect --no-ledger

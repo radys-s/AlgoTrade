@@ -1,6 +1,6 @@
 # Skills: what is ours and what is borrowed
 
-Ours (written for this repo): `arena-market-mechanics`, `round-kickoff`, `run-experiment`, `pre-submit`.
+Ours (written for this repo): `arena-market-mechanics`, `round-kickoff`, `run-experiment`, `pre-submit`, `signal-research`.
 
 Third-party, vetted 2026-11-07 (every SKILL.md read in full, scripts and references scanned for
 network, process, env and credential access, hidden text). Each folder keeps the upstream
