@@ -86,7 +86,17 @@ All flags default to off (= champion, parity checked: off reproduces 425,708 / 2
 | idea | file / flag | screen (25 % halving, then full round1) | status |
 |---|---|---|---|
 | #1 park a stub instead of cancelling | `strategies/exp_shrink.py`, baked as `strategies/mm_park.py` (park_size 20, park_depth 1, park_max 3) | **452,651 full (+6.3 %)**, holdout 117,886 (+6.9 %), 8/8 chunks; plateau: park 20 = 447-452k at depth 1/2/4, park 10 = 443k, park 50 = 440k | **in submission** (compare ACCEPT: round1 8/8, sample_v2 -4.7 %) |
-| #2 pull only at the back of the queue | `strategies/exp_backpull.py` (`back_ahead`, `back_imb`) | not run yet | built, check PASS |
+| #2 pull only at the back of the queue | `strategies/exp_backpull.py` (`back_ahead`, `back_imb`) | every setting < off (screen 25 %) | rejected |
+| leaders #1 standing ladder | `strategies/exp_ladder.py` (`ladder_size/levels/far/first`) | best 452,244 (= off); ladder placed before the touch quote -15..-60 % | rejected |
+| ML shrink (ridge, 100 ms) | `strategies/exp_ml_shrink.py` (`ml_thr`, `ml_stub`) | running | - |
+
+**Overfit check of mm_park (blocked k-fold, `research/diag/kfold.py`, ledger `r1-park-kfold`, 12 full runs):**
+for each of 9 time blocks (8 chunks + holdout) the park setting is chosen on the other 8 blocks only.
+Out-of-fold total 452,550 vs baseline 425,708 (+6.3 %), in-sample best 453,321 (optimism gap 0.2 %), the
+out-of-fold pick beats the baseline in 8/9 blocks (the loss: -150), picks are park 30 (8x) / park 20 (1x).
+-> not overfit on round1. Remaining risk = market type (sample_v2 -4.7 %).
+**ML signal (`research.signals`, ridge, 100 ms horizon):** walk-forward IC +0.372..+0.387 in all 7 folds, top-10 %
+edge 0.30 tick; coefficients stable across folds -> real, not overfit. Weights embedded in exp_ml_shrink.py.
 
 ## 5. Heavy experiments for Honza's compute (not run in the radys window)
 

@@ -1,17 +1,19 @@
-"""exp_ladder (H11): mm_park + standing "ladder" rungs behind the touch that are never moved.
+"""exp_ladder (radys): exp_backpull + a standing ladder that never moves.
 
-  * ladder_size / ladder_depth / ladder_reserve: per side keep one ladder_size-lot order at each of
-    touch-1 .. touch-ladder_depth (mirrored on the ask), placed once and then left alone while inside the
-    window, so when the price arrives they are already at the front of the new touch queue (queue position
-    is the edge: 0 lots ahead +0.21 $/lot, 500+ ahead loses). Rungs deeper than the window, or better than
-    the touch, are cancelled. Rungs count in OUT_k; ladder_reserve 1 = touch quote first, rungs from what is
-    left; 0 = rungs first, the touch quote takes the rest. ladder_size 0 = off (identical to mm_park).
-    The invariant gate in _send is untouched.
+  * ladder_size / ladder_levels / ladder_far / ladder_first: keep ladder_size lots at each price 1..ladder_levels
+    ticks behind the market touch per side. A ladder order is never re-priced: it waits (market orders live
+    ~337 ms, so it is at the front when the price arrives), becomes a parked stub once the touch reaches it,
+    and is cancelled once it is more than ladder_far ticks behind the touch. ladder_first places the ladder
+    before the touch quote (it gets the room first). ladder_size 0 = off.
 
-mm_park (radys): exp_full_capacity + parked 20-lot stubs (park_size 20, park_depth 1, park_max 3) baked in.
-round1 local pnl 452,651 vs champion 425,708.
+Built from exp_backpull (radys): exp_shrink + pull a side only when our touch order is at the BACK of its queue.
 
-exp_shrink (radys): exp_queue + park a stub instead of cancelling when the market improves past us.
+  * back_ahead / back_imb: pull the side when the market lots AHEAD of our oldest active touch order
+    exceed back_ahead AND the L1 imbalance from that side's view is below -back_imb. Front-of-queue
+    orders are never pulled (that is what made every earlier filter lose). round1: our fills with
+    500+ lots ahead earn -0.22..-0.52 $/lot. back_ahead 0 = off.
+
+Built from exp_shrink (radys): exp_queue + park a stub instead of cancelling when the market improves past us.
 
   * park_size / park_depth / park_max: when the touch quote must move to a better price, the old order is
     shrunk with modify_order to park_size lots (keeps its queue priority, simulator reduces in place)
@@ -119,8 +121,8 @@ class _Order:
         self.order_id = order_id
         self.k = k  # 0 = buy side, 1 = sell side
         self.slot = slot  # 0/1 touch quote, 2/3 second level (side = slot & 1)
-        self.rung = False  # a standing ladder order
         self.parked = False  # a shrunk stub left behind the touch for its queue priority
+        self.ladder = False  # a standing ladder order (never re-priced)
         self.sign = sign  # +1 buy, -1 sell
         self.price = price
         self.remaining = quantity
@@ -135,17 +137,17 @@ class MarketMaker(BaseStrategy):
 
     PARAMS = {
         # Lots per side we try to keep resting at the quote price.
-        'quote_size': 200,
+        'quote_size': 5,
         # Hard cap M on inventory + same-side outstanding quantity (clamped to <= 100). Below the
         # exchange's 100 so a stuck inventory costs less to mark out at the end.
-        'max_position': 100,
+        'max_position': 50,
         # Improve the touch by one tick on both sides when the market spread is at least this
         # many ticks; 0 disables (default: join only). Values 1-2 act as 3, so our bid stays
         # strictly below our ask.
         'improve_min_spread': 0,
         # Fair-value shift in ticks per lot of inventory: both quotes move by -round(k * I)
         # (rounded half away from zero, together with the alpha term below).
-        'skew_per_lot': 0.0,
+        'skew_per_lot': 0.05,
         # Fair-value shift in ticks per unit of L1 imbalance (qb - qa) / (qb + qa), market orders only.
         'alpha_imbalance': 0.0,
         # Minimum time between moving a quote towards the market / topping it up, per side.
@@ -160,7 +162,7 @@ class MarketMaker(BaseStrategy):
         # Lots per unwind IOC.
         'unwind_size': 5,
         # Max market orders per side summed into the L1 quantity for the imbalance (ours are skipped).
-        'book_scan_orders': 1000,
+        'book_scan_orders': 8,
         # Pull a side when |L1 imbalance| > imb_pull against it; 0 disables.
         'imb_pull': 0.0,
         # Stop quoting the side that grows |I| once |I| >= inv_stop; 0 disables.
@@ -178,12 +180,17 @@ class MarketMaker(BaseStrategy):
         'thin_pull': 0,
         'thin_rejoin': 1.0,
         # Park a stub of park_size lots instead of cancelling a quote the market moved past; 0 disables.
-        'park_size': 20,
-        'park_depth': 1,
+        'park_size': 0,
+        'park_depth': 2,
         'park_max': 3,
+        # Pull a side only if > back_ahead market lots are ahead of us and imbalance (side view) < -back_imb.
+        'back_ahead': 0,
+        'back_imb': 0.0,
+        # Standing ladder: lots per level, levels behind the touch, cancel distance, place before the touch quote.
         'ladder_size': 0,
-        'ladder_depth': 3,
-        'ladder_reserve': 1,
+        'ladder_levels': 3,
+        'ladder_far': 5,
+        'ladder_first': 0,
     }
 
     def __init__(self) -> None:
@@ -217,11 +224,14 @@ class MarketMaker(BaseStrategy):
         self.park_max = max(1, int(params['park_max']))
         self.parked: list[list[str]] = [[], []]  # ids of parked stubs per side, oldest first
         self.parked_qty = [0, 0]
+        self.back_ahead = int(params['back_ahead'])
+        self.back_imb = float(params['back_imb'])
         self.ladder_size = max(0, int(params['ladder_size']))
-        self.ladder_depth = max(1, int(params['ladder_depth']))
-        self.ladder_reserve = int(params['ladder_reserve'])
-        self.rungs: list[dict[int, str]] = [{}, {}]  # price -> order id of standing rungs
-        self.rung_qty = [0, 0]
+        self.ladder_levels = max(1, int(params['ladder_levels']))
+        self.ladder_far = max(self.ladder_levels, int(params['ladder_far']))
+        self.ladder_first = int(params['ladder_first'])
+        self.ladder: list[dict[int, str]] = [{}, {}]  # price -> order id per side
+        self.ladder_qty = [0, 0]
 
         # Position and order state (index k: 0 = buy, 1 = sell).
         self.inv = 0
@@ -255,7 +265,8 @@ class MarketMaker(BaseStrategy):
         if not bids or not asks:
             return
         scan = self.book_scan_orders
-        need_qty = self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0
+        need_qty = (self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0
+                    or self.back_ahead > 0)
 
         # Market touch and its quantity, skipping our own orders (only market orders count
         # towards the scan limit, so our own fragments can never hide the touch).
@@ -331,6 +342,12 @@ class MarketMaker(BaseStrategy):
             imb = (qb - qa) / (qb + qa)
             pull_bid = imb < -self.imb_pull
             pull_ask = imb > self.imb_pull
+        if self.back_ahead > 0 and qb + qa > 0:
+            imb = (qb - qa) / (qb + qa)
+            if imb < -self.back_imb and self._ahead(bids, 0) > self.back_ahead:
+                pull_bid = True
+            if -imb < -self.back_imb and self._ahead(asks, 1) > self.back_ahead:
+                pull_ask = True
         if self.park_size > 0:
             for k, touch, sg in ((0, bb, 1), (1, ba, -1)):
                 for order_id in list(self.parked[k]):
@@ -364,12 +381,10 @@ class MarketMaker(BaseStrategy):
         if self.inv_stop > 0:
             pull_bid = pull_bid or inv >= self.inv_stop
             pull_ask = pull_ask or inv <= -self.inv_stop
+        if self.ladder_size and self.ladder_first:
+            self._ladder(bb, ba)
         lay = self.layer_size
         off = self.layer_offset
-        ladder = self.ladder_size > 0
-        if ladder and not self.ladder_reserve:
-            self._ladder(0, 1, _BUY, bb, ask, pull_bid)
-            self._ladder(1, -1, _SELL, ba, bid, pull_ask)
         if pull_bid:
             self._pull(0)
             self._pull(2)
@@ -384,43 +399,8 @@ class MarketMaker(BaseStrategy):
             self._quote(1, -1, _SELL, ask, now, self.quote_size)
             if lay:
                 self._quote(3, -1, _SELL, ask + off, now, lay)
-        if ladder and self.ladder_reserve:
-            self._ladder(0, 1, _BUY, bb, ask, pull_bid)
-            self._ladder(1, -1, _SELL, ba, bid, pull_ask)
-
-    def _ladder(self, k: int, sign: int, side: Side, touch: int, other_quote: int, pulled: bool) -> None:
-        """Cancel rungs outside touch..touch-depth, then fill missing rungs from the free capacity."""
-        rungs = self.rungs[k]
-        depth = self.ladder_depth
-        if rungs:
-            orders = self.orders
-            for px in list(rungs):
-                d = (touch - px) * sign
-                if d < 0 or d > depth:
-                    order = orders[rungs[px]]
-                    order.rung = False
-                    del rungs[px]
-                    self.rung_qty[k] -= order.remaining
-                    if not order.cancel_sent:
-                        order.cancel_sent = True
-                        self.cancel_order(order.order_id)
-                        self.n_cancels += 1
-        if pulled:
-            return
-        for i in range(1, depth + 1):
-            px = touch - sign * i
-            if px in rungs or px <= 0 or (other_quote - px) * sign <= 0:
-                continue
-            if self.active[k] and self.quote_px[k] == px:
-                continue
-            if self.parked[k] and any(self.orders[o].price == px for o in self.parked[k]):
-                continue
-            free = self.max_pos - sign * self.inv - self.out[k]
-            if free <= 0:
-                return
-            order_id = self._send(k, sign, side, px, min(self.ladder_size, free), False, 4)
-            if order_id is not None:
-                rungs[px] = order_id
+        if self.ladder_size and not self.ladder_first:
+            self._ladder(bb, ba)
 
     def _pull(self, k: int) -> None:  # k = slot
         """Cancel the side's active quote (retreats are never throttled)."""
@@ -476,7 +456,7 @@ class MarketMaker(BaseStrategy):
             return
         free = self.max_pos - sign * self.inv - self.out[k]
         if want > free:
-            if self.out[k] > self.act_qty[k] + self.act_qty[k + 2] + self.parked_qty[k] + self.rung_qty[k]:
+            if self.out[k] > self.act_qty[k] + self.act_qty[k + 2] + self.parked_qty[k] + self.ladder_qty[k]:
                 return  # in-flight cancels/IOCs hold the room; wait for them rather than fragment the quote
             want = free
             if want <= 0:
@@ -508,12 +488,7 @@ class MarketMaker(BaseStrategy):
         )
         self.orders[order_id] = _Order(order_id, k, sign, px, qty, ioc, j)
         self.out[k] += qty
-        if j == 4:
-            o = self.orders[order_id]
-            o.active = False
-            o.rung = True
-            self.rung_qty[k] += qty
-        elif not ioc:
+        if not ioc:
             self.active[j].append(order_id)
             self.act_qty[j] += qty
         self.n_orders += 1
@@ -572,8 +547,62 @@ class MarketMaker(BaseStrategy):
             self.act_qty[order.slot] -= qty
         if order.parked:
             self.parked_qty[order.k] -= qty
-        if order.rung:
-            self.rung_qty[order.k] -= qty
+        if order.ladder:
+            self.ladder_qty[order.k] -= qty
+
+    def _ahead(self, views, k: int) -> int:
+        """Market lots queued ahead of the side's first active touch order (-1 if it is not in the snapshot)."""
+        act = self.active[k]
+        if not act:
+            return -1
+        first = act[0]
+        px = self.quote_px[k]
+        acc = 0
+        for view in views:
+            if view.price != px:
+                if acc or view.price * (1 - 2 * k) < px * (1 - 2 * k):
+                    break
+                continue
+            if view.order_id == first:
+                return acc
+            if view.owner == 'market':
+                acc += view.quantity
+        return -1
+
+    def _ladder(self, bb: int, ba: int) -> None:
+        """Maintain the standing ladder behind each market touch; orders are never re-priced."""
+        for k, touch, sg, side in ((0, bb, 1, _BUY), (1, ba, -1, _SELL)):
+            lad = self.ladder[k]
+            for px, order_id in list(lad.items()):
+                dist = (touch - px) * sg
+                order = self.orders[order_id]
+                if dist < 1:  # the touch reached it: hand it over to the parked-stub cleanup
+                    del lad[px]
+                    order.ladder = False
+                    self.ladder_qty[k] -= order.remaining
+                    order.parked = True
+                    self.parked[k].append(order_id)
+                    self.parked_qty[k] += order.remaining
+                elif dist > self.ladder_far and not order.cancel_sent:
+                    order.cancel_sent = True
+                    self.cancel_order(order_id)
+                    self.n_cancels += 1
+            for d in range(1, self.ladder_levels + 1):
+                px = touch - sg * d
+                if px <= 0 or px in lad:
+                    continue
+                qty = min(self.ladder_size, self.max_pos - sg * self.inv - self.out[k])
+                if qty <= 0:
+                    break
+                order_id = self.send_order(OrderRequest(side=side, price=px, quantity=qty, order_type=_LIMIT))
+                order = _Order(order_id, k, sg, px, qty, False, k)
+                order.active = False
+                order.ladder = True
+                self.orders[order_id] = order
+                self.out[k] += qty
+                self.ladder_qty[k] += qty
+                lad[px] = order_id
+                self.n_orders += 1
 
     def _unpark(self, order_id: str) -> None:
         """Cancel a parked stub (it stays counted in OUT until CANCELED arrives)."""
@@ -589,10 +618,10 @@ class MarketMaker(BaseStrategy):
     def _forget(self, order: _Order) -> None:
         """Drop a dead order from the book-keeping."""
         self.orders.pop(order.order_id, None)
-        if order.rung:
-            order.rung = False
-            del self.rungs[order.k][order.price]
-            self.rung_qty[order.k] -= order.remaining
+        if order.ladder:
+            order.ladder = False
+            self.ladder[order.k].pop(order.price, None)
+            self.ladder_qty[order.k] -= order.remaining
         if order.parked:
             order.parked = False
             self.parked[order.k].remove(order.order_id)
