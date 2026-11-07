@@ -1,12 +1,28 @@
-"""mm_r2_take (radys, R2 candidate): mm_r2_fair + fair-signal inventory unload (exp_r2_take baked).
-Baked after the 132-run sweep (research/results/20261107-212138_radys-s_r2-take-sweep.csv):
-take_exit_thr 1.0, take_size 100, take_cool_us 100 ms, take_entry_thr 0 (entries add nothing: no capacity).
-round2 131,984 (8/8 chunks, chunk_min +2,513, holdout 48,714, penalty 0) vs mm_r2_fair 101,933.
-take_exit_thr 1.5 / size 50 / cool 20 ms gave 113,491: the unload is better as a rare, full-size sweep.
-The whole side is crossed when the fair signal says the price is about to run through our inventory.
+"""mm_r2_fq2 (home, R2 candidate): mm_r2_fq with tau 70 ms, fq_take 200 (one IOC can reverse a full position),
+fq_take_k 0.2, gate_thr 8. round2 349,077 (8/8, chunk_min +15.8k).
 
-mm_r2_fair (home, R2 candidate): exp_r2_fair with fair_thr 0.3, fair_tau_ms 50 baked in (gate as mm_r2_gate).
-round2 101,933 (8/8 chunks, chunk_min +2,067) vs mm_r2_gate 86,333.
+mm_r2_fq (home, R2 candidate): exp_r2_fq baked with the subagent's best cell: aggressive hidden-fair IOC taker (100 lots
+whenever F_hat is beyond the opposite touch by 0.25 ticks, re-entry on every book update) + touch quotes only on the side F favours,
+fair over 20 levels, mid at any spread, 30 s gate thr 6. round2 341,105 (8/8 chunks, chunk_min +14.6k), round1 377k, sample_v2 253k, check PASS 1.3 min.
+
+exp_r2_fq (home, R2): exp_r2_fair turned into a FAIR-CENTRIC quoter.
+
+The generator centres new limit orders and IOC limit prices on a hidden fair price F, and the visible mid lags it.
+Instead of joining the touch and only pulling the side the signal is against, quote around the estimate
+F_hat = mid + fq_scale * fair_sig (mid = the last normal mid, spread <= 3, so book holes do not move it):
+  * fq_k: desired bid = floor(F_hat - fq_k), ask = ceil(F_hat + fq_k). Passive quotes are clamped to at most fq_inside
+    ticks inside the market touch (never crossing it); a side whose price would be more than fq_max_behind ticks
+    behind the market touch is not quoted. fq_k 0 = off (identical to exp_r2_fair under the same params).
+  * fq_take / fq_slip / fq_take_cooldown_ms: when the desired bid reaches the market ask (F_hat far above), the
+    passive bid is pulled (its room frees once CANCELED arrives) and an IOC buy at ask + fq_slip for up to fq_take
+    lots goes out, at most once per cooldown, within the invariant; mirror for the ask. 0 = never cross (the quote
+    stays clamped inside the spread).
+  * fq_tol: keep a resting quote whose desired price is within fq_tol ticks (a cancel costs the ~700-lot queue).
+  * fq_take_k: > 0 = the crossing test uses this half-width instead of fq_k (decouples the taker threshold).
+  * fair_mid_any: 1 = the pre-insert mid is updated at any two-sided spread (lead's fix, strategies/exp_r2_taker.py);
+    with fair_levels 20 the online signal matches the offline one. 0 = only while the spread is <= 3 (as exp_r2_fair).
+  * fq_level: 1 = use (time-decayed mean of insert price - side offset) - mid instead of fair_sig, i.e. the
+    devs are not measured against the mid at their own insert time (the mid catching up does not double count).
 
 exp_r2_fair (home, R2): mm_r2_gate + the hidden-fair filter (radys findings s.11).
 
@@ -166,7 +182,7 @@ class _Order:
         self.active = not ioc  # part of the side's current quote (not cancelling, not an IOC)
 
 
-class _FairMM(BaseStrategy):
+class MarketMaker(BaseStrategy):
     """Two-sided passive quoting with inventory skew; see the module docstring for the invariant."""
 
     PARAMS = {
@@ -220,13 +236,25 @@ class _FairMM(BaseStrategy):
         'ladder_size': 0,
         'ladder_depth': 3,
         'ladder_reserve': 1,
-        'gate_thr': 4.0,
+        'gate_thr': 8.0,
         'gate_window_us': 30000000,
         'gate_max_spread': 3,
         'gate_rungs': 1,
-        'fair_thr': 0.3,
-        'fair_tau_ms': 50.0,
-        'fair_levels': 3,
+        'fair_thr': 0.0,
+        'fair_tau_ms': 70.0,
+        'fair_levels': 20,
+        # Fair-centric quoting (see the module docstring); fq_k 0 = off.
+        'fq_k': 0.05,
+        'fq_scale': 1.0,
+        'fq_max_behind': 0,
+        'fq_inside': 0,
+        'fq_take': 200,
+        'fq_slip': 0,
+        'fq_take_cooldown_ms': 0.0,
+        'fq_tol': 0,
+        'fq_level': 0,
+        'fq_take_k': 0.2,
+        'fair_mid_any': 1,
     }
 
     def __init__(self) -> None:
@@ -283,6 +311,21 @@ class _FairMM(BaseStrategy):
         self.fair_off = [-1.2, 1.2]  # running mean of (insert price - mid before) for bids / asks
         self.fair_n = [0, 0]
         self.fair_prev_mid2 = 0
+        self.fair_ls = 0.0  # time-decayed sum of (insert price - side offset), same weights as fair_s
+        self.fq_k = float(params['fq_k'])
+        self.fq_on = self.fq_k > 0.0
+        self.fq_scale = float(params['fq_scale'])
+        self.fq_max_behind = int(params['fq_max_behind'])
+        self.fq_inside = max(0, int(params['fq_inside']))
+        self.fq_take = max(0, int(params['fq_take']))
+        self.fq_slip = max(0, int(params['fq_slip']))
+        self.fq_cool_us = int(float(params['fq_take_cooldown_ms']) * 1000.0)
+        self.fq_tol = max(0, int(params['fq_tol']))
+        self.fq_level = int(params['fq_level'])
+        self.fq_take_k = float(params['fq_take_k'])
+        self.fair_mid_any = int(params['fair_mid_any'])
+        self.fq_next_take = [0, 0]  # earliest time of the next IOC take per side
+        self.n_takes = 0
 
         # Position and order state (index k: 0 = buy, 1 = sell).
         self.inv = 0
@@ -357,7 +400,7 @@ class _FairMM(BaseStrategy):
         if ba < 0:
             return
 
-        if self.fair_thr > 0.0:
+        if self.fair_thr > 0.0 or self.fq_on:
             self._fair_update(snapshot.timestamp_us, bids, asks, bb, ba)
         if ba - bb >= self.improve_min_spread:
             bid = bb + 1
@@ -442,6 +485,8 @@ class _FairMM(BaseStrategy):
                 pull_ask = True
                 if self.gate_rungs:
                     self._clear_side(1, -1)
+        if self.fq_on:
+            bid, ask, pull_bid, pull_ask = self._fq(now, bb, ba, fair_shift, pull_bid, pull_ask)
         lay = self.layer_size
         off = self.layer_offset
         ladder = self.ladder_size > 0
@@ -469,7 +514,7 @@ class _FairMM(BaseStrategy):
     def _fair_update(self, now: int, bids, asks, bb: int, ba: int) -> None:
         """Fold a new market limit order (if this row inserted one) into the hidden-fair signal."""
         prev2 = self.fair_prev_mid2
-        if ba - bb <= 3:
+        if self.fair_mid_any or ba - bb <= 3:
             self.fair_prev_mid2 = bb + ba
         if prev2 <= 0:
             return
@@ -507,8 +552,70 @@ class _FairMM(BaseStrategy):
         a = exp(-(now - self.fair_t) / self.fair_tau_us)
         self.fair_t = now
         self.fair_s = self.fair_s * a + dev
+        self.fair_ls = self.fair_ls * a + (px - self.fair_off[k])
         self.fair_w = self.fair_w * a + 1.0
         self.fair_sig = self.fair_s / self.fair_w
+
+    def _fq(self, now: int, bb: int, ba: int, fshift: float, pull_bid: bool, pull_ask: bool):
+        """Fair-centric prices: quote around F_hat, cross with an IOC when F_hat - k is beyond the far touch."""
+        ref2 = self.fair_prev_mid2
+        mid = ref2 / 2.0 if ref2 > 0 else (bb + ba) / 2.0
+        if self.fq_level:
+            sig = self.fair_ls / self.fair_w - mid if self.fair_w > 0.0 else 0.0
+        else:
+            sig = self.fair_sig
+        f = mid + self.fq_scale * sig + fshift
+        k = self.fq_k
+        dbid = floor(f - k)
+        dask = -floor(-(f + k))
+        tk = self.fq_take_k
+        if tk > 0.0:
+            take_buy = floor(f - tk) >= ba
+            take_sell = -floor(-(f + tk)) <= bb
+        else:
+            take_buy = dbid >= ba
+            take_sell = dask <= bb
+        ins = self.fq_inside
+        cap_b = bb + ins if bb + ins < ba else ba - 1
+        cap_a = ba - ins if ba - ins > bb else bb + 1
+        bid = dbid if dbid < cap_b else cap_b
+        ask = dask if dask > cap_a else cap_a
+        tol = self.fq_tol
+        mb = self.fq_max_behind
+        if tol and not take_buy and not take_sell:
+            # Keep a resting quote that is close enough and still valid (queue priority), unless we are crossing.
+            if self.active[0]:
+                p = self.quote_px[0]
+                if -tol <= p - bid <= tol and p <= cap_b and bb - p <= mb:
+                    bid = p
+            if self.active[1]:
+                p = self.quote_px[1]
+                if -tol <= p - ask <= tol and p >= cap_a and p - ba <= mb:
+                    ask = p
+            if bid >= ask:  # never let kept prices cross each other: fall back to the desired (strictly ordered) ones
+                bid = dbid if dbid < cap_b else cap_b
+                ask = dask if dask > cap_a else cap_a
+        if bb - bid > mb:
+            pull_bid = True
+        if ask - ba > mb:
+            pull_ask = True
+        take = self.fq_take
+        if take > 0:
+            if take_buy:
+                pull_bid = True  # its room goes to the IOC once CANCELED arrives
+                if now >= self.fq_next_take[0]:
+                    q = min(take, self.max_pos - self.inv - self.out[0])
+                    if q > 0 and self._send(0, 1, _BUY, ba + self.fq_slip, q, True, 0) is not None:
+                        self.fq_next_take[0] = now + self.fq_cool_us
+                        self.n_takes += 1
+            elif take_sell:
+                pull_ask = True
+                if now >= self.fq_next_take[1]:
+                    q = min(take, self.max_pos + self.inv - self.out[1])
+                    if q > 0 and self._send(1, -1, _SELL, bb - self.fq_slip, q, True, 1) is not None:
+                        self.fq_next_take[1] = now + self.fq_cool_us
+                        self.n_takes += 1
+        return bid, ask, pull_bid, pull_ask
 
     def _drift(self, now: int, bb: int, ba: int) -> float:
         """Mid change (ticks) over the gate window, from samples taken while the spread is normal."""
@@ -756,80 +863,3 @@ class _FairMM(BaseStrategy):
             self.act_qty[order.slot] -= order.remaining
         if order.order_id == self.unwind_id:
             self.unwind_id = None
-
-
-
-class MarketMaker(_FairMM):
-    PARAMS = dict(_FairMM.PARAMS)
-    PARAMS.update({
-        'take_exit_thr': 1.0,
-        'take_entry_thr': 0.0,
-        'take_size': 100,
-        'take_cool_us': 100000,
-        'take_max_spread': 1,
-    })
-
-    def __init__(self) -> None:
-        super().__init__()
-        p = self.PARAMS
-        self.take_exit_thr = float(p['take_exit_thr'])
-        self.take_entry_thr = float(p['take_entry_thr'])
-        self.take_size = max(1, int(p['take_size']))
-        self.take_cool_us = int(p['take_cool_us'])
-        self.take_max_spread = int(p['take_max_spread'])
-        self.take_id = None
-        self.take_last = _NEVER_US
-        self.n_takes = 0
-
-    def on_order_book_change(self, snapshot, trades) -> None:
-        super().on_order_book_change(snapshot, trades)
-        if self.take_exit_thr <= 0.0 and self.take_entry_thr <= 0.0:
-            return
-        if self.take_id is not None:
-            return
-        now = snapshot.timestamp_us
-        if now - self.take_last < self.take_cool_us:
-            return
-        bb = ba = -1
-        for v in snapshot.bids:
-            if v.owner == 'market':
-                bb = v.price
-                break
-        for v in snapshot.asks:
-            if v.owner == 'market':
-                ba = v.price
-                break
-        if bb < 0 or ba < 0 or ba - bb > self.take_max_spread:
-            return
-        sig = self.fair_sig
-        inv = self.inv
-        if sig > 0:
-            k, sign, side, px = 0, 1, _BUY, ba
-        else:
-            k, sign, side, px = 1, -1, _SELL, bb
-        reducing = sign * inv < 0
-        thr = self.take_exit_thr if reducing else self.take_entry_thr
-        if thr <= 0.0 or abs(sig) <= thr:
-            return
-        want = min(self.take_size, abs(inv)) if reducing else self.take_size
-        if want <= 0:
-            return
-        free = self.max_pos - sign * inv - self.out[k]
-        if free < want:
-            # our own quote on that side holds the room: pull it, the IOC goes out once CANCELED frees OUT
-            if self.act_qty[k] > 0:
-                self._pull(k)
-                self._pull(k + 2)
-            if free <= 0:
-                return
-            want = free
-        oid = self._send(k, sign, side, px, want, True, k)
-        if oid is not None:
-            self.take_id = oid
-            self.take_last = now
-            self.n_takes += 1
-
-    def _forget(self, order) -> None:
-        super()._forget(order)
-        if order.order_id == self.take_id:
-            self.take_id = None
