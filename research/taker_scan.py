@@ -155,7 +155,8 @@ def _init_worker(cache: str) -> None:
     c = Path(cache)
     _G['cache'] = c
     for key in ('ts', 'bid', 'ask', 'bq', 'aq', 'act', 'next_valid'):
-        _G[key] = np.load(c / f'{key}.npy', mmap_mode='r')
+        # plain ndarray over the shared page cache: row/scalar indexing of a np.memmap is several times slower
+        _G[key] = np.asarray(np.load(c / f'{key}.npy', mmap_mode='r'))
     _G['sig'] = {}
     _G['cand'] = {}
 
