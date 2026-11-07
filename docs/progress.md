@@ -1193,3 +1193,13 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
   the shorter, higher gate trades more and loses 10.5k on the (trending, mark-out 10,482) leaderboard tape although it
   was +6.5k locally. Local gains below ~2-3 % do not transfer; the final defaults to the LAST upload -> re-upload
   `strategies/mm_r2_pred.py` (797,904). Round 1 is no longer a criterion (user).
+
+## 2026-11-07 22:45 — Flip execution fix: quote_size 100 on mm_r2_pred = 383,300 (leaderboard test candidate) (home)
+
+- Subagent B (`research/diag/flip_exec.py`, `strategies/exp_r2_new_b.py`): when the taker condition turns against the
+  inventory, the passive quote on the favoured side holds all 200 lots of room, so the flip IOC waits for its CANCELED;
+  25 % of these runs end with no IOC, inventory crosses 0 after a median 18 ms (mean 314 ms). Leaving room free
+  (rsv / quote_size 100) makes the first IOC immediate and halves the wrong-way time.
+- On mm_r2_pred (gate 8 / 30 s): quote_size 100 / 125 / 150 / 200 = 383,300 / 382,841 / 381,448 / 371,961 on round2,
+  mirror 383,245 / 380,267 / 378,663 / 369,664, all 8/8. **`strategies/mm_r2_pred_qs.py`** (quote_size 100) baked as the
+  next leaderboard test.
