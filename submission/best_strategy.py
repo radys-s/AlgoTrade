@@ -1,4 +1,6 @@
-"""mm_r1_final (home): mm_ml_b (ridge target B, ml_thr 0.105, ml_stub 3) + round1-regime stack baked: graded cap ml_thr_lo 0.07 / ml_frac_lo 0.5, ml_tight_only 1 (no ML stub at a 2-tick spread), park_max 5. round1 510,469 vs mm_ml_b 503,148 (+7,321, 7/8 paired chunks, holdout +566); sample_v2 258,573 (+531, 5/8, holdout +504). Fit for the round1 market; re-tune park/thresholds for other regimes.
+"""mm_r1_final2 (home): mm_r1_final with ml_stub 0 (full pull instead of a 3-lot stub), park_size 15, park_max 8; round1 514,093 vs 510,469 (grid r1-final-grid2, holdout +1,462).
+
+mm_r1_final (home): mm_ml_b (ridge target B, ml_thr 0.105, ml_stub 3) + round1-regime stack baked: graded cap ml_thr_lo 0.07 / ml_frac_lo 0.5, ml_tight_only 1 (no ML stub at a 2-tick spread), park_max 5. round1 510,469 vs mm_ml_b 503,148 (+7,321, 7/8 paired chunks, holdout +566); sample_v2 258,573 (+531, 5/8, holdout +504). Fit for the round1 market; re-tune park/thresholds for other regimes.
 
 mm_ml_b (home): mm_ml with the loss-aligned ridge target B (mid move after the first taker hit x [hit within 100 ms]), ml_thr 0.105, ml_stub 3 baked. round1 503,148 vs mm_ml 490,460 (+12,688, 7/8 paired chunks, holdout +3,397); sample_v2 258,042 (+3,981, 6/8). Plateau thr 0.097-0.115 (499-503k).
 
@@ -314,12 +316,12 @@ class MarketMaker(BaseStrategy):
         'thin_pull': 0,
         'thin_rejoin': 1.0,
         # Park a stub of park_size lots instead of cancelling a quote the market moved past; 0 disables.
-        'park_size': 20,
+        'park_size': 15,
         'park_depth': 1,
-        'park_max': 5,
+        'park_max': 8,
         # ML shrink: cap the side predicted to be run over at ml_stub lots when |pred| > ml_thr ticks; 0 disables.
         'ml_thr': 0.105,
-        'ml_stub': 3,
+        'ml_stub': 0,
         # graded shrink: for ml_thr_lo < against-side |pred| <= ml_thr cap at ml_frac_lo x quote_size; 0 = off.
         'ml_thr_lo': 0.07,
         # ML stub only while the market spread is 1 tick (a wide-spread fill earns a full tick); 0 = always.

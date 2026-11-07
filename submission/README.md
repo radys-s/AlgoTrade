@@ -33,7 +33,8 @@
 | 2026-11-07 15:40 | Round 1 / `round1.csv` | `strategies/mm_ml.py` (radys: mm_park + ridge-signal 5-lot stub on predicted-adverse side, thr 0.15) | 490,460 (mm_park: 452,651) | 490,460 public (= local), e9048569 |
 | 2026-11-07 17:00 | Round 1 / `round1.csv` | `strategies/mm_ml_r1tuned.py` (Honza/home: mm_ml with ml_thr 0.12 / ml_stub 3) | 497,292 (mm_ml: 490,460) | 497,292 public (= local), 101dbdba (Jan) |
 | 2026-11-07 17:25 | Round 1 / `round1.csv` | `strategies/mm_ml_b.py` (Honza: target B ridge, ml_thr 0.105 / ml_stub 3) | 503,148 (r1tuned: 497,292) | verified local |
-| 2026-11-07 17:35 | Round 1 / `round1.csv` | `strategies/mm_r1_final.py` (Honza: mm_ml_b + graded 0.07 + ml_tight_only + park_max 5) | 510,469 (mm_ml_b: 503,148) | ready to upload / NEW BEST |
+| 2026-11-07 17:35 | Round 1 / `round1.csv` | `strategies/mm_r1_final.py` (Honza: mm_ml_b + graded 0.07 + ml_tight_only + park_max 5) | 510,469 (mm_ml_b: 503,148) | verified local |
+| 2026-11-07 18:05 | Round 1 / `round1.csv` | `strategies/mm_r1_final2.py` (Honza: ml_stub 0, park_size 15, park_max 8) | 514,093 (final: 510,469) | ready to upload / NEW BEST |
 
 Absolute path for upload (Tomáš's PC):
 `C:\Users\tomas\OneDrive\Desktop\Projekty\Ostatni\AlgoTradeArena\submission\best_strategy.py`
