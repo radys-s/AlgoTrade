@@ -112,3 +112,4 @@ what runs next, and at most one yes/no question.
 | 13:05 | Doporučení: `exp_full_capacity` jako submise R1 (ACCEPT na round1 + sample_v2, check PASS) | +33 %, 8/8 chunků, žádná nová mechanika |
 | 13:08 | Honza: nespěchat se submisí (10 slotů, server = lokál); submitovat až promyšleně | slot je vzácnější než čas |
 | 13:30 | Wave 1 uzavřena bez změny kandidáta; wave 2 = H7 `deep_pull` + rozbor času bez kotace (kódová cesta) místo dalších filtrů | všech ~80 běhů filtrů prodělává; jediný záporný segment fillů je imbalance proti × hluboká fronta |
+| 13:50 | **R1 finál = `submission/best_strategy.py` (exp_full_capacity, 425 708).** Výzkum R1 mechanik zastaven (H7–H9 také REJECT, ~110 běhů); nahrát nejpozději ~17:00 a nastavit final; tokeny šetřit na R2 | žádná z 9 mechanik ani 5 os nepřekonala kandidáta; strop pozice drží 50 % času a mimo strop je kotace živá |

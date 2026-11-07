@@ -395,7 +395,7 @@ Full simulator run of `strategies/exp_full_capacity.py`: pnl 425,708, fills 30,5
 check_submission OK. Higher than mm_v2 on the same data -> promoted to `submission/best_strategy.py`.
 Next: tuning sweep on R1 (20% halving) around quote 200 / max_pos 100.
 
-## 2026-11-07 13:20 — H6 `flow_pull`: pull strany proti toku obchodů nefunguje (home, mozek, R1)
+## 2026-11-07 13:17 — H6 `flow_pull`: pull strany proti toku obchodů nefunguje (home, mozek, R1)
 
 **Hypotéza:** na R1 má podepsaný tok obchodů kladné IC s dalším pohybem midu (flow_100ev +0,16 na 100 ms, +0,24 na 1 s);
 když tok běží proti naší straně, stáhnout ji (nekupovat těsně před poklesem).
@@ -409,7 +409,7 @@ chunků, holdout stejný → REJECT. Na sample_v2 se flag při těchto prazích 
 ztrácí prioritu ve frontě. Potvrzuje vzorec z os: žádný pull filtr na R1 nepomáhá.
 **Další krok:** tok případně jako posun velikosti (modify zmenšuje a drží místo ve frontě), ne jako pull.
 
-## 2026-11-07 13:25 — H5 `queue_join`: vstup jen do tenkých hladin / pull při hluboké frontě nefunguje (home, mozek, R1)
+## 2026-11-07 13:19 — H5 `queue_join`: vstup jen do tenkých hladin / pull při hluboké frontě nefunguje (home, mozek, R1)
 
 **Hypotéza:** mm_edge na R1: edge fillu klesá s loty před nami (Q 0 → +0,25, 200 → 0, 500 → −0,21), filly z konce
 fronty při vyprázdnění hladiny −0,22. Kotovat stranu jen tam, kde dostaneme dobrou pozici: `join_max_qty` (vstoupit
@@ -425,7 +425,7 @@ sweepy ≥ 100 lotů +0,10 $/lot), protože příkazy před nami se ruší (medi
 **Další krok:** rozklad času bez živé kotace (74 % času živá kotace na stranu, strop vysvětlí jen ~17 %) a společná
 tabulka imbalance × pozice ve frontě z fill attribution; pak rozhodnout, zda zbývá jiná páka než `exp_full_capacity`.
 
-## 2026-11-07 13:40 — H7 `deep_pull` REJECT; fill attribution kandidáta na R1: strop drží 50 % času (home, mozek)
+## 2026-11-07 13:24 — H7 `deep_pull` REJECT; fill attribution kandidáta na R1: strop drží 50 % času (home, mozek)
 
 **H7 (`strategies/exp_deep_pull.py`, ledger `r1-deep-pull`):** pull strany jen při imbalance proti ní **a** > N lotů
 před nami (jediný záporný segment z fill attribution: imbalance < −0,5 × queue_ahead 201+ = −46 k na 276 k lotů).
@@ -443,7 +443,7 @@ s mrtvým časem**, dřívější podezření bylo chybou rekonstrukce inventá�
 cenu spreadu prodělaly; zbývá zkusit (a) asymetrickou velikost (menší kotace na straně, která |I| zvyšuje, aby
 sweep nehodil pozici na strop jedním fillem), (b) hold_inside jen pro odvíjející stranu při |I| ≥ N.
 
-## 2026-11-07 13:50 — H8 `inc_size` a H9 `hold_unwind` REJECT → výzkum R1 uzavřen s `exp_full_capacity` (home, mozek)
+## 2026-11-07 13:29 — H8 `inc_size` a H9 `hold_unwind` REJECT → výzkum R1 uzavřen s `exp_full_capacity` (home, mozek)
 
 **H8 (`strategies/exp_inc_size.py`, ledger `r1-inc-size`):** menší kotace jen na straně, která |I| zvyšuje (odvíjející
 strana dál celá kapacita), aby jeden sweep nehodil pozici na strop. Parita ✔, check PASS. inc_size 30 → 413 374
