@@ -911,3 +911,10 @@ levný robustnostní přídavek pro R2, pokud bude páska jako v2. Port popsán 
 Ledger `r1-final-retune` (mm_r1_final, round1, thr 0,095/0,105/0,115 × stub 3/5 × frac 0,25/0,5/0,75): **0,105 / 3 / 0,5 = 510 469 je
 nejlepší buňka**; sousedé 505–509 k, nejhorší 500,9 k → plató ±1 %, finál beze změny. Nahráno a označeno final (server 510 469,
 3 min 2,8 s; 54 229 fillů, 1,97 M lotů = 0,259 $/lot, PnL SE 9 391, |I| kvantily 57/80/100/100).
+
+## 2026-11-07 17:25 — H23 ML-načasovaný IOC unwind: REJECT (home, mozek)
+
+`strategies/exp_ml_unwind.py` (IOC jen při |I| ≥ N a predikci proti pozici; parita 510 469 ✔, check PASS), ledger `r1-ml-unwind`,
+12 buněk: všechny ≤ baseline na obou datasetech; nejlepší (95/0,2/20) round1 −505 (2/8), v2 −176; při častějším spouštění
+(thr 0,105, qty 50) až −10 k / −7 k. Půlspread IOC + footprint > ušetřený drift; graded shrink už případ „predikce proti
+inventáři“ pokrývá. Rychlejší obrat inventáře aktivně nejde ani s načasováním modelem.
