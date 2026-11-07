@@ -26,6 +26,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 12:30 | radys | Tuning on mm_v2 core: skew, unwind, one-sided jump, 2nd level all <= champion; fill markout shows ~no adverse selection, volume-limited |
 | 2026-11-07 12:20 | herzic | Practice round: 3. místo (+240 995, server ≈ lokál ±1,5 %); MM sweep na `sample_v2`: velikost dominuje, microprice skew +11 % |
 | 2026-11-07 12:30 | home | Generálka `research.round --fetch sample_v2`: 144 s end-to-end (kroky ~2,2× rychlejší než laptop), baseliny sedí; přesný runtime championa 14,1 s / 2 M řádků → 65 s na 8,8 M; sweep kolem `mm_v2` (162 halving + 144 + 8 běhů): výchozí parametry na hraně mřížky, `imb_pull` 0,875–0,975 plató +1,2–1,8 %, ale compare REJECT (4/8 chunků) |
+| 2026-11-07 13:20 | radys | Round 1: mm_v2 321,024 vs exp_full_capacity 425,708 (+33%) -> submission |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -348,6 +349,7 @@ i `improve_unwind` shodně prodělávají.
 **Další krok:** po kickoffu R1 compare champion vs `exp_full_capacity` na round1 + sample_v2; CPU sweep
 championa na R1 (quote_size 100/200 × imb_pull × alpha_imbalance × min_requote_us, max_position 80/90).
 
+<<<<<<< HEAD
 ## 2026-11-07 13:15 — Round 1: `exp_full_capacity` ACCEPT (+33 %), sweep os = nic dalšího nepomáhá (home, mozek)
 
 **Režim R1** (data card `research/reports/round1.md`, 4,41 M řádků, 3,33 h): spread 1 tick 93 % času (sample_v2 41 %),
@@ -376,3 +378,36 @@ odstraňuje právě naše nejlepší filly (čelo svěží hladiny = tenká vlas
 návratu jsme zase na konci fronty. Páka zůstává objem na touch a pozice ve frontě.
 **Další krok:** H5 `exp_queue_join` (vstupovat jen do tenkých hladin / pull při hluboké frontě), H6 `exp_flow_pull`,
 fill attribution kandidáta na round1 (`research/reports/round1_fill_attribution.md`).
+=======
+## 2026-11-07 13:20 — Round 1 kickoff (radys)
+
+The browser download of `round1.csv` was corrupt (two runs of zero bytes, 27 MB, 33-76% of the file); the clean
+copy came from Honza's release `data-round1` (4,411,337 rows, 12,000 s). Check downloads for NUL bytes first.
+
+Ledger `r1-champ-vs-fullcap` (exp_imb_pull with filters off = mm_v2 / exp_full_capacity):
+
+| quote_size | max_position | pnl | holdout |
+|---|---|---|---|
+| 100 | 80 | 317,240 | 81,548 |
+| 100 | 100 | 321,024 (= mm_v2, current champion) | 82,271 |
+| 200 | 80 | 387,053 | 99,956 |
+| 200 | 100 | **425,708** (= `exp_full_capacity.py`) | 110,280 |
+
+Full simulator run of `strategies/exp_full_capacity.py`: pnl 425,708, fills 30,548, penalty 0, q997 |I| = 100,
+check_submission OK. Higher than mm_v2 on the same data -> promoted to `submission/best_strategy.py`.
+Next: tuning sweep on R1 (20% halving) around quote 200 / max_pos 100.
+>>>>>>> origin/main
+
+## 2026-11-07 13:20 — H6 `flow_pull`: pull strany proti toku obchodů nefunguje (home, mozek, R1)
+
+**Hypotéza:** na R1 má podepsaný tok obchodů kladné IC s dalším pohybem midu (flow_100ev +0,16 na 100 ms, +0,24 na 1 s);
+když tok běží proti naší straně, stáhnout ji (nekupovat těsně před poklesem).
+**Změna:** `strategies/exp_flow_pull.py` = exp_full_capacity + `flow_pull` (lotů; 0 = off) a `flow_window_ev`
+(klouzavý součet podepsaného objemu posledních N taker příkazů, O(1)); OR k `imb_pull`. Parita 425 708 ✔, check PASS.
+**Data:** round1 (+ sample_v2 v compare). Prahy = percentily |flow| p70–p95 (3 720 / 4 710 / 6 640 / 8 670).
+**Výsledek** (ledger `r1-flow-pull`, 8 buněk): monotónně horší s častějším pullem: 3 720/100ev → 358 472 (−16 %,
+−20 % fillů); nejméně pullující buňka 8 670/30ev → 425 412 (−296), compare vs exp_full_capacity: B vyhrává **0/8**
+chunků, holdout stejný → REJECT. Na sample_v2 se flag při těchto prazích nespustí (263 618 = parita).
+**Závěr:** stažené filly nejsou netto adverzní: získaný spread převáží ~0,28 ticku post-fill driftu a pull navíc
+ztrácí prioritu ve frontě. Potvrzuje vzorec z os: žádný pull filtr na R1 nepomáhá.
+**Další krok:** tok případně jako posun velikosti (modify zmenšuje a drží místo ve frontě), ne jako pull.
