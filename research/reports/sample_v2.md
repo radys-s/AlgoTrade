@@ -1,6 +1,6 @@
 # Data card - `data\sample_v2.csv`
 
-Generated 2026-11-07 12:09 by `research.profile` from `data\features\sample_v2.npz` (features built in 14.7 s). Prices in ticks.
+Generated 2026-11-07 12:02 by `research.profile` from `data\features\sample_v2.npz` (features built in 39.0 s). Prices in ticks.
 
 ## Observations
 

@@ -21,7 +21,9 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 11:45 | herzic → main | Sjednocení nástrojů: runner ladí i konstanty třídy (`QTY`, `HOLD_US`), ledger přeskakuje výstupy `grid.py`, champion = `submission/best_strategy.py`. Sample plató: HOLD 5–8 s všech 8/8 chunků kladných (8 s: pnl 52 029, holdout 12 209; 5 s: 50 965, holdout 12 622), ledger tag `sample-momentum-plateau` |
 | 2026-11-07 11:50 | herzic | `momentum_hold_v2`: konec dat relativní a vypnutý; v1 na pásce od 10 h neobchoduje vůbec a na 2h pásce stojí po hodině; v2 → `submission/best_strategy.py` |
 | 2026-11-07 11:50 | home | Domácí výpočetní uzel (desktop Core Ultra 7 265KF, 20 vláken, RTX 5060 Ti 16 GB): ověřené referenční běhy, benchmark 20 workerů = 12,8 plných běhů/min, CUDA torch env, MLP test IC +0,80 |
+| 2026-11-07 12:10 | herzic | Pipeline kola `research.round` + taker scan + MM edge; generálka na `sample_v2`: momentum -2,44 M, MM +28 025 (8/8), trh mean-reverting |
 | 2026-11-07 12:15 | radys | Playground v2: momentum loses (-1.52M server). Passive MM on Honza's `mm.py` core, sweep -> `mm_v2` pnl 237,306, now `submission/best_strategy.py` |
+| 2026-11-07 12:20 | herzic | Practice round: 3. místo (+240 995, server ≈ lokál ±1,5 %); MM sweep na `sample_v2`: velikost dominuje, microprice skew +11 % |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -170,6 +172,52 @@ GPU test IC +0,803 za 21 s, CPU test IC +0,801 za 11 s. Na tak malých datech je
 
 **Další krok:** Round 1 (13:00): stáhnout data z release `data-r1`, merge `origin/main` → `home`,
 features + data card na celém kole a široké sweepy s `--halving` na 20 workerech.
+
+## 2026-11-07 12:10 — Pipeline kola + generálka na nových playground datech `sample_v2` (herzic)
+
+**Co:** `research/round.py` = jeden příkaz na start kola (rozbalení, privátní release pro domácí PC,
+baseliny + check championa, analyze_tape, features, data card, signály, taker scan, MM edge, kickoff
+report s verdiktem pojistné submise). Nové nástroje: `research/taker_scan.py` (rychlý přibližný
+backtest taker strategií nad npz, + `strategies/signal_taker.py` se stejnou logikou), `research/mm_edge.py`
+(kdy se vyplácí kotovat na touch) a filtr adverse selection v `strategies/mm.py` (`as_filter`, vypnutý).
+
+**Data:** organizátoři vyměnili playground data: `sample_v2`, 2 000 000 řádků, 1,6 h, úplně jiný trh
+než syntetický sample. Celá pipeline 6 min (z toho upload ~6 min souběžně, analýza ~5 min).
+
+**Výsledek:**
+- Champion `momentum_hold_v2`: **-2 440 965**, 0/8 chunků → na realistických datech momentum pálí peníze.
+- `mm.py` výchozí: **+28 025**, 8/8 chunků, holdout +7 084; `trend_follower` -531.
+- Trh je mean-reverting (P(reverze další změny midu) = 0,63), spread medián 2 ticky (1 tick jen 41 %),
+  1s volatilita 0,5 ticku. Taker scan: 1 152 konfigurací za 43 s, žádná kladná.
+- MM edge: maker na čele fronty +0,77 ticku/fill, 8/8 chunků; žádný filtr nepřekoná „kotovat vždy“.
+- Signály: ridge IC +0,41 / HGB +0,42 na 1 s (HGB nic nepřidává → lineární stačí);
+  nejstabilnější `micro_minus_mid`, ale predikovaný pohyb << spread → na skew kotací, ne na taking.
+
+**Závěr:** syntetický `sample.csv` vyřazen z robustnostní sady (penalizoval by vše, co funguje na
+realistických datech). Pro Round 1 je výchozí rodina market making; momentum champion bez nových
+dat nesubmitovat.
+**Další krok:** sweep MM na `sample_v2` (běží, tag `sample_v2-mm-wave0`), pak vlna 1 na domácím PC.
+
+## 2026-11-07 12:20 — Practice round: 3. místo; MM sweep na `sample_v2` (herzic)
+
+**Practice round (leaderboard):** tým `p<0.05` **3. místo, +240 995** s `mm_v2` (Tomáš). Lokálně na
+veřejném `sample_v2` 237 306 → server vs. lokál ~1,5 % → soukromá data se chovají jako veřejná, lokální
+ladění se přenáší. Vedoucí: ThatsMyQuant +291 456, Podbranč +286 942 (náskok ~20 %). Naše PnL křivka
+roste plynule celým kolem (zisk rozložený v čase, ne jeden úsek). Spousta týmů je v mínusu.
+
+**Sweep `mm.py` na `sample_v2`** (36 kombinací, ledger tag `sample_v2-mm-wave0`), všechny 8/8 chunků, breach 0:
+
+| quote_size | skew_per_lot | alpha_imbalance | improve | pnl | holdout |
+|---|---|---|---|---|---|
+| 20 | 0.1 | 1.0 | off | **39 704** | 9 059 |
+| 20 | 0.1 | 0 | off | 35 661 | 9 001 |
+| 20 | 0.1 | 1.0 | 3 | 38 804 | 8 836 |
+| 5 | 0.05 (výchozí) | 0 | off | 28 025 | 7 084 |
+
+Závěr: velikost kotace dominuje (Tomášův `mm_v2` se 100 loty: 237 306); zlepšování ceny uvnitř spreadu
+(`improve_min_spread` 3) je v každém páru mírně horší → vypnuto; microprice skew (`alpha_imbalance` 1.0)
+při větší velikosti +11 % a lepší holdout → kandidát na `mm_v2` (tam je 0).
+Další krok: domácí PC ladí `mm_v2` (quote_size, max_position 80–100, skew, alpha_imbalance, imb_pull) s halvingem.
 
 ## Šablona experimentu
 

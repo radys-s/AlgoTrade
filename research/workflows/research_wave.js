@@ -27,20 +27,26 @@ const FOCUS = A.focus ? `\nSteer from the team for this wave: ${A.focus}\n` : ''
 
 const CTX = `
 You are part of an automated quant research team in the Qminers Algo Trade Arena 2026 hackathon.
-Repo: C:\\Users\\honza\\Desktop\\QuantHack (Windows, Bash tool = Git Bash). Start every shell command with
-export PATH="/c/Users/honza/.local/bin:$PATH" and run Python as uv run python ... from the repo root.
-Rules and mechanics: README.md, docs/kontext.md, docs/workflow.md (read what you need, they are short).
+The repo root is your current working directory (Windows; the Bash tool is Git Bash). uv must be on
+PATH (per-user install in ~/.local/bin); run Python as uv run python ... from the repo root.
+Rules and mechanics: docs/kontext.md, docs/workflow.md, .claude/skills/arena-market-mechanics/SKILL.md.
 Current round data: ${DATA}. Earlier datasets for robustness: ${PRIOR.length ? PRIOR.join(', ') : 'none yet'}.
-Champion (what is submitted now): ${CHAMPION}. Data card: research/reports/${STEM}.md.
+Champion (what is submitted now): ${CHAMPION}. Start from research/reports/${STEM}_kickoff.md, the data card
+research/reports/${STEM}.md, the taker scan research/reports/${STEM}_taker_scan.md and the market-making
+edge research/reports/${STEM}_mm_edge.md (whichever exist).
 Tools (all write to the shared ledger in research/results/, never delete ledger files):
+- uv run python -m research.taker_scan data/features/${STEM}.npz --grid '{..}'   (fast approximate scan of
+  signal-taker configs; confirm winners with research.run on strategies/signal_taker.py)
+- uv run python -m research.mm_edge ${DATA}   (when passive quotes at the touch make money)
 - uv run python -m research.run --strategy F --data ${ALL_DATA} --grid '{"p": [..]}' --workers ${WORKERS} --tag T
 - uv run python -m research.ledger --data ${STEM} --top 20      (what has been tried already, by anyone)
 - uv run python -m research.compare --a ${CHAMPION} --b F [--b-set '{..}'] --data ${ALL_DATA} --workers ${WORKERS}
 - uv run python -m research.check F --data ${DATA}               (sandbox rules + runtime projection)
 - uv run python -m research.signals data/features/${STEM}.npz --horizon-ms H   (signal / ML research)
 Hard rules:
-- Strategy files: one BaseStrategy subclass, all tunables in a class dict PARAMS read via self.PARAMS[...];
-  new mechanics go behind a PARAMS flag whose default reproduces the old behaviour.
+- Strategy files: one BaseStrategy subclass; tunables either in a class dict PARAMS read via self.PARAMS[...]
+  or as UPPER_CASE class constants (both work with research.run --grid); new mechanics go behind a
+  parameter whose default reproduces the old behaviour.
 - Sandbox: only stdlib + numpy/pandas/scipy/sklearn + simulator.models + simulator.strategy.BaseStrategy;
   no os/sys/io/socket/subprocess/threading/importlib/inspect/gc/pathlib, no open/eval/exec/getattr/type,
   no dunder attributes except __init__, no str.format. Keep per-event work tiny (up to ~9M events, 15 min, 1 CPU).
