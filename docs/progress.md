@@ -613,3 +613,13 @@ stuby nebo vypnout): rozhodnout 4-buňkovým testem na kickoffu. Pro R1 žádná
 - **Standing ladder** (`exp_ladder.py`): best 452,244 = off; ladder first -15..-60 %. Rejected.
 - **Ridge signal** (100 ms): walk-forward IC +0.38 in 7/7 folds, stable coefficients. Embedded in `exp_ml_shrink.py`
   (shrinks the predicted-adverse side via modify, never cancels the oldest order). Screen running.
+
+## 2026-11-07 14:35 — R1-only ladění: park_max 5 + improve_stub 20 → 457 288 (+1,0 %), větší stuby dovnitř horší (home, mozek)
+
+**Compare mm_park vs `exp_retreat_park` {"park_max": 5, "improve_stub": 20}:** round1 452 651 → **457 288 (+4 637, +1,0 %)**,
+holdout +786, **6/8 párových chunků** → ACCEPT nástrojem; sample_v2 251 236 → 230 674 (−8,2 %, 0/8, stále kladné).
+Čistě režimové ladění pro round1 (spread 1, rychlé doplnění spreadu 2 do ~50 ms). Větší stub dovnitř (ledger
+`r1-improve-stub-big`, park_max 5): 20 → 457 288, 40 → 454 569, 80 → 436 261, 120 → 424 635 → stub dovnitř je věc
+20 lotů, víc je sebráno pohybem skrz.
+**Závěr:** k dispozici jako „R1-tuned“ druhý upload (+1 % veřejně; privátní data R1 = stejný trh), za cenu robustnosti
+v režimu v2. Výchozí robustní volba zůstává mm_park 20/1/3. Rozhodnutí Honza.
