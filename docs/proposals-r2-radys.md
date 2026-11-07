@@ -202,3 +202,11 @@ explicit over-cap one and the penalty is counted), R1 not negative, sandbox chec
   with an IOC whenever F_hat crosses the far touch, i.e. A1 taken to its limit.
 - 23:15: grid on mm_r2_zd (copy `strategies/zd_radys_grid.py`): fq_take_k {0.1,0.2,0.3} x pred_blend {0.5,0.75}
   x zd_min_ahead {0,100}. Results below if they land before the close.
+
+## Last simple ideas for Honza (radys, 2026-11-07 23:45, untested)
+Base: strategy (9) = mm_r2_rts, 957k public. The final grid was stopped, so none of these are measured.
+- `fq_k_sp2`: try 0.9 and 1.2. The jump 0.7 over (7) came from this knob, so the optimum may be higher.
+- `qs_k` 0.7 (rtq grid on (7) gave +0.4%, noise level). Low priority.
+- End position was -100 with penalty about 1.8k. A small end-of-day flatten could save about 1-2k.
+- Turn on `ri_ms` (20) or `qa_max` (500) one at a time; both exist but are off.
+- Judge each change on round2 and round2_mirror, 6/8 chunks or better.
