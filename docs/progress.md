@@ -937,3 +937,10 @@ mm_r1_final: round1 +3 624 (6/8, holdout +1 462), sample_v2 +1 553 (6/8, holdout
 rank ≠ lepší výběr horních 28 % |pred|, které shrink používá; B je lepší, protože je podmíněné skutečným zásahem takera.
 **Konečná bilance R1 (home):** ~40 mechanik/modelů, ~550 běhů; vítězné: plná kapacita (+33 %), park (Tomáš, +6 %), ML shrink
 přes modify (Tomáš, +8 %), cíl B (+2,6 %), stack tight/graded/park (+1,4 %), úplné stažení + park 15/8 (+0,7 %). mm_v2 321 k → 514 k.
+
+## 2026-11-07 17:45 — Poslední grid nad final2: +1,5 k při horším holdoutu → neměnit; R1 uzavřeno na 514 093 (home, mozek)
+
+Ledger `r1-final2-retune` (thr 0,095/0,105/0,115 × thr_lo 0,06/0,07/0,08): 0,115/0,06 → 515 565 (+1 472), ale holdout 130 587 vs
+131 716; 0,115/0,07 → 515 098 (holdout −705). Zisk ≤ 0,3 % s horším holdoutem = šum/přefit → **finál R1 zůstává `mm_r1_final2`
+(514 093, nahráno, server = lokál, final)**. Tomášův agent chystá strukturální prediktor do shrinku — varování s čísly posláno
+(na home −8 132, 0/8); do 18:00 žádné další uploady bez compare ≥ 6/8 proti final2.
