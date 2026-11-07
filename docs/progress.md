@@ -27,6 +27,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 12:20 | herzic | Practice round: 3. místo (+240 995, server ≈ lokál ±1,5 %); MM sweep na `sample_v2`: velikost dominuje, microprice skew +11 % |
 | 2026-11-07 12:30 | home | Generálka `research.round --fetch sample_v2`: 144 s end-to-end (kroky ~2,2× rychlejší než laptop), baseliny sedí; přesný runtime championa 14,1 s / 2 M řádků → 65 s na 8,8 M; sweep kolem `mm_v2` (162 halving + 144 + 8 běhů): výchozí parametry na hraně mřížky, `imb_pull` 0,875–0,975 plató +1,2–1,8 %, ale compare REJECT (4/8 chunků) |
 | 2026-11-07 13:20 | radys | Round 1: mm_v2 321,024 vs exp_full_capacity 425,708 (+33%) -> submission |
+| 2026-11-07 13:45 | radys | R1 tuning on full_capacity: layers/size/imb_pull/jump/flow_pull all <= 426k; fill analysis: inventory-adding fills lose |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -366,3 +367,20 @@ Ledger `r1-champ-vs-fullcap` (exp_imb_pull with filters off = mm_v2 / exp_full_c
 Full simulator run of `strategies/exp_full_capacity.py`: pnl 425,708, fills 30,548, penalty 0, q997 |I| = 100,
 check_submission OK. Higher than mm_v2 on the same data -> promoted to `submission/best_strategy.py`.
 Next: tuning sweep on R1 (20% halving) around quote 200 / max_pos 100.
+
+## 2026-11-07 13:45 — Round 1 tuning on exp_full_capacity (radys)
+
+**Tape (`analyze_tape.py`):** spread 1 tick 93% of the time, touch ~900 lots, 1 s mid vol 0.92 tick. Unlike v2 the
+mid FOLLOWS trades: +0.22 tick after 1 s, +0.52 after p90+ trades (adverse selection for makers). L1 imbalance
+corr +0.30 at 100 ms.
+
+**Sweeps (all vs champion 425,708):**
+- `r1-tune1` (halving 20%, 32 sets, `exp_layers`): best = layer 30 / quote 300 -> 426,034 (+0.1%, noise);
+  quote 300 == 200 (saturated); max_pos 90 -10%; imb_pull 0.5 -70%; jump_imb 0.6 -3%.
+- `r1-flow-pull` (`strategies/exp_flow_pull.py`: pull the side in the aggressor's way after a big trade):
+  best 1000 lots / 50 ms -> 426,506 (+0.2%); 100 lots / 1 s -> 85,678. Pulling quotes costs more volume than it saves.
+
+**Fill analysis (champion, 50,754 fills, 2.65M lots):** edge vs mid at fill 0.52 $/lot, markout 1 s 0.16, 60 s 0.16.
+Spread-2 fills 0.53, spread-1 fills 0.15. Fills that ADD to |I|: 517k lots, 1 s markout -0.015; fills that REDUCE |I|:
+2.13M lots, +0.20. By |I| before the fill: [0,30) 0.02, [30,70) 0.08, [70,200] 0.25.
+**Next:** `research.mm_edge` and `research.taker_scan` on round1 to see if any filter or taker signal has edge.
