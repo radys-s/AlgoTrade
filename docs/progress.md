@@ -623,3 +623,15 @@ holdout +786, **6/8 párových chunků** → ACCEPT nástrojem; sample_v2 251 23
 20 lotů, víc je sebráno pohybem skrz.
 **Závěr:** k dispozici jako „R1-tuned“ druhý upload (+1 % veřejně; privátní data R1 = stejný trh), za cenu robustnosti
 v režimu v2. Výchozí robustní volba zůstává mm_park 20/1/3. Rozhodnutí Honza.
+
+## 2026-11-07 14:40 — H14 `early_join` REJECT: rezerva pro rychlý vstup na svěží hladinu se nevyplatí (home, mozek, R1)
+
+**Hypotéza:** po zlepšení ceny trhem náš bulk přistává na nové hladině až po potvrzení modify (~10 ms), ne za 5 ms;
+držet R lotů stále volných a poslat je na novou hladinu hned ve stejném callbacku.
+**Změna:** `strategies/exp_early_join.py` = mm_park + `early_join` (0 = off), parita 452 651 ✔, check PASS; mechanismus
+ověřen (round1: 12 180 rychlých vstupů, 60 900 lotů, vždy plná rezerva).
+**Výsledek** (ledger `r1-early-join`, round1 + sample_v2): R = 5 → 442 897 (−2,2 %), 10 → 431 529, 20 → 405 844, 40 →
+336 661 (−26 %); sample_v2 stejně monotónně (5 → −3,2 %). Compare {5}: 0/8 chunků na obou → REJECT. Fills +26 %, ale
+horší kvality.
+**Závěr:** trvale nevyužitá kapacita stojí víc než pořadí získané o 5 ms dřív; cizí příkazy v tom okně nerozhodují
+o kvalitě fillů. Potvrzuje: každý lot kapacity musí ležet na touch.
