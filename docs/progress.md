@@ -800,3 +800,9 @@ Dolaďování B (ledger `r1-ml-targetB-tune`, `-tune2`, round1 / sample_v2): thr
 7/8 párových chunků; sample_v2 +3 981, holdout +1 686, 6/8 → ACCEPT.** Zapečeno do `strategies/mm_ml_b.py`
 (= exp_ml_target s B/0,105/3 jako výchozí), check s runtime běží. Doporučení: nahrát jako final R1 místo mm_ml_r1tuned
 (497 292, na v2 −4 %) — víc PnL i robustnější.
+
+## 2026-11-07 15:58 — H19 kratší horizont modelu (50 / 20 ms): REJECT (home, mozek)
+
+`strategies/exp_ml_h50.py`, `exp_ml_h20.py` (přes `refit_ml`, prahy na stejnou četnost), report `round1_ml_short_horizon.md`,
+ledger `r1-ml-short`. h50 @0,080: round1 487 319 (−3,1 k, 1/8), sample_v2 244 176 (−9,9 k, 0/8); h20: −3 % / −9 %.
+Osa horizontu je plochá až záporná oběma směry (1 s −6 k, 50 ms −3 k, 20 ms −16 k) → 100 ms zůstává.
