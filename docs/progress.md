@@ -1237,3 +1237,15 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
   Offline the 50/50 blend with the 70 ms EWMA lifts holdout corr with the 150 ms move 0.385 -> 0.412, but in the
   strategy every weight loses: round2 + mirror 783k (off) -> 748-755k (taker 0.25), 529-610k (taker 0.5),
   699-739k (quotes 0.3-0.5). Better bulk correlation, worse tails at the taker's decision points (as pred2 earlier).
+
+## 2026-11-07 23:30 — Retreat pull: mm_r2_rtq = 406,182 round2 / 404,769 mirror (+13.7k / +13.9k over mm_r2_zd) -> upload (home)
+
+- **`strategies/mm_r2_rtq.py`** = mm_r2_zd + rt_ms 20 (no passive quote for 20 ms after its side's touch retreats: market
+  fills on a level the touch retreated onto mark out -0.57 ticks within 50 ms) + qs_k 0.45 / qs_weak 100 (the touch quote
+  is the full 200-lot flip only while F_hat is >= 0.45 ticks beyond it, else 100 lots). round2 406,182, mirror 404,769
+  (sum 810,951 vs 783,271), check_submission OK, research.check PASS 1.5 min.
+- `strategies/mm_r2_rt.py` (rt only): sum 804,459 (+21.2k, rt 50 / 120 ms 803.8k / 802.1k: a plateau); round1 453,896
+  (-3.4k), sample_v2 266,806 (-0.6k): neutral off-R2, so the gain is R2-mechanism specific, not a fit.
+- Stacking: flow pull adds nothing on top of the retreat pull (both pull after adverse events); qs adds +6.5k.
+- Rejected this half hour: jump over-cap (inserts beyond the 20-tick snapshot are invisible), sweep follow/fade, taker
+  slip, AND-taker, order-statistic F, deeper taker.
