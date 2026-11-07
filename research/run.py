@@ -80,16 +80,32 @@ def load_strategy_class(file_path: str | Path) -> type[BaseStrategy]:
 
 
 def with_params(cls: type[BaseStrategy], overrides: dict[str, Any]) -> type[BaseStrategy]:
-    """Return `cls` itself, or a subclass whose `PARAMS` has `overrides` applied."""
+    """Return `cls` itself, or a subclass with `overrides` applied.
+
+    Two conventions are supported: a `PARAMS` dict (overrides merge into it), or tunables as
+    class constants such as `QTY = 50` (as in `strategies/momentum_hold.py`; overrides become
+    class attributes of the subclass).
+    """
     if not overrides:
         return cls
     base = getattr(cls, 'PARAMS', None)
-    if not isinstance(base, dict):
-        raise ValueError(f'{cls.__name__} has no PARAMS dict, so it cannot take overrides')
-    unknown = sorted(set(overrides) - set(base))
+    if isinstance(base, dict):
+        unknown = sorted(set(overrides) - set(base))
+        if unknown:
+            raise ValueError(f'Unknown parameter(s) for {cls.__name__}: {", ".join(unknown)}')
+        return type(cls.__name__, (cls,), {'PARAMS': {**base, **overrides}})
+    unknown = sorted(key for key in overrides if not hasattr(cls, key) or callable(getattr(cls, key)))
     if unknown:
         raise ValueError(f'Unknown parameter(s) for {cls.__name__}: {", ".join(unknown)}')
-    return type(cls.__name__, (cls,), {'PARAMS': {**base, **overrides}})
+    return type(cls.__name__, (cls,), dict(overrides))
+
+
+def strategy_params(cls: type[BaseStrategy]) -> dict[str, Any]:
+    """The effective tunables of `cls`: its `PARAMS` dict, or its UPPER_CASE class constants."""
+    base = getattr(cls, 'PARAMS', None)
+    if isinstance(base, dict):
+        return dict(base)
+    return {name: getattr(cls, name) for name in dir(cls) if name.isupper() and not callable(getattr(cls, name))}
 
 
 def simulation_config(log_dir: Path | None = None) -> SimulationConfig:
@@ -172,7 +188,7 @@ def run_job(job: dict[str, Any]) -> dict[str, Any]:
         curve = simulator.pnl_curve(result.pnl)
         row.update(
             strategy_class=cls.__name__,
-            params=dict(getattr(cls, 'PARAMS', {}) or {}),
+            params=strategy_params(cls),
             pnl=round(result.pnl, 2),
             fills=result.fills,
             traded_volume=result.traded_volume,

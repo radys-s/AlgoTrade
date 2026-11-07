@@ -1,6 +1,6 @@
 """Champion vs challenger, paired by time chunk on every dataset, with the team's acceptance verdict.
 
-    uv run python -m research.compare --a strategies/champion.py --b strategies/exp_skew.py \
+    uv run python -m research.compare --a submission/best_strategy.py --b strategies/exp_skew.py \
         --data data/round1.csv data/playground.csv [--b-set '{"skew_per_lot": 0.1}'] [--workers 6]
 
 The first dataset is the current round (primary). The challenger is ACCEPTED only if all hold:
