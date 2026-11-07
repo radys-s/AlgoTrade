@@ -548,3 +548,18 @@ na lot. Compare 1,2/20/60: round1 −40 096 (0/8), sample_v2 −29 375 (0/8). Ov
 **Závěr R1:** finál `submission/best_strategy.py` = mm_park 20/1/3 (452 651). Celkem na R1 ~180 běhů, 11 mechanik
 + 5 os; jediná vítězná mechanika nad plnou kapacitou je parkování stubů (Tomáš). Kapacita makera na touch je
 cennější než jakýkoli nalezený taker edge; cokoli, co bere kapacitu z touch nebo ruší příkazy, prodělává.
+
+## 2026-11-07 14:15 — H12 stub při ústupu / stub dovnitř při spreadu 2: REJECT (home, mozek, R1)
+
+**Hypotéza:** mm_park ruší příkazy už jen při ústupu trhu (naše kotace zůstane sama o tick uvnitř). (a) `retreat_park`:
+místo cancelu zmenšit přední příkaz přes modify na 10–40 lotů (drží místo; při návratu hladiny jsme první).
+(b) `improve_stub`: při spreadu ≥ 2 poslat stub o tick dovnitř na straně snižující |I| (být před improverem).
+**Změna:** `strategies/exp_retreat_park.py` = mm_park + flagy (0 = off), parita 452 651 ✔, check PASS.
+**Data:** round1 + sample_v2 (ledger `r1-retreat-park`).
+**Výsledek:** (a) monotónně horší s velikostí stubu: round1 10 → 448 017 (−1 %), 20 → 444 958, 40 → 441 313; sample_v2
+10 → 249 370, 40 → 243 739; retreat_depth 1 vs 2 bez rozdílu → stub uvnitř je při pokračujícím pohybu sebrán, stejně
+jako hold_inside. (b) round1 10 → 453 718 (+1 067, 7/8 chunků, holdout −78), 20 → 454 988 (+2 337, **8/8 chunků**,
+holdout −370); sample_v2 10 → −8 050 (0/8), 20 → −16 036 (0/8); fills +20 %. Compare: REJECT (holdout horší, v2 ztráta
+výrazně větší než zisk na round1).
+**Závěr:** poslední „nerušit“ místo v mm_park nemá zisk; stub dovnitř je mírně kladný jen v režimu round1 a v režimu
+v2 je sebrán trendem → nerobustní, nepovyšovat. Pro R2 si pamatovat jako případnou drobnou páku v R1-like režimu.
