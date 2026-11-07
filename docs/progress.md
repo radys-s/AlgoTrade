@@ -1282,3 +1282,12 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
   filters (pull after a trade at our touch -65..-70k, queue-ahead pull, spread-change lean, stale-signal lean) - nothing.
   Lesson: pulling a RESTING quote loses its queue place; filters only win where there is no queue place to lose
   (retreated touch, wide spread, a hole behind the touch).
+
+## 2026-11-07 23:57 — Last candidates: mm_r2_rth2 (uploaded), mm_r2_rth3 (last submission) (home)
+
+- `strategies/mm_r2_rth2.py` = mm_r2_rth + qs_k 0.3 + fq_k_sp3 0.3: round2 432,309, mirror 431,616 (+1.5k / +2.3k).
+- `strategies/mm_r2_rth3.py` = mm_r2_rth2 + pred_blend 0.6: round2 436,496, mirror 439,487 (+4.2k / +7.9k), 8/8 chunks,
+  holdout -0.5k / +0.4k (gain inside the ridge fit window), check PASS 1.5 min: a leaderboard gamble.
+- Subagents on rth2: fine grid (qs_weak, qs_k, sp2/sp3, hk) - no gain; merged small filters (taker-over-hole, few orders,
+  fresh level) +0.9k; taker retune: fq_take_k 0.15-0.17 and pred_blend 0.55-0.6 up on both tapes (mirror more).
+- Mark as final whichever of mm_r2_rth (970,101), mm_r2_rth2, mm_r2_rth3 scores highest on the leaderboard.
