@@ -460,3 +460,12 @@ mimo strop je kotace živá; filly z konce fronty i sweepy jsou kladné. **Kandi
 (= exp_full_capacity, main 1ab3b4d), očekávané veřejné PnL 425 708, check PASS (49 s / 8,8 M).**
 **Doporučení:** nahrát nejpozději kolem 17:00 (ověřit server = 425 708, nastavit final); do té doby žádný další
 výzkum na R1 mechanikách, šetřit tokeny na R2 (19:00).
+
+## 2026-11-07 13:33 — Layering s plnou kapacitou na R1: neutrální (home, mozek)
+
+**Hypotéza (návrh z notebooku):** část kapacity o 1–2 ticky za touch, abychom po spotřebování touch byli na čele nové
+fronty. **Změna:** žádný kód, Tomášův `strategies/exp_layers.py` s overrides championa (quote_size 200, max_position
+100, skew 0, book_scan 1000); layer_size 0 = parita 425 708 ✔. **Data:** round1 (ledger `r1-layers-cap200`, 8 buněk).
+**Výsledek:** layer 30 @1 tick → 426 034 (+326, +0,08 %), 30 @2 → 425 940, 60 @1 → 425 589 (−119), 100 @1 → 425 705,
+100 @2 → 425 648; fills +40 až +100. **Závěr:** v šumu (±0,1 %), stejně jako na sample_v2 (0 %); hlubší hladina se
+skoro neplní a nic nepřidá. Neprochází protokolem (zisk < šum). Kandidát beze změny.
