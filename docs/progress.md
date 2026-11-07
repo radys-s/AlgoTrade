@@ -442,3 +442,21 @@ s mrtvým časem**, dřívější podezření bylo chybou rekonstrukce inventá�
 **Závěr:** limit objemu = strop pozice (polovina času jedna strana mrtvá). Všechny pokusy o rychlejší odvíjení za
 cenu spreadu prodělaly; zbývá zkusit (a) asymetrickou velikost (menší kotace na straně, která |I| zvyšuje, aby
 sweep nehodil pozici na strop jedním fillem), (b) hold_inside jen pro odvíjející stranu při |I| ≥ N.
+
+## 2026-11-07 13:50 — H8 `inc_size` a H9 `hold_unwind` REJECT → výzkum R1 uzavřen s `exp_full_capacity` (home, mozek)
+
+**H8 (`strategies/exp_inc_size.py`, ledger `r1-inc-size`):** menší kotace jen na straně, která |I| zvyšuje (odvíjející
+strana dál celá kapacita), aby jeden sweep nehodil pozici na strop. Parita ✔, check PASS. inc_size 30 → 413 374
+(−2,9 %), 50 → 420 709, 70 → 424 251 (−0,3 %), 100/150 = parita. Compare {70}: round1 −1 457 (1/8 chunků), sample_v2
+−548 (1/8) → REJECT. inv_q997 zůstává 100 i při 30: strop se dosáhne opakovanými sweepy; objem sweepů je kladný.
+**H9 (`strategies/exp_hold_unwind.py`, ledger `r1-hold-unwind`):** hold_inside jen pro odvíjející stranu při |I| ≥ N.
+Parita ✔, check PASS. N 100 → 423 757 (−0,5 %, 3/8 chunků, holdout +24), 80 → 419 833, 50 → 415 875; sample_v2 −0,4 %
+(3/8) → REJECT. Většina ztráty hold_inside (−8 %) šla ze strany zvyšující |I|, ale i odvíjející hold je mírně záporný.
+
+**Bilance wave 1+2 na R1 (~110 běhů, 9 mechanik + 5 os):** jediné zlepšení championa je `quote_size` 200 (+33 %).
+Všechny filtry (imbalance, tok, fronta, hluboká fronta), throttling, posuny dovnitř spreadu, asymetrické velikosti
+i nižší max_position prodělávají, většinou monotónně s intenzitou zásahu. Fill attribution: strop drží 50 % času,
+mimo strop je kotace živá; filly z konce fronty i sweepy jsou kladné. **Kandidát R1 = `submission/best_strategy.py`
+(= exp_full_capacity, main 1ab3b4d), očekávané veřejné PnL 425 708, check PASS (49 s / 8,8 M).**
+**Doporučení:** nahrát nejpozději kolem 17:00 (ověřit server = 425 708, nastavit final); do té doby žádný další
+výzkum na R1 mechanikách, šetřit tokeny na R2 (19:00).
