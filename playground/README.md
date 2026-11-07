@@ -12,7 +12,7 @@ Two files, nothing else to learn:
 | Tape | PNL | Notes |
 |---|---|---|
 | `data/round2.csv` | **+42,193** | 0 penalty, 7,015 fills, 149k lots, 75 s run. Our R1 champions lose −148k..−230k here. |
-| `data/round1.csv` | see `docs/progress.md` | R1 champion `mm_ml_r1tuned` = 497,292 |
+| `data/round1.csv` | **+65,086** | 0 penalty, 28,485 fills, 602k lots, 109 s. R1 champion `mm_ml_r1tuned` = 497,292 (queue parking + ML signal + 100-lot cap) |
 
 pnl per 10 % of the R2 tape: `-5k +2k +6k -9k -1k +7k +20k +6k +11k +7k`.
 
