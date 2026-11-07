@@ -1138,3 +1138,18 @@ adverse selection, then the trend estimate.
   but releasing room costs more than it earns (holding with F is itself the edge).
 - Rejected on the fq base: ML shrink (B75 +25k only in its fit window, holdout -3k, sample_v2 -60k; B1 +5.9k 5/8),
   deeper sweeps, size by signal strength, over-cap (penalty 52-59k), passive exits, skew.
+
+## 2026-11-07 22:05 — Oracle-F: the strategy is worth 935k with a perfect 150 ms predictor; realistic predictors fail (home)
+
+- `research/diag/oracle_fair.py` (diagnostic, look-ahead): mm_r2_fq2 with fair_sig replaced by the real future robust
+  mid move: lead 50 / 150 / 500 / 1000 ms = 759k / 935k / 884k / 685k; clipped at +-2 ticks 916k; 50 % blend 915k;
+  25 % blend 822k. The value is everyday precision at the taker's decision points, not the big F jumps.
+- Realistic predictors: fair taus 20/70/150 + fair-vs-queue interactions raise the offline holdout corr with the
+  150 ms move 0.44 -> 0.53 but the strategy drops to 244-273k (`exp_r2_pred2.py`); F velocity (dF over 0.5-2 s) is not
+  better than the F level offline. In round2 F - mid predicts the mid over 1 / 5 / 10 s with corr 0.32 / 0.33 / 0.33
+  (round1: 0.37 / 0.19 / 0.14): the mid keeps moving toward F for seconds.
+- Hidden F jumps exist (e.g. -88 ticks at 3873.18 s: a bid inserted 83 ticks below the book), but jumps >= 20 ticks are
+  only ~6-10 episodes; most single-insert "5-tick jumps" are the geometric placement tail.
+- PnL curve of mm_r2_fq: no catastrophic windows (worst 10 s -4.7k); seconds with |dmid| > 8 earn +115k.
+- Running: ridge predictor with build_matrix features (exp_r2_pred.py), oracle-labelled taker entry filter
+  (exp_r2_tkfilt.py).
