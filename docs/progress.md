@@ -19,6 +19,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 11:25 | herzic | Data/ML pipeline: features (1 průchod simulátorem), data card, walk-forward signály, export modelu; sample: ridge IC +0.79 (7/7 foldů) |
 | 2026-11-07 11:40 | radys → main | Added `submission/best_strategy.py` (the single file to upload, always the current best) + `submission/README.md` |
 | 2026-11-07 11:45 | herzic → main | Sjednocení nástrojů: runner ladí i konstanty třídy (`QTY`, `HOLD_US`), ledger přeskakuje výstupy `grid.py`, champion = `submission/best_strategy.py`. Sample plató: HOLD 5–8 s všech 8/8 chunků kladných (8 s: pnl 52 029, holdout 12 209; 5 s: 50 965, holdout 12 622), ledger tag `sample-momentum-plateau` |
+| 2026-11-07 12:15 | radys | Playground v2: momentum loses (-1.52M server). Passive MM on Honza's `mm.py` core, sweep -> `mm_v2` pnl 237,306, now `submission/best_strategy.py` |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -127,3 +128,25 @@ Výsledek: pnl=…, fills=…, breach_penalty=…, max|I|=…  (předtím: …)
 Závěr: funguje / nefunguje, proč
 Další krok:
 ```
+
+## 2026-11-07 12:15 — Playground v2: from taker momentum to passive market making (radys)
+
+**What and why:** the organizers swapped the playground data (`sample_v2.csv`). `analyze_tape.py` shows a different
+market: spread 1 tick 41% / 2 ticks 58% of the time, deep touch (~770 lots), no momentum after trades (slight
+reversion, -0.03 tick), L1 imbalance corr with forward mid +0.35 at 100 ms. Momentum IOC pays the spread on every
+trade and the price does not follow, so `momentum_hold` scored -1,521,297 on the server. A passive LIMIT quote
+earns the spread instead.
+
+**Experiments (all in the ledger `research/results/2026...radys-s_*`):**
+- `strategies/mm_imbalance.py` (my own MM, imbalance pull filter): grid best 112,983.
+- `strategies/exp_imb_pull.py` = Honza's `mm.py` + `imb_pull` / `inv_stop` flags (off = identical to mm.py).
+  36-run sweep: the pull filter HURTS on this core (best with pull 151k vs 195k without); skew_per_lot 0.05 halves pnl.
+- Size sweep (24 runs): pnl grows smoothly with quote_size and max_position; requote_tolerance 1 and
+  alpha_imbalance 1 both worse. Best: quote_size 100, max_position 100, skew 0 -> **pnl 237,306**, holdout 54,929,
+  8/8 chunks positive, penalty 0, runtime projection 2.2 min for 8.8M rows.
+
+**Risk:** |I| sits at the 100 cap 32%+ of the time (q68 = 100). No penalty is possible (mm.py invariant proves
+|I| <= max_position), but a trending private tape would leave us holding 100 lots against the move.
+A max_position 80 variant (219,994) is the safer fallback.
+
+**Next:** Round 1 data at 13:00 -> rerun the same sweep (quote_size, max_position, skew) on it before submitting.

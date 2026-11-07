@@ -26,6 +26,7 @@
 | Updated | Round / data | Source | Local pnl | Server pnl |
 |---|---|---|---|---|
 | 2026-11-07 11:40 | Playground / `sample.csv` | `strategies/momentum_hold.py` (QTY 50, HOLD 5 s, SLIP 3) | 50,965 | 50,965 (final) |
+| 2026-11-07 12:15 | Playground v2 / `sample_v2.csv` | `strategies/mm_v2.py` (Honza's `mm.py` core: quote 100, max_pos 100, skew 0) | 237,306 | pending |
 
 Absolute path for upload (Tomáš's PC):
 `C:\Users\tomas\OneDrive\Desktop\Projekty\Ostatni\AlgoTradeArena\submission\best_strategy.py`
