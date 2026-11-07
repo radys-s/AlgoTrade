@@ -1,4 +1,13 @@
-"""mm_v2 (radys): sample_v2 sweep best baked in (quote 100, max_pos 100, skew 0, filters off).
+"""exp_full_capacity (home): mm_v2 with quote_size 200 = quote ALL free capacity on each side.
+
+Why: the invariant (B) I + OUT_buy <= M and (S) -I + OUT_sell <= M lets the side that REDUCES
+|I| carry up to M + |I| lots (200 when |I| = 100), but quote_size 100 capped it at 100. With
+quote_size above max_position, `_quote` sends min(quote_size - have, free) lots, so when flat both
+sides quote 100 as before and when long 60 the ask carries 160: more volume exactly where the
+strategy is stuck at the cap. sample_v2: 237,306 -> 263,618 (+11 %), holdout 54,929 -> 61,917,
+8/8 chunks, breach 0; 200 and 300 are identical (saturated at M + |I|). Nothing else changed.
+
+Original mm_v2 docstring: sample_v2 sweep best baked in (quote 100, max_pos 100, skew 0, filters off).
 Built from exp_imb_pull: Honza's mm.py + adverse-selection pull filter.
 
 Change vs mm.py (both off by default = identical to mm.py):
@@ -90,7 +99,7 @@ class MarketMaker(BaseStrategy):
 
     PARAMS = {
         # Lots per side we try to keep resting at the quote price.
-        'quote_size': 100,
+        'quote_size': 200,
         # Hard cap M on inventory + same-side outstanding quantity (clamped to <= 100). Below the
         # exchange's 100 so a stuck inventory costs less to mark out at the end.
         'max_position': 100,

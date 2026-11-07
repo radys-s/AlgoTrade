@@ -26,6 +26,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 12:30 | radys | Tuning on mm_v2 core: skew, unwind, one-sided jump, 2nd level all <= champion; fill markout shows ~no adverse selection, volume-limited |
 | 2026-11-07 12:20 | herzic | Practice round: 3. místo (+240 995, server ≈ lokál ±1,5 %); MM sweep na `sample_v2`: velikost dominuje, microprice skew +11 % |
 | 2026-11-07 12:30 | home | Generálka `research.round --fetch sample_v2`: 144 s end-to-end (kroky ~2,2× rychlejší než laptop), baseliny sedí; přesný runtime championa 14,1 s / 2 M řádků → 65 s na 8,8 M; sweep kolem `mm_v2` (162 halving + 144 + 8 běhů): výchozí parametry na hraně mřížky, `imb_pull` 0,875–0,975 plató +1,2–1,8 %, ale compare REJECT (4/8 chunků) |
+| 2026-11-07 13:20 | radys | Round 1: mm_v2 321,024 vs exp_full_capacity 425,708 (+33%) -> submission |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -347,3 +348,21 @@ trhu je informovaný a držená kotace je první na ráně.
 i `improve_unwind` shodně prodělávají.
 **Další krok:** po kickoffu R1 compare champion vs `exp_full_capacity` na round1 + sample_v2; CPU sweep
 championa na R1 (quote_size 100/200 × imb_pull × alpha_imbalance × min_requote_us, max_position 80/90).
+
+## 2026-11-07 13:20 — Round 1 kickoff (radys)
+
+The browser download of `round1.csv` was corrupt (two runs of zero bytes, 27 MB, 33-76% of the file); the clean
+copy came from Honza's release `data-round1` (4,411,337 rows, 12,000 s). Check downloads for NUL bytes first.
+
+Ledger `r1-champ-vs-fullcap` (exp_imb_pull with filters off = mm_v2 / exp_full_capacity):
+
+| quote_size | max_position | pnl | holdout |
+|---|---|---|---|
+| 100 | 80 | 317,240 | 81,548 |
+| 100 | 100 | 321,024 (= mm_v2, current champion) | 82,271 |
+| 200 | 80 | 387,053 | 99,956 |
+| 200 | 100 | **425,708** (= `exp_full_capacity.py`) | 110,280 |
+
+Full simulator run of `strategies/exp_full_capacity.py`: pnl 425,708, fills 30,548, penalty 0, q997 |I| = 100,
+check_submission OK. Higher than mm_v2 on the same data -> promoted to `submission/best_strategy.py`.
+Next: tuning sweep on R1 (20% halving) around quote 200 / max_pos 100.
