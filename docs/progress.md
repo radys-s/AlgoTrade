@@ -33,6 +33,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 15:10 | radys | k-fold: mm_park not overfit (oof +6.3 %, 8/9 blocks); back-pull and ladder rejected; ridge IC +0.38 stable |
 | 2026-11-07 15:40 | radys | ML shrink: ridge 100 ms signal caps the predicted-adverse side at 5 lots -> `mm_ml` round1 490,460 (+8.4 %) -> submission |
 | 2026-11-07 16:30 | radys | Rejected on mm_ml: over-cap quoting, inventory lockout/threshold, post-fill freeze, gap jump; structural levers for Honza in radys-findings s.8 |
+| 2026-11-07 16:55 | radys | ahead_stub rejected (deep queue = investment); handoff for Honza's Claude in radys-findings s.9 |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -862,3 +863,10 @@ umí, už 100ms pravidlo B pokrývá; limitem je kvalita 1 s predikce. Nepovyšo
 **Bilance R1 (home):** ~30 mechanik/modelů, ~400 běhů. Nad mm_v2 vyhrály 4 věci: plná kapacita (+33 %), parkování stubů
 (Tomáš, +6 %), ML shrink přes modify (Tomáš, +8 %), cíl B (+2,6 %). **Finál R1 = `strategies/mm_ml_b.py` 503 148.** Orákulum:
 strop 100ms toxicity filtru 540–600 k; 650 k lídra touto rodinou nejde.
+## 2026-11-07 16:55 — Queue-aware stub rejected, handoff (radys)
+
+- `ahead_stub` (shrink the touch order while > X market lots are ahead): X=1200 476,032, 800 462k, 500 440k, 300 402k,
+  150 343k vs 492,254 off. Orders deep in the queue advance to the front; shrinking them throws that away.
+- Honza's home PC: `mm_ml_r1tuned.py` (thr 0.12 / stub 3) 497,292 is the current best; sweeps are unpredictable.
+- Full state and ranked next steps: `docs/radys-findings.md` section 9. Next: fill diagnostic `research/diag/queue_fills2.py`
+  on mm_ml_r1tuned, then capacity/inventory-turnover experiments.

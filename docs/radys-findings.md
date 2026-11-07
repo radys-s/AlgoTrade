@@ -182,11 +182,51 @@ only (+1.8k = noise).
 | # | Lever | Status | Why it can be big |
 |---|---|---|---|
 | 1 | **Be first at a new level**: spread 2 opens 1.2x/s (14,832 times), 84 % of gaps last > 5 ms (median 23 ms). Post inside the gap (side by ML pred) and park the old touch order. | **Rejected (radys 16:30)**: jump on any pred 412,936, thr 0.1 470,627, thr 0.4 492,783 vs off 492,254. The gap opens after a sweep and the order inside it is hit by the sweep's continuation. | Do not retest. |
-| 2 | **Queue-aware stub**: shrink (not cancel) the touch order while > X market lots are ahead of it. | radys testing (`ahead_stub`) | Fills with 500+ lots ahead lose 0.22-0.52 $/lot; back-pull failed only because it cancelled. |
+| 2 | **Queue-aware stub**: shrink (not cancel) the touch order while > X market lots are ahead of it. | **Rejected (radys 16:50)**: ahead_stub 1200 476,032 .. 150 343,052 vs off 492,254. | Deep-queue orders are an investment: they mature into front positions. Never shrink them. |
 | 3 | **Fill-quality model instead of mid model**: label = 1 s markout of OUR fill; features = lots ahead, level qty, depletion rate, OFI, cancel vs trade share, pred. Use it to size every order (budget goes where EV/lot > 0). | Honza (heavy: needs fills from many configs) | Directly optimises what we earn; the mid model is a proxy. |
 | 4 | **Budget allocator**: the per-side budget M - I is split between fresh touch size, parked stubs and gap orders by expected EV per lot. | Honza | The 100-lot cap is THE binding constraint; using it only where EV is high is the main multiplier. |
 | 5 | **Cancel-adjusted queue** using order ids/ages in the snapshot (market orders have ids; old big orders cancel at known-ish rates). | Honza (diagnostic first) | Real queue ahead is smaller than shown -> more orders count as "front". |
 | 6 | **Signal v2**: add OFI, touch depletion rate/acceleration, cancel volume at touch, micro-price velocity; try GBM; horizons 20/50/100 ms. | Honza (retrain + re-embed) | ML stub alone gave +8 %; a sharper toxicity signal scales that. |
+
+## 9. HANDOFF: radys window state at 16:55 (for Honza's Claude to continue)
+
+**Champion:** Honza's `mm_ml_r1tuned.py` (home branch) = our `mm_ml` with ml_thr 0.12 / ml_stub 3, round1 497,292.
+`submission/best_strategy.py` on main is still `mm_ml` 490,460 (uploaded, server = local). Leader is ~650k; target 700k.
+
+**Single experiment file:** `strategies/exp_overcap.py` = mm_ml (thr 0.15 / stub 5) + flags, all off = mm_ml parity:
+`max_position` up to 1000 + `unwind_to`/`unwind_slip` (over-cap cut), `inv_lock`/`inv_lock_size`, `ml_inv_k`,
+`fill_freeze_us`, `ml_tight_only`, `ml_jump`, `ahead_stub`. To test on Honza's base pass
+`--set '{"ml_thr":0.12,"ml_stub":3}'`.
+
+**Results on round1 full tape (vs 490,460 / 492,254 with ml_tight_only=1):**
+| Flag | Best | Verdict |
+|---|---|---|
+| over-cap 150-300 + IOC cut | -133k..-316k on 25 % slice (vs +113k) | dead |
+| inv_lock 60 / ml_inv_k 0.1 | 475k / 477-479k | rejected |
+| fill_freeze_us 20-100 ms | dropped on screen | rejected |
+| ml_tight_only=1 (ML stub only at 1-tick spread) | 492,254 (+1.8k) | small, keep for a stack |
+| ml_jump (post in 2-tick gap) | 0.4: 492,783; 0: 412,936 | rejected |
+| ahead_stub (shrink deep-queue order) | 1200: 476k; 150: 343k | rejected, strongly |
+| park re-tune on ML base (size 10/20/40, depth 1/2, max 2/3/6) | ledger `*r1-repark.csv` | see ledger (running at handoff) |
+
+**What we learned (the reason we are below the leader):**
+1. No directional/taker edge: 2 s round trip -1.07 ticks/lot; the whole tape spans 105 ticks. Profit = spread capture only.
+2. Big sweeps are Poisson and unpredictable (home brain, AUC 0.50). Timing filters cannot avoid them.
+3. Queue position is an asset that matures: any rule that shrinks/cancels resting size loses (pulls, thin, back-pull,
+   ahead_stub). Rules that KEEP queue (park via modify, ML stub of the oldest order) win.
+4. Capacity is the binding constraint: |I| quantiles 60/80/100/100, so the inventory-adding side usually has ~40 lots
+   of room (I + OUT <= 100). Raising the reducing side from 100 to 200 lots gave +33 % (biggest jump of the day).
+
+**Next steps (ranked):**
+1. **Run `research/diag/queue_fills2.py data/round1.csv strategies/mm_ml_r1tuned.py`** (written at handoff, saves
+   `logs/fills_<strategy>.npz`): edge per lot by queue ahead/behind, by inventory-adding vs reducing fill and |I| bucket,
+   parked stubs vs bulk, 0.1 s / 1 s / 5 s markouts. Decide from it how valuable 1 lot of freed capacity is.
+2. **Capacity / inventory turnover**: if the adding side is starved, test ways to bring I back to 0 without losing queue:
+   (a) reducing side keeps ALL its queue (never ML-shrink the reducing side when |I| > X), (b) small IOC unwind only
+   when the reducing side's touch queue ahead is long (cheap vs waiting), (c) ML stub threshold asymmetric by
+   inventory sign (home: asymmetric thr rejected at I=0, untested as a function of I's sign only).
+3. **Stack the small wins** on mm_ml_r1tuned: ml_tight_only=1 (+1.8k), graded shrink (home, +0.8 %), best repark.
+4. Fill-quality model / budget allocator / signal v2 (section 8 rows 3-6) for the home PC.
 
 ## Tools from this window
 
