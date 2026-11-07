@@ -71,8 +71,18 @@ what runs next, and at most one yes/no question.
   (vedoucí ~291 k). Server ≈ lokál (±1,5 %).
 - **Páky:** velikost kotace dominuje; microprice skew (`alpha_imbalance` 1,0) +11 % při quote 20;
   zlepšování ceny uvnitř spreadu mírně škodí; `max_position` 100 = bez rezervy a 100 lotů do markoutu.
-- **Otevřené otázky:** platí to na datech Round 1? `alpha_imbalance` a `imb_pull` na `mm_v2`?
-  runtime `mm_v2` bez zátěže (notebook pod zátěží odhad 5–8,6 min)?
+- **Edge je jen na touch (12:45).** Cokoliv, co nás posune dovnitř spreadu, prodělává, i když
+  získá víc fillů: `improve` −0,5 %, `skew` −33 %, `hold_inside` (zůstat o tick uvnitř po ústupu
+  trhu) −11 % při +27 % fillů, `improve_unwind` (odvíjet o tick uvnitř při stropu) −16 %. Filly
+  uvnitř spreadu jsou adverzní: cena jde skrz nás. mm_edge „front of queue +0,77“ platí pro touch.
+- **Páka na objem = velikost na touch, ne cena.** Invariant (B)/(S) dovoluje straně, která |I|
+  snižuje, až M + |I| lotů; `quote_size` 100 to kapoval. `quote_size` 200 (= vše volné):
+  `sample_v2` 237 306 → **263 618 (+11 %)**, holdout +12,7 %, párové chunky 8/8 (+2,1 až +2,8 k
+  každý), breach 0, runtime stejný (68 s / 8,8 M). 200 = 300 (saturace). Soubor
+  `strategies/exp_full_capacity.py` (champion + jedno číslo), check PASS.
+- **Otevřené otázky:** platí to na datech Round 1? `imb_pull` 0,9–0,95 a `alpha_imbalance` v
+  kombinaci s `quote_size` 200? `max_position` 80–90 jako pojistka proti trendující privátní pásce
+  (cena ~−7 %)? Odkud přesně jsou filly (fresh level vs. depletion) → další páka na frekvenci fillů.
 
 ## Rozhodnutí (append-only)
 
@@ -80,3 +90,6 @@ what runs next, and at most one yes/no question.
 |---|---|---|
 | 12:10 | Syntetický `sample.csv` vyřazen z robustnostní sady | jiný svět; penalizoval by vše, co funguje na realistických datech |
 | 12:15 | Champion = `mm_v2` (Tomáš) | `sample_v2` +237 k, 8/8 chunků; momentum -2,44 M |
+| 12:44 | Kandidát na pojistnou submisi R1 = `strategies/exp_full_capacity.py` (`quote_size` 200), pokud `research.compare` na R1 public řekne ACCEPT; jinak champion | +11 % na sample_v2, 8/8 párových chunků, žádná nová mechanika (jen víc lotů na odvíjející straně v mezích invariantu) |
+| 12:44 | H3 `improve_unwind` a H4 `hold_inside` zamítnuty, flagy zůstávají v `strategies/exp_*.py` vypnuté | −16 % / −11 % na sample_v2; filly uvnitř spreadu jsou adverzní |
+| 12:45 | Wave 1 na R1 = CPU sweep championa (quote_size × imb_pull × alpha_imbalance × min_requote_us, + max_position 80/90), žádný nový kód, dokud nepřečtu data card R1 | nejdřív režim, pak mechaniky; tokeny šetřit na interpretaci |

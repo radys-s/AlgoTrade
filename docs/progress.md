@@ -20,10 +20,12 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 11:40 | radys → main | Added `submission/best_strategy.py` (the single file to upload, always the current best) + `submission/README.md` |
 | 2026-11-07 11:45 | herzic → main | Sjednocení nástrojů: runner ladí i konstanty třídy (`QTY`, `HOLD_US`), ledger přeskakuje výstupy `grid.py`, champion = `submission/best_strategy.py`. Sample plató: HOLD 5–8 s všech 8/8 chunků kladných (8 s: pnl 52 029, holdout 12 209; 5 s: 50 965, holdout 12 622), ledger tag `sample-momentum-plateau` |
 | 2026-11-07 11:50 | herzic | `momentum_hold_v2`: konec dat relativní a vypnutý; v1 na pásce od 10 h neobchoduje vůbec a na 2h pásce stojí po hodině; v2 → `submission/best_strategy.py` |
+| 2026-11-07 11:50 | home | Domácí výpočetní uzel (desktop Core Ultra 7 265KF, 20 vláken, RTX 5060 Ti 16 GB): ověřené referenční běhy, benchmark 20 workerů = 12,8 plných běhů/min, CUDA torch env, MLP test IC +0,80 |
 | 2026-11-07 12:10 | herzic | Pipeline kola `research.round` + taker scan + MM edge; generálka na `sample_v2`: momentum -2,44 M, MM +28 025 (8/8), trh mean-reverting |
 | 2026-11-07 12:15 | radys | Playground v2: momentum loses (-1.52M server). Passive MM on Honza's `mm.py` core, sweep -> `mm_v2` pnl 237,306, now `submission/best_strategy.py` |
 | 2026-11-07 12:30 | radys | Tuning on mm_v2 core: skew, unwind, one-sided jump, 2nd level all <= champion; fill markout shows ~no adverse selection, volume-limited |
 | 2026-11-07 12:20 | herzic | Practice round: 3. místo (+240 995, server ≈ lokál ±1,5 %); MM sweep na `sample_v2`: velikost dominuje, microprice skew +11 % |
+| 2026-11-07 12:30 | home | Generálka `research.round --fetch sample_v2`: 144 s end-to-end (kroky ~2,2× rychlejší než laptop), baseliny sedí; přesný runtime championa 14,1 s / 2 M řádků → 65 s na 8,8 M; sweep kolem `mm_v2` (162 halving + 144 + 8 běhů): výchozí parametry na hraně mřížky, `imb_pull` 0,875–0,975 plató +1,2–1,8 %, ale compare REJECT (4/8 chunků) |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -140,6 +142,39 @@ Závěr: funguje; v2 povýšena do `submission/best_strategy.py` (research.check
 vědomý override: jde o robustnost, ne o alfu.
 Další krok: na datech Round 1 ověřit momentum vs. reverze (`analyze_tape.py`, data card) dřív, než v2 nahrajeme.
 
+## 2026-11-07 11:50 — Domácí výpočetní uzel (home)
+
+**Co:** Honzův domácí desktop jako výpočetní uzel týmu, větev `home` (z `main` c65737a), commity jako
+`Herz1c-home`. Stroj: Intel Core Ultra 7 265KF (20 jader / 20 vláken), 31,6 GB RAM,
+RTX 5060 Ti 16 GB (driver 616.92), 462 GB volného disku; git 2.55, gh 2.100, uv 0.12.14, Python 3.13.15.
+
+**Ověření simulátoru (sample):** `trend_follower` pnl 1 878, `submission/best_strategy.py` pnl 50 965
+(hold 12 622, 8/8 chunků), `research.check` PASS (odhad 33 s na 8,8 M řádků).
+Pozn.: `python -m gzip` nezná `-k`; `-d` vstupní `.gz` nemaže, stačí `-d`.
+
+**Benchmark paralelismu:** sample (0,5 s/běh) měří jen start procesů, proto páska velikosti kola:
+sample 160× za sebou (časy, ID a ceny posunuté) = 8,6 M řádků; 1 běh `mm.py` = 76 s (~113 tis. událostí/s).
+Jedna vlna, běhů = workerů:
+
+| workerů | wall | s/běh | plných běhů/min | RAM špička |
+|---|---|---|---|---|
+| 8 | 80 s | 76,5 | 6,0 | 1,0 GB |
+| 12 | 84 s | 80,9 | 8,6 | 1,4 GB |
+| 16 | 88 s | 84,0 | 10,9 | 1,9 GB |
+| 20 | 94 s | 88,0 | 12,8 | 2,3 GB |
+
+Paměť ~150 MB/proces, nehraje roli. **Limit uzlu: 20 workerů celkem** (18, když vedle běží features
+nebo trénink); E-jádra zpomalí běh jen o ~15 %.
+
+**GPU:** separátní `%USERPROFILE%\torch-env` (Python 3.13, torch 2.11.0+cu128, numpy 2.5.4; projektové
+prostředí zůstává shodné s arénou). CUDA ok (sm_120). Sample dataset 13,8 tis. řádků × 23 features
+(h = 1 000 ms; ridge OOS IC +0,79, HGB +0,80, 7/7 foldů): MLP h32, 30 epoch, batch 512 →
+GPU test IC +0,803 za 21 s, CPU test IC +0,801 za 11 s. Na tak malých datech je CPU rychlejší
+(start CUDA); GPU má smysl až na datech celého kola a větších sítích.
+
+**Další krok:** Round 1 (13:00): stáhnout data z release `data-r1`, merge `origin/main` → `home`,
+features + data card na celém kole a široké sweepy s `--halving` na 20 workerech.
+
 ## 2026-11-07 12:10 — Pipeline kola + generálka na nových playground datech `sample_v2` (herzic)
 
 **Co:** `research/round.py` = jeden příkaz na start kola (rozbalení, privátní release pro domácí PC,
@@ -241,3 +276,74 @@ while |I| > 100. Going over the cap for extra volume is not worth it at ~0.5 $/l
 
 **Next ideas for more volume:** queue position (don't lose priority on requote), quoting earlier into a fresh
 spread-2 level, different sizes per spread state. Re-test everything on Round 1 data first.
+
+## 2026-11-07 12:30 — Generálka kola a sweep kolem championa `mm_v2` (home, sample_v2)
+
+**Pipeline kola:** `uv run python -m research.round --fetch sample_v2` (data předtím odsunutá, tedy včetně stažení):
+**144 s celkem** (stažení + rozbalení ~6 s). Lane A (baseliny + check) 45 s, lane B (analyze_tape 31, features 19,
+profile 7, signals 26 + 25, taker_scan 28, mm_edge 3 s) 138 s = kritická cesta. Kroky ~2,2× rychlejší než laptop.
+Baseliny shodné s laptopem: `mm.py` +28 025, `momentum_hold_v2` −2 440 965 (ledger `sample_v2-baseline-home`),
+champion `mm_v2` 237 306. Report: `research/reports/sample_v2_kickoff_home.md`.
+
+**Runtime championa bez zátěže:** `research.check --rows 0` → 14,07 s na 2 M řádků (2,9 µs/událost nad prázdnou
+strategií), odhad **65 s na 8,8 M řádků** (sandbox 15 min). Laptopových 5–8,6 min byl odhad pod zátěží.
+
+**Hypotéza:** champion `mm_v2` (quote 100, max_position 100, skew 0) není v optimu; menší kotace, skew nebo
+adverse-selection filtr `imb_pull` zlepší PnL i holdout.
+**Změna:** žádná v kódu, jen overrides `submission/best_strategy.py`.
+**Data:** sample_v2 (sample je syntetický, mimo robustnost).
+**Výsledek:**
+- `home-mmv2-sweep1`: 162 buněk, halving 0.1,0.3 → 20 přeživších, 62 s na 20 workerech. Nejlepší = výchozí parametry.
+- `home-mmv2-sweep2-narrow`: plná mřížka 144 buněk (quote 70/85/100, max_position 95/100, skew 0/0.003/0.006,
+  improve 0/3, imb_pull 0/0.7/0.8/0.9), 170 s, breach 0 všude. quote a max_position rostou monotónně až k hraně
+  (100 = strop); skew 0.003 = 0 (zaokrouhlení posunu na celé ticky), 0.006 pnl −14 %; improve 3 ≈ 0 (−0,5 %).
+- `home-mmv2-imbpull-fine`: imb_pull 0.82–0.99 → hladké plató 0.875–0.975 (240–241,7k, max 0.925: 241 670,
+  hold 56 504), 0.82–0.85 a 0.7 horší než bez filtru; filtr ubere 15–35 % fillů, runtime +25 %.
+
+| set | pnl | hold | chunky | chunk_min | fills | inv_q997 | runtime |
+|---|---|---|---|---|---|---|---|
+| champion (imb_pull 0) | 237 306 | 54 929 | 8/8 | 22 010 | 10 333 | 100 | 17 s |
+| imb_pull 0.925 | 241 670 | 56 504 | 8/8 | 22 160 | 8 206 | 100 | 21 s |
+| imb_pull 0.95 | 241 387 | 56 898 | 8/8 | 22 083 | 8 873 | 100 | 21 s |
+| imb_pull 0.9 | 240 146 | 56 650 | 8/8 | 21 744 | 7 668 | 100 | 21–25 s |
+| imb_pull 0.9, improve 3 | 239 114 | 55 996 | 8/8 | 21 636 | 7 626 | 100 | 24 s |
+
+`research.compare` champion vs `{"imb_pull": 0.9}`: **REJECT**, B vyhrává jen 4/8 párových chunků (+2 840 pnl,
++1 721 hold, zisk soustředěný ve 3 chuncích).
+**Závěr:** champion je na sample_v2 lokálně optimální v testovaných osách; `imb_pull` ≈ 0.9–0.95 je malé plató
+(+1–2 %), ale neprojde protokolem → nepovyšovat. Pozor: inv_q997 = 100, champion jezdí až na limitu pozice.
+**Další krok:** na Round 1 stejné osy + `alpha_imbalance` (imbalance L1 má na sample_v2 IC +0,35 při 100 ms–1 s)
+a `inv_stop`/`unwind_threshold` kvůli pozici na limitu.
+
+## 2026-11-07 12:45 — Před Round 1: tři rychlé hypotézy nad championem na `sample_v2` (home, mozek)
+
+**Hypotéza H1 (`full_capacity`):** champion `mm_v2` je limitovaný objemem (~0,5 $/lot) a třetinu času sedí
+na stropu |I| = 100. Invariant (B) I + OUT_buy ≤ M, (S) −I + OUT_sell ≤ M dovoluje straně, která |I| snižuje,
+až M + |I| lotů (200 při |I| = 100), ale `quote_size` 100 ji kapoval na 100.
+**Změna:** žádný kód, jen `quote_size` 200 (`_quote` posílá min(quote_size − have, free), takže naprázdno
+kotuje 100/100 jako dřív a při I = +60 má ask 160). Zapečeno v `strategies/exp_full_capacity.py`.
+**Data:** sample_v2 (ledger `home-mmv2-qsize-over`).
+**Výsledek:** quote_size 100 → 237 306 | 125 → 244 627 | 150 → 252 437 | **200 → 263 618 (+11,1 %)** | 300 → 263 618
+(saturace na M + |I|). Holdout 54 929 → 61 917 (+12,7 %), chunk_min 22 010 → 24 340, fills 10 333 → 8 116
+(méně fillů, větší), breach 0, inv_q997 100. `research.compare` champion vs `{"quote_size": 200}`:
+**ACCEPT**, B vyhrává 8/8 párových chunků (+2 141 až +2 802 každý), hold +6 988. `research.check --rows 0`: PASS,
+68 s projekce na 8,8 M řádků.
+**Závěr:** funguje; čistě mechanická páka bez nové mechaniky a bez nového rizika (invariant beze změny,
+|I| ≤ 100 dál platí). Kandidát na pojistnou submisi R1, pokud compare na R1 public řekne ACCEPT.
+
+**Hypotéza H3 (`improve_unwind`, `strategies/exp_improve_unwind.py`):** při |I| ≥ N a spreadu ≥ 2 kotovat
+odvíjející stranu o tick uvnitř (čelo prázdné hladiny) → rychleji flat, uvolněná kapacita zaplatí půl tick.
+**Výsledek** (ledger `v2-improve-unwind`, parita 237 306 ✔, check PASS): N = 100 → 198 395 (−16 %), 90 → 196 187,
+80 → 192 529, 60 → 177 449, 40 → 163 992; fills +1,5 %. **Nefunguje:** filly uvnitř spreadu jsou adverzní
+(cena jde skrz), a to i když se spouští jen na stropu.
+
+**Hypotéza H4 (`hold_inside`, `strategies/exp_hold_inside.py`):** když trh ustoupí od naší hladiny (jsme sami
+o tick uvnitř nového touch), zůstat na čele místo návratu na konec hluboké fronty; trh se na úrovni ticku vrací
+(P = 0,63). **Výsledek** (ledger `v2-hold-inside`, parita ✔, check PASS): hold 1/2/3 ticky → shodně 210 974
+(−11 %) při 13 110 fillech (+27 %), holdout 49 501. **Nefunguje:** víc fillů, každý o třetinu horší; ústup
+trhu je informovaný a držená kotace je první na ráně.
+
+**Poučení:** edge je jen na touch; páka je velikost na touch (H1), ne cena. `improve`, `skew`, `hold_inside`
+i `improve_unwind` shodně prodělávají.
+**Další krok:** po kickoffu R1 compare champion vs `exp_full_capacity` na round1 + sample_v2; CPU sweep
+championa na R1 (quote_size 100/200 × imb_pull × alpha_imbalance × min_requote_us, max_position 80/90).
