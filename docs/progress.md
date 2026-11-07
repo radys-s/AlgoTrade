@@ -743,3 +743,14 @@ sample_v2 jen 0,12/0,5 a 0,10/0,5 drží ±0 (253 143 / 252 731), agresivnějš�
 Compare {0,10, 0,5}: round1 **+4 074 (7/8), holdout +1 305**; sample_v2 −1 330 (1/8, holdout +168) → nástroj ACCEPT, ale
 datasety nesouhlasí ve znaménku. **Závěr:** reprodukuje trade-off prahu 0,10–0,12, ne nový edge; kandidát jen do R1
 stacku s krychlemi, pokud krychle vyjdou (jeden společný compare, jeden upload).
+
+## 2026-11-07 15:25 — Krychle imbalance v ridge: IC +0,03 drží out-of-sample, PnL na round1 ne → REJECT (home, mozek)
+
+`strategies/exp_ml_cubes.py` (`ml_model` base/cubes/cubes_avg, parita 490 460 ✔, check PASS, +24 µs/ev, 4,1 min / 8,8 M),
+report `research/reports/round1_ml_cubes.md`. IC hold 0,375 → 0,406, top-1 % edge 0,384 → 0,476 ticku (drží v holdoutu).
+Sweep (ledger `r1-ml-cubes`, prahy 0,13/0,16/0,19 sladěné na četnost): round1 486–488 k (−2 až −12 k), sample_v2 253–258 k
+(+3,7 k při 0,16). Compare {cubes, 0,16}: round1 −4 296 (2/8), holdout −1 872; sample_v2 +3 700 (7/8) → REJECT.
+Poctivý holdout (váhy jen z 75 %) 124 496 vs mm_ml 126 128 → leak to nevysvětluje.
+**Závěr (stejná lekce jako MLP):** na round1 shrink už jistý „ocas“ bere; ostřejší signál přidá filly, ne PnL. Krychle
+pomáhají v režimu v2 → nechat jako volbu `ml_model` pro R2, pokud data card připomene v2. **ML shrink na round1 je
+nasycen na ~490–497 k; další zisk v této rodině na R1 nečekat.**
