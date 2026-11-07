@@ -958,3 +958,18 @@ optuna`). 24 trialů na round1 přes 9 knobů (thr, thr_lo, frac, stub, park_siz
 nejlepší train 382 319 / hold 130 067 / pnl 512 386 (thr 0,109, thr_lo 0,08, frac 0,58, stub 3, park 16/7, quote 160) — **pod final2
 (train 382 377, hold 131 716, pnl 514 093)**. Povrch je plochý; ruční gridy už optimum našly. Žádný nový soubor; nástroj zůstává pro R2
 (přeladění po refitu za ~15 min místo hodinového gridu).
+
+## 2026-11-07 18:15 — Privátní výsledky R1: 12. místo z 61, 511 422; pole vyrostlo o ~25 %, my ne (home, mozek)
+
+Privátní leaderboard R1: GammaStrike 792 696, Olexa namichej 701 374, Podbranč 667 357, Southeast Fortress 657 359, Codehorses
+655 444, Mac mec mic 615 391, quantový mouchy 603 501, ThatsMyQuant 602 527, Girls JWHF 576 877, Kakaový nápoj 533 533, FIFO 524 193,
+**p<0.05 511 422 (12.)**. Průměr 434 481, SD 138 695, medián 447 797 (60 týmů > 0; Cinkačka −52 = 0). Naše z = 0,55 → **0,44 bodu**;
+lídr z 2,58 → 2,07; top 5 ≥ 1,27 bodu.
+**Klíčové pozorování:** veřejný průměr pole byl 344 k (15:30), privátní 434 k → pole +25 %; GammaStrike 650 → 793 k (+22 %);
+**my 514 093 → 511 422 (±0 %)**. Privátní páska je tedy „bohatší“ (víc objemu/volatility, pravděpodobně jiné parametry
+generátoru, jako sample_v2 vs round1), a náš edge se na ni nepřenesl, zatímco edge ostatních ano. Hypotéza: vrstvy laděné na
+veřejnou pásku (pevný práh shrinku 0,105 na škále predikce, graded 0,07, park 15/8, tight_only) jsou křehké vůči posunu parametrů
+(viz citlivost prahu ±5 % a jiné optimum na v2); plain mm_park by při +25 % pole měl ~565 k. Moje hypotéza „650 k = přefit“ byla špatně.
+**Další krok:** (1) zjistit privátní PnL našich pěti submisí (mm_park 452 k, mm_ml 490 k, r1tuned 497 k, final 510 k, final2 514 k
+veřejně) → která vrstva se přenesla; (2) adaptivní práh shrinku (klouzavý kvantil |pred|, konstantní podíl spouštění) a velikosti
+relativní k rozdělení IOC → robustnost vůči parametrům generátoru; (3) na R2 preferovat robustní variantu před veřejně doladěnou.
