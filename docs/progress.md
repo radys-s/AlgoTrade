@@ -646,3 +646,16 @@ o kvalitě fillů. Potvrzuje: každý lot kapacity musí ležet na touch.
   stub 10 = 486,594; thr 0.1 = 485-488k; thr 0.3 = 454k (~ off); thr 0.05 = 388-401k (too aggressive). Plateau 0.1-0.15.
 - **Did not help:** thin-level cap (150/300 lots), flow pull, park 30 vs 20 (72-combo screen, 25 % then full).
 - **Next:** server upload to confirm; runtime check on idle CPU (ML adds per-event cost); Honza iterates further.
+
+## 2026-11-07 14:45 — Ověření Tomášova `mm_ml` (home, mozek, R1)
+
+`research.compare` mm_park vs mm_ml (main 1769eaa = submission): round1 452 651 → **490 460 (+37 809, +8,4 %)**, holdout
+117 886 → 126 291 (+8 405), **8/8 párových chunků** (+3 265 až +4 448, rovnoměrně), fills 41 934 → 46 527; sample_v2
+251 236 → 254 061 (+2 825, holdout +1 835, 5/8) s váhami z round1 → signál pomáhá i cross-market. `research.check`
+na round1 (pod zátěží 20 procesů): PASS, 25 µs/událost nad prázdnou strategií, 131 s na 4,4 M, projekce 4,4 min na
+8,8 M (notebook bez zátěže 7,0 min — hranice našeho cíle, sandbox 15 min).
+**Výhrady (notebook):** ridge byl fitnut `--export-linear` na celém round1 včetně holdoutu → holdout zisk je zčásti
+in-sample; řeší agent (čistý fit na prvních 75 % času, `strategies/exp_ml_clean.py`) spolu s `ml_every` kvůli runtime.
+**Sebekritika mozku:** drift 0,33 ticku po fillu byl největší číslo v attribution; odepsal jsem ho kvůli ztrátám
+cancel-filtrů („shrink ≈ cancel“). Shrink přes modify drží čelo fronty → +8,4 %. Pravidlo: každé „kdy nekotovat“
+implementovat jako zmenšení, nikdy jako cancel.
