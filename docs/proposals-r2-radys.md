@@ -196,3 +196,9 @@ explicit over-cap one and the penalty is counted), R1 not negative, sandbox chec
   proxy of F drift — so try removing the gate entirely at the 15 s horizon with a *lower* fair threshold instead;
   (3) the crossing margin should probably also scale with the book's one-sidedness (spread 2-3 vs 10-80 ticks are
   different regimes) — `take_k_spread` only handles spread >= 2.
+- **A1 sweep** (90 sets, halving; ledger `research/results/*r2-take-sweep*`): best take_exit_thr 1.0, take_size 100,
+  cool 100 ms = **132,086** (8/8, holdout 48.7k); entry taker adds ~0. Superseded by Honza's fair taker line
+  (mm_r2_fq2 -> mm_r2_pred -> mm_r2_zd, leaderboard 740k -> 798k -> ~850k public), which flips the full position
+  with an IOC whenever F_hat crosses the far touch, i.e. A1 taken to its limit.
+- 23:15: grid on mm_r2_zd (copy `strategies/zd_radys_grid.py`): fq_take_k {0.1,0.2,0.3} x pred_blend {0.5,0.75}
+  x zd_min_ahead {0,100}. Results below if they land before the close.

@@ -991,3 +991,8 @@ at thresholds 1.0 / 1.5 / 2.0 (500 ms hold, optimistic overlapping samples). No 
 - Queue-position variants on top of the unload are DEAD on R2 (`20261107-213132_radys-s_r2-park-ladder.csv`):
   park_size 20 -16.4k, park_depth 2 -23.5k, ladder 15 -211, ladder 40 -72 (holdout +1.2k = noise). R2 touch queues
   are 1,000+ lots, so the R1 queue-age edge does not transfer; a parked stub only re-enters at a worse price.
+
+## 2026-11-07 ~23:50 radys: zd grid result, strategy (7) = mm_r2_rtq
+
+- zd grid (take_k, blend, min_ahead) on round2: baseline 392,436 local (8/8 chunks) is the max; blend 0.75 = 391,843; min_ahead 100 = 383,129; take_k 0.1/0.3 = 365-379k. No gain, zd params are a local optimum.
+- Strategy (7) mm_r2_rtq (rt_ms 20 + qs_k 0.45/qs_weak 100 over zd) scored 891,734 on the public leaderboard, best so far. Small rtq grid (rt_ms 20/40, qs_k 0.45/0.7) running as the last check.
