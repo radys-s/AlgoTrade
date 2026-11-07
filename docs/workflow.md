@@ -13,7 +13,7 @@ protokol proti overfittingu. Hodnotí se na **privátních** datech, my vidíme 
    `research/results/<čas>_<user>_<tag>.csv` (parametry, PnL, holdout, PnL po chuncích, commit)
    a ukládá snapshot strategie do `research/results/strategies/`. Soubory se nikdy nepřepisují →
    žádné merge konflikty mezi větvemi a Qminers vidí celý výzkum, i neúspěšné pokusy.
-3. **Champion/challenger s tvrdým protokolem.** `strategies/champion.py` je to, co je na aréně.
+3. **Champion/challenger s tvrdým protokolem.** `submission/best_strategy.py` je to, co je na aréně.
    Challenger ho nahradí jen když `research.compare` řekne ACCEPT:
    - žádná pokuta za |I| > 100 na žádném datasetu,
    - na aktuálním kole vyhraje aspoň 6 z 8 párových časových chunků (trénovací 75 % času),
@@ -35,7 +35,7 @@ pokuta 10 000 $/s za |I| > 100 → v každé strategii platí tvrdý invariant p
 | **Google Colab** | GPU pro PyTorch MLP nad `research.signals` exportem. Do strategie jde jen inference v numpy (soubor ≤ 1 MiB, levná na událost). |
 
 Paralelní práce bez konfliktů: každý experiment má vlastní soubor `strategies/exp_<jméno>.py`
-(kopie championa + změna za parametrem), `strategies/champion.py`, `STATUS.md` a `progress.md`
+(kopie championa + změna za parametrem), `submission/best_strategy.py`, `STATUS.md` a `progress.md`
 mění jen integrátor (Honzův hlavní Claude). Claude Max má taky limity za 5h okno — waves po
 ~6 agentech, ne stovky najednou.
 
@@ -81,6 +81,7 @@ Rodiny hypotéz (výchozí zásobník):
 ```bash
 # nová data kola
 uv run python -m gzip -d data/<kolo>.csv.gz
+uv run python -X utf8 research/analyze_tape.py data/<kolo>.csv   # Tomášův rychlý první pohled (3 s)
 uv run python -m research.features data/<kolo>.csv      # dataset pro ML (data/features/, git-ignored)
 uv run python -m research.profile data/<kolo>.csv       # data card → research/reports/<kolo>.md
 
@@ -97,10 +98,10 @@ uv run python -m research.ledger --data <kolo> --top 20
 uv run python -m research.ledger --robust --data <kolo> <minulé>
 
 # champion vs challenger → ACCEPT/REJECT
-uv run python -m research.compare --a strategies/champion.py --b strategies/exp_x.py --data data/<kolo>.csv data/<minulé>.csv
+uv run python -m research.compare --a submission/best_strategy.py --b strategies/exp_x.py --data data/<kolo>.csv data/<minulé>.csv
 
 # před každou submisí
-uv run python -m research.check strategies/champion.py --data data/<kolo>.csv
+uv run python -m research.check submission/best_strategy.py --data data/<kolo>.csv
 
 # signály a ML (walk-forward ridge + HGB, export lineárního modelu, dataset pro MLP)
 uv run python -m research.signals data/features/<kolo>.npz --horizon-ms 1000
@@ -109,7 +110,7 @@ uv run python -m research.signals data/features/<kolo>.npz --horizon-ms 1000 --e
 uv run --with torch python -m research.train_mlp data/features/<kolo>_ml.npz --hidden 32 --epochs 30
 
 # lidská kontrola v exploreru (plné logy pro konkrétní parametry)
-uv run python -m research.run --strategy strategies/champion.py --data data/<kolo>.csv --full-logs --tag inspect --no-ledger
+uv run python -m research.run --strategy submission/best_strategy.py --data data/<kolo>.csv --full-logs --tag inspect --no-ledger
 uv run backtest-explorer --log-dir logs/inspect/000_<kolo>
 ```
 

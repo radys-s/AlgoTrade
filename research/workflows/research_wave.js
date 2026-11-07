@@ -11,13 +11,13 @@ export const meta = {
   ],
 }
 
-// args: { data: 'data/round1.csv', prior: ['data/playground.csv'], champion: 'strategies/champion.py',
+// args: { data: 'data/round1.csv', prior: ['data/playground.csv'], champion: 'submission/best_strategy.py',
 //         wave: 1, slots: 6, workers: 2, recon: false, focus: 'optional steer from the team' }
 const A = args || {}
 const DATA = A.data
 if (!DATA) throw new Error('args.data (the current round CSV) is required')
 const PRIOR = A.prior || []
-const CHAMPION = A.champion || 'strategies/champion.py'
+const CHAMPION = A.champion || 'submission/best_strategy.py'
 const WAVE = A.wave || 1
 const SLOTS = A.slots || 6
 const WORKERS = A.workers || 2

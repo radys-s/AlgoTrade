@@ -16,12 +16,14 @@ successful upload, so a careless experimental upload silently becomes the final.
    `uv run python -m research.check <file> --data data/<round>.csv --rows 0`
    Must PASS. Projected time for the full file must stay well under 15 min (aim < 7 min
    locally; the sandbox has 1 CPU and may be slower). Fix every ERROR; read every WARN.
-3. **Better than what is live:** `research.compare` against the current `strategies/champion.py`
+3. **Better than what is live:** `research.compare` against the current `submission/best_strategy.py`
    on the round data and earlier datasets says ACCEPT, or the humans accept a written reason.
 4. **No breach anywhere:** breach_penalty 0 on every dataset in the ledger for this file.
-5. **Record it:** copy to `strategies/champion.py`, commit (`git add` the strategy, ledger files
-   and `docs/progress.md`), merge the personal branch into `main` (merge, never rebase or
-   force-push), push. `main` must equal what is on the arena.
+5. **Record it:** copy the winning `strategies/<name>.py` over `submission/best_strategy.py` (the
+   only file ever uploaded; rules in `submission/README.md`) and update its "Current best" table.
+   Commit (`git add` the strategy, ledger files and `docs/progress.md`), merge the personal branch
+   into `main` (merge, never rebase or force-push), push. `main` must equal what is on the arena.
+   Check end-of-data constants (e.g. `FLATTEN_AT_US` in `momentum_hold`) against the round length.
 6. **Tell the human** the exact file path to upload, the expected public PnL (the server reruns
    the public data, so its number should match the local run), and to verify on the dashboard
    which submission is marked final.

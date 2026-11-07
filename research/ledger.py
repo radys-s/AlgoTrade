@@ -15,13 +15,19 @@ import pandas as pd
 RESULTS_DIR = Path(__file__).parent / 'results'
 
 
+REQUIRED = {'time', 'dataset', 'strategy', 'strategy_sha', 'overrides', 'pnl', 'error'}
+
+
 def load_ledger() -> pd.DataFrame:
-    """All ledger rows, newest last; empty frame when nothing has been run yet."""
-    files = sorted(RESULTS_DIR.glob('*.csv'))
-    if not files:
+    """All research.run ledger rows, newest last; other CSVs in the folder (e.g. grid.py output) are skipped."""
+    frames = []
+    for file in sorted(RESULTS_DIR.glob('*.csv')):
+        frame = pd.read_csv(file, dtype={'commit': str, 'strategy_sha': str})
+        if REQUIRED <= set(frame.columns):
+            frames.append(frame)
+    if not frames:
         return pd.DataFrame()
-    frame = pd.concat([pd.read_csv(file, dtype={'commit': str, 'strategy_sha': str}) for file in files])
-    return frame.sort_values('time').reset_index(drop=True)
+    return pd.concat(frames).sort_values('time').reset_index(drop=True)
 
 
 def parse_args() -> argparse.Namespace:

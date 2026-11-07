@@ -12,7 +12,7 @@ One sentence on the market behaviour exploited and why it should hold on *unseen
 (the arena scores on private data). If you cannot say why, it is curve fitting.
 
 ## 2. Implement behind a flag
-- `cp strategies/champion.py strategies/exp_<slug>.py`; you own only that file.
+- `cp submission/best_strategy.py strategies/exp_<slug>.py`; you own only that file.
 - Every tunable lives in the class dict `PARAMS` and is read via `self.PARAMS[...]`.
   The new mechanic is off by default so the file reproduces the champion.
 - Keep per-event work tiny (up to ~9M callbacks, 15 min sandbox on 1 CPU): no numpy on every
@@ -43,12 +43,12 @@ Pick the middle of a plateau (neighbours also good), not the single best cell. L
 
 ## 5. Judge
 ```bash
-uv run python -m research.compare --a strategies/champion.py --b strategies/exp_<slug>.py \
+uv run python -m research.compare --a submission/best_strategy.py --b strategies/exp_<slug>.py \
     --b-set '<best overrides json>' --data data/<round>.csv <earlier...>
 ```
 ACCEPT requires: no breach, >= 6/8 paired training chunks won, better holdout, and still
 positive on every earlier dataset where the champion is positive. Then `research.check` with
-the runtime run. Promotion to `strategies/champion.py` and submissions are a human decision.
+the runtime run. Promotion to `submission/best_strategy.py` and submissions are a human decision.
 
 ## 6. Log, also when it failed
 Append to `docs/progress.md` with the template at its end (hypothesis, change, data, result
