@@ -659,3 +659,15 @@ in-sample; řeší agent (čistý fit na prvních 75 % času, `strategies/exp_ml
 **Sebekritika mozku:** drift 0,33 ticku po fillu byl největší číslo v attribution; odepsal jsem ho kvůli ztrátám
 cancel-filtrů („shrink ≈ cancel“). Shrink přes modify drží čelo fronty → +8,4 %. Pravidlo: každé „kdy nekotovat“
 implementovat jako zmenšení, nikdy jako cancel.
+
+## 2026-11-07 14:50 — Jemný grid `mm_ml`: ml_thr × ml_stub na round1 + sample_v2 (home, mozek)
+
+Ledger `r1-mlml-grid` (15 buněk × 2 datasety, váhy ridge z celého round1 = stejné jako v mm_ml, breach 0 všude, ~130 s/běh):
+round1: **thr 0,12 / stub 3 → 497 292** (+6 832, holdout 127 553), 0,12/5 → 496 001, 0,12/8 → 494 597, 0,15/3 → 492 647
+(holdout 126 652), **0,15/5 → 490 460 (baked)**, 0,10 → 487–488 k, 0,20 → 462–464 k, 0,08 → 458–461 k.
+sample_v2: 0,15–0,20 → 254–255 k, 0,12 → 244–246 k (−10 k), 0,10 → 232 k, 0,08 → 217–222 k. Velikost stubu 3/5/8 je
+druhořadá (±2 k).
+**Závěr:** plató thr 0,12–0,15; vrchol je na práh citlivý (±5 % mezi 0,10 a 0,20) a práh závisí na škále predikce
+→ **na R2 se musí po refitu modelu práh znovu naladit**. Round1-optimum 0,12/3 (+1,4 %) je režimové ladění (na v2 −4 %);
+robustní volba 0,15 se stubem 3 (round1 +2,2 k, v2 ±0). Baked 0,15/5 zatím neměnit, dokud nedojde čistý (neleakující)
+model; pak sestavit „R1 final“ stack (thr 0,12/3 + park_max 5 + improve_stub 20) a zvážit jako druhý upload.
