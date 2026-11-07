@@ -1,42 +1,37 @@
-# Round 2: final candidates (home, 2026-11-07 ~23:00)
+# Round 2: final candidates (home, 2026-11-07 ~23:25)
 
-The leaderboard tape is a different, ~2x longer realization of the round-2 generator (mark-out price 10,482); local
-round2 gains scale ~x2.1, but parameter tweaks worth < ~3-4 % locally behave like +-10k noise there.
+The leaderboard tape is a different, ~2x longer realization of the round-2 generator (mark-out price 10,482). Taker
+improvements transferred ~x2.5 (mm_r2_pred +58k, mm_r2_zd +52k); gate tweaks worth +2..7k locally lost ~11k there.
+Final scoring is on private data from the same market, so pick the best EXPECTED strategy, not the luckiest upload.
 
 ## Leaderboard results so far
 
 | file | local round2 | leaderboard | note |
 |---|---:|---:|---|
 | strategies/mm_r2_fq2.py | 349,077 | 740,067 | aggressive hidden-fair IOC taker + F-side touch quotes + 30 s gate |
-| **strategies/mm_r2_pred.py** | 371,961 | **797,904** | + ridge predictor for the taker (blend 0.5) — **current final** |
-| strategies/mm_r2_pred2.py | 378,507 | 787,414 | gate 20 s / thr 10 — worse, do not use |
-| strategies/mm_r2_pred_g6.py | 373,833 | 786,205 | gate 6 / 30 s — worse, do not use |
+| strategies/mm_r2_pred.py | 371,961 | 797,904 | + ridge predictor for the taker (blend 0.5) |
+| strategies/mm_r2_pred2.py | 378,507 | 787,414 | gate 20 s / thr 10 - worse |
+| strategies/mm_r2_pred_g6.py | 373,833 | 786,205 | gate 6 / 30 s - worse |
+| **strategies/mm_r2_zd.py** | **392,436** | **849,747** | + zero-delay flip take and requote - **current final** |
 
-## Next candidate
+Public chart at 22:53: 75th percentile ~860k (+-10k), median 288k; the top edge of the band moved with our own uploads.
 
-**strategies/mm_r2_zd.py** = mm_r2_pred + zero-delay take (the flip IOC goes out in the same callback as the cancel of
-our own blocking passive quote; a guard IOC trims any |I| > 100 at once; ~1k penalty per tape is inside the pnl) +
-zero-delay requote toward the market. Better than mm_r2_pred on all four local tapes:
+## Rejected after mm_r2_zd (round2 + mirror sum, base 783,271)
 
-| tape | mm_r2_pred | mm_r2_zd |
-|---|---:|---:|
-| round2 | 371,961 | 392,436 |
-| round2_mirror | 369,664 | 390,836 |
-| round1 | 441,626 | 457,289 |
-| sample_v2 | 265,868 | 267,405 |
+| idea | result |
+|---|---|
+| F-guarded small-order ladder (queue age) | +80 / -730 (pred_qs), -336 / -190 (zd) |
+| order-statistic F (max bid / min ask insert) in taker or quotes | 529-755k |
+| deeper taker IOC when F_hat is far (sk) | never triggers (0) |
+| taker needs ridge AND fair_sig | 727-737k |
+| over-cap trade on hidden-F jumps | 768-781k (jump inserts are > 20 ticks away = invisible; the book collapses in 20-50 ms) |
+| follow / fade big sweeps with the taker | -390k..682k / -99k..663k |
+| taker slip 1 / 2 ticks | 661k / 615k |
+| thin-touch pull | 706-744k |
+| flow pull after big sweeps (300 lots, 200-300 ms) | 789-795k (+6..11k) but round1 -45k, sample_v2 -18k: noise-level, not used |
 
-check_submission OK, research.check PASS (1.5 min / 8.8M rows). Upload it; if the leaderboard shows more than
-797,904, mark it final, otherwise keep mm_r2_pred as final.
+## Where the remaining money is
 
-## Not recommended
-
-mm_r2_zd100 / mm_r2_pred_qs (quote_size 100): +2.5..11k on round2 but -29..-50k on other tapes (regime-fragile).
-
-## Where the remaining money is (diagnostics, local round2)
-
-- Front-of-queue oracle on the current structure: 622k vs 383k real (+239k): being early in thick queues. An
-  F-guarded early-placed ladder + taker is being tested (strategies/exp_r2_ladderF.py).
-- A perfect 150 ms predictor would give 935k, but every realistic estimator (Kalman, Tobit, CUSUM, multi-tau ridge,
-  cancel flow) is at the information limit; the ridge in mm_r2_pred is the only one that helped (+23k).
-- Over-cap, small-order grids without the taker, inside-spread quotes, sticky quotes, capacity release by IOC and the
-  ML shrink all lose (docs/progress.md has every number).
+- A perfect 150 ms predictor would make 935k locally: precision at the taker's threshold crossings is the lever.
+  Bulk correlation gains (order statistics, multi-tau, pred2) do not carry over; only the ridge did (+23k / +58k LB).
+- Queue priority (+239k oracle) cannot be reached with resting orders: deep rungs only fill on informed sweeps.
