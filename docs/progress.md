@@ -1261,3 +1261,13 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
   + qs 840.1k (base 783.3k).
 - Subagent predb (ridge with sweep / queue / clipped-fs70 features): no gain (offline corr 0.432 -> 0.462 but fewer
   triggers; the taker's pnl follows trigger count x edge, not corr). Thick-queue skip, improve-pull: worse.
+
+## 2026-11-07 23:43 — Leaderboard mm_r2_rts = 957,133 (+65k); next upload mm_r2_rth = 430,781 / 429,296 (home)
+
+- Leaderboard: `mm_r2_rts` **957,133.26** (22,630 filled orders, penalty 1,821): +65.4k over mm_r2_rtq for +14.6k per
+  local tape (x4.5: the passive-side filters transfer even better than the taker changes).
+- **`strategies/mm_r2_rth.py`** = mm_r2_rts + hole filter (hk_gap 3 / hk_k 0.8: when the next market level behind our
+  side's touch is >= 3 ticks away, the touch quote needs F_hat >= 0.8 ticks inside it; sweeps through a level with a hole
+  behind mark out -1.5/lot). round2 **430,781** (+10.1k), mirror 429,296 (+9.9k), check PASS 2.2 min.
+- Rejected on rts: own-fill pull (758k), imbalance pull (693-766k), quote inside the spread (778k), fq_k 0.15 / 0.0,
+  separate spread-3 threshold (+0.9k), rt / qs retune (+-2k).
