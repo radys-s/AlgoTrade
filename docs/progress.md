@@ -950,3 +950,11 @@ Ledger `r1-final2-retune` (thr 0,095/0,105/0,115 × thr_lo 0,06/0,07/0,08): 0,11
 Diff proti final2 jen dvě čísla. Compare final2 vs final3: round1 514 093 → 515 687 (+1 594, 7/8), **holdout −166**; sample_v2 +472 (5/8),
 holdout +143 → REJECT protokolem (holdout horší); check PASS. Zisk v šumu (~0,01 bodu), přepínání finalu 20 min před koncem bez
 přínosu → doporučeno nenahrávat. **Final R1 = `mm_r1_final2` 514 093.**
+
+## 2026-11-07 18:00 — Optuna (TPE) nad final2: nic nad ruční optimum; R1 definitivně 514 093 (home, mozek)
+
+`research/optuna_tune.py` (TPE přes `research.run --set` v paralelních dávkách, cíl = train PnL, holdout mimo hledání; `uv run --with
+optuna`). 24 trialů na round1 přes 9 knobů (thr, thr_lo, frac, stub, park_size/max/depth, quote_size, tight_only; ledger `r1-optuna-*`):
+nejlepší train 382 319 / hold 130 067 / pnl 512 386 (thr 0,109, thr_lo 0,08, frac 0,58, stub 3, park 16/7, quote 160) — **pod final2
+(train 382 377, hold 131 716, pnl 514 093)**. Povrch je plochý; ruční gridy už optimum našly. Žádný nový soubor; nástroj zůstává pro R2
+(přeladění po refitu za ~15 min místo hodinového gridu).
