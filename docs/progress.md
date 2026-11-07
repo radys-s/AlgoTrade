@@ -734,3 +734,12 @@ vypíše IC/std/kvantily a pustí check. ~10 s. **Validace:** refit na round1 je
 **Generálka R2 (`strategies/mm_ml_v2fit.py`, fit na sample_v2):** škála predikce 0,064 vs 0,11 na round1 → auto práh 0,086;
 sample_v2 250 588 (champion s round1 modelem 254 061, −1,4 %, bez follow-up gridu); **model z v2 na round1: 294 677 (−40 %)**
 → model se mezi trhy přenáší špatně, na R2 je refit na skutečné pásce kola nutný a práh musí jít z kvantilu.
+
+## 2026-11-07 15:20 — H17 odstupňovaný shrink: malý zisk na round1 (+0,8 %, 7/8), na v2 mírně záporný (home, mozek)
+
+`strategies/exp_ml_graded.py` = mm_ml + `ml_thr_lo` / `ml_frac_lo` (částečný cap mezi dvěma prahy), parita 490 460 ✔, check PASS.
+Ledger `r1-ml-graded`: round1 nejlépe 0,10/0,25 → 496 881, 0,12/0,25 → 496 217 (holdout 128 408), 0,10/0,5 → 494 534;
+sample_v2 jen 0,12/0,5 a 0,10/0,5 drží ±0 (253 143 / 252 731), agresivnější frakce 0,25 ztrácí až −5 %.
+Compare {0,10, 0,5}: round1 **+4 074 (7/8), holdout +1 305**; sample_v2 −1 330 (1/8, holdout +168) → nástroj ACCEPT, ale
+datasety nesouhlasí ve znaménku. **Závěr:** reprodukuje trade-off prahu 0,10–0,12, ne nový edge; kandidát jen do R1
+stacku s krychlemi, pokud krychle vyjdou (jeden společný compare, jeden upload).
