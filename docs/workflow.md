@@ -79,8 +79,12 @@ Rodiny hypotéz (výchozí zásobník):
 ## Příkazy
 
 ```bash
-# nová data kola
-uv run python -m gzip -d data/<kolo>.csv.gz
+# START KOLA: jeden příkaz (rozbalí, nahraje pro domácí PC, baseliny + check, data card, signály,
+# taker scan, MM edge) → research/reports/<kolo>_kickoff.md s verdiktem pojistné submise
+uv run python -m research.round data/<soubor>.csv.gz --publish      # notebook
+uv run python -m research.round --fetch <kolo>                      # domácí PC
+
+# jednotlivé kroky ručně
 uv run python -X utf8 research/analyze_tape.py data/<kolo>.csv   # Tomášův rychlý první pohled (3 s)
 uv run python -m research.features data/<kolo>.csv      # dataset pro ML (data/features/, git-ignored)
 uv run python -m research.profile data/<kolo>.csv       # data card → research/reports/<kolo>.md

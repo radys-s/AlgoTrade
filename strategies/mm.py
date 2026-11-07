@@ -31,6 +31,7 @@ The reject rule |I + s(R + q)| > 1000 can never fire either: R + q <= OUT_k (+q)
 s*I + R + q <= M <= 100, and s*I >= -M, so the value lies in [-100, 100].
 """
 
+from collections import deque
 from math import floor
 
 from simulator.models import (
@@ -106,6 +107,16 @@ class MarketMaker(BaseStrategy):
         'unwind_size': 5,
         # Max market orders per side summed into the L1 quantity for the imbalance (ours are skipped).
         'book_scan_orders': 8,
+        # Adverse-selection filter (research.mm_edge): pull/skip a side whose fills are toxic. Off by default.
+        'as_filter': False,
+        # Window for the net aggressive flow (+ buyer-initiated lots, - seller-initiated, every trade seen).
+        'as_flow_window_us': 100_000,
+        # Pull the bid when sell flow exceeds buy flow by more than this many lots in the window,
+        # the ask when buy flow exceeds sell flow by more than this; < 0 disables the flow rule.
+        'as_flow_max': 0,
+        # Pull a side whose L1 imbalance from its own view, (own - other) / (own + other) over market
+        # orders (book_scan_orders), is below this; <= -1 disables the imbalance rule.
+        'as_imbalance_min': -1.0,
     }
 
     def __init__(self) -> None:
@@ -123,6 +134,15 @@ class MarketMaker(BaseStrategy):
         self.unwind_threshold = int(params['unwind_threshold'])
         self.unwind_size = int(params['unwind_size'])
         self.book_scan_orders = max(1, int(params['book_scan_orders']))
+        self.as_filter = bool(params['as_filter'])
+        self.as_flow_window_us = max(0, int(params['as_flow_window_us']))
+        self.as_flow_max = int(params['as_flow_max'])
+        self.as_imbalance_min = float(params['as_imbalance_min'])
+        self.as_use_flow = self.as_filter and self.as_flow_max >= 0
+        self.as_use_imb = self.as_filter and self.as_imbalance_min > -1.0
+        self.flow_q: deque = deque()  # (timestamp_us, signed lots) of recent trades
+        self.flow_net = 0
+        self.n_pulls = [0, 0]
 
         # Position and order state (index k: 0 = buy, 1 = sell).
         self.inv = 0
@@ -151,12 +171,24 @@ class MarketMaker(BaseStrategy):
 
     def on_order_book_change(self, snapshot: OrderBookSnapshot, trades: list[Trade]) -> None:
         """Recompute the desired bid/ask from the market touch and move our quotes if needed."""
+        now = snapshot.timestamp_us
+        if self.as_use_flow:  # rolling net aggressive flow, before any early return so no trade is missed
+            q = self.flow_q
+            net = self.flow_net
+            for trade in trades:
+                v = trade.quantity if trade.book_side == 'ask' else -trade.quantity
+                q.append((now, v))
+                net += v
+            cutoff = now - self.as_flow_window_us
+            while q and q[0][0] <= cutoff:
+                net -= q.popleft()[1]
+            self.flow_net = net
         bids = snapshot.bids
         asks = snapshot.asks
         if not bids or not asks:
             return
         scan = self.book_scan_orders
-        need_qty = self.alpha_imbalance != 0.0
+        need_qty = self.alpha_imbalance != 0.0 or self.as_use_imb
 
         # Market touch and its quantity, skipping our own orders (only market orders count
         # towards the scan limit, so our own fragments can never hide the touch).
@@ -218,11 +250,45 @@ class MarketMaker(BaseStrategy):
         if ask <= bb:
             ask = bb + 1
 
-        now = snapshot.timestamp_us
         if self.unwind_threshold > 0 and self.unwind_id is None and abs(inv) >= self.unwind_threshold:
             self._unwind(bb, ba)
+        if self.as_filter:
+            pull_bid = pull_ask = False
+            if self.as_use_flow:
+                pull_bid = -self.flow_net > self.as_flow_max
+                pull_ask = self.flow_net > self.as_flow_max
+            if self.as_use_imb and qb + qa > 0:
+                imb = (qb - qa) / (qb + qa)
+                pull_bid = pull_bid or imb < self.as_imbalance_min
+                pull_ask = pull_ask or -imb < self.as_imbalance_min
+            if pull_bid:
+                self._pull(0, now)
+            else:
+                self._quote(0, 1, _BUY, bid, now)
+            if pull_ask:
+                self._pull(1, now)
+            else:
+                self._quote(1, -1, _SELL, ask, now)
+            return
         self._quote(0, 1, _BUY, bid, now)
         self._quote(1, -1, _SELL, ask, now)
+
+    def _pull(self, k: int, now: int) -> None:
+        """Cancel the side's active quote (the adverse-selection filter wants it out of the book)."""
+        act = self.active[k]
+        if not act:
+            return
+        orders = self.orders
+        for order_id in act:
+            order = orders[order_id]
+            order.active = False
+            order.cancel_sent = True
+            self.cancel_order(order_id)
+        self.n_cancels += len(act)
+        self.n_pulls[k] += 1
+        act.clear()
+        self.act_qty[k] = 0
+        self.last_action_us[k] = now
 
     def _quote(self, k: int, sign: int, side: Side, px: int, now: int) -> None:
         """Keep the side's active quote at `px` with up to quote_size lots, within the invariant."""
