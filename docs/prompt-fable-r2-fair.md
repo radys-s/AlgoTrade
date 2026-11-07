@@ -59,3 +59,21 @@ the information is in the PRICES.
 best immediately (absolute path, local pnl in `submission/README.md`), log in `docs/progress.md`, push after each
 result. Quick sanity before any sim: `explore_data.py` markout of touch trades bucketed by sig (measured >= 5 ms
 before the trade) gives the filter threshold s directly.
+
+## UPDATE 21:05 — independent check (Copilot) changes the order: maker filter first, taker second
+
+- With offsets learned on the first 20 % only and samples spaced 500 ms apart (no overlap) the signal holds:
+  corr R2 **+0.53** at 100 ms, +0.16 at 1 s; R1 +0.34 / +0.38. But the non-overlapping taker is weak: R2 thr 1.0
+  mean slightly NEGATIVE, positive only at high thresholds with few entries. So: **do T3 (maker filter) first,
+  T2 only as a small high-threshold overlay** (thr >= 2), judged on a holdout chunk.
+- Online parity is the first gate: every G insert is within 7 ticks of the touch (inside the 20-tick feed) and
+  `on_order_book_change` fires once per tape row, so the new id in each snapshot IS the insert. Build sig online,
+  log it, and check corr with the offline value > 0.99 before any grid.
+- Generator facts (Copilot): insert id = 1,000,001 + insert index; cancel hazard is not memoryless (0.6/s in the
+  first 25 ms, ~2.3/s at 150-400 ms, then lower); at-touch arrivals rise with touch depth (22/s -> 61/s), so deep
+  queues get MORE joiners behind us (good for front fills). IOC limit price / original size are not in the feed.
+- T3 rule detail (worth trying as the variant): when the side is against the signal, modify to a 1-lot stub if
+  < 20 lots are ahead of us (keeps the front), cancel if >= 20 ahead; re-quote full size when |sig| <= s again
+  and the queue at the touch is short, or when the touch price moves.
+- Do NOT use the Gemini taker code circulating in chat: it returns orders instead of calling send_order, never
+  fills `pending_orders` (inventory stays 0 -> the 100 cap is not enforced), and its signal is not time-decayed.
