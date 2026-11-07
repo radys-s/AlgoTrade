@@ -754,3 +754,14 @@ Poctivý holdout (váhy jen z 75 %) 124 496 vs mm_ml 126 128 → leak to nevysv�
 **Závěr (stejná lekce jako MLP):** na round1 shrink už jistý „ocas“ bere; ostřejší signál přidá filly, ne PnL. Krychle
 pomáhají v režimu v2 → nechat jako volbu `ml_model` pro R2, pokud data card připomene v2. **ML shrink na round1 je
 nasycen na ~490–497 k; další zisk v této rodině na R1 nečekat.**
+
+## 2026-11-07 15:45 — Předvídatelnost sweepů z pásky: žádná (home, mozek, R1 + v2)
+
+`research/sweep_predict.py`, report `research/reports/round1_sweeps.md`. Velké IOC (≥ 300 lotů: 12 067; ≥ 1 000: 2 095) jsou
+**Poissonovské**: CV mezer 0,99–1,02, autokorelace velikostí ±0,01, žádné shlukování na stejné straně (lift 1,0), velikosti
+se neopakují, žádný vzor „limit → sweep“ (id jsou striktně +1). Prekurzory (cancely na touch, inzerty, sondovací IOC,
+imbalance, vyprazdňování, čas od změny midu) na 50/100/500 ms: lift 0,9–1,1, nejlepší AUC 0,506; walk-forward logistický
+skór AUC 0,50. Ridge trigger (|pred| > 0,15) označí 9,7 % sweepů při 9,6 % času → předpovídá drift běžného toku, ne sweepy.
+Přidání skóru k 23 features: IC 0,3802 → 0,3812. sample_v2 totéž.
+**Závěr:** sweepy nelze předvídat 5 ms dopředu; obrana je jen velikost a pozice ve frontě (mm_park/mm_ml). Hypotéza
+„otisky účastníků“ zamítnuta.
