@@ -1125,3 +1125,16 @@ adverse selection, then the trend estimate.
   gate off 277k; tau 20 185k; fair-centric (k 1) quotes under the same taker 304k.
 - Also today: flip taker (hold +-100 until the opposite signal) + maker 229-234k; ML shrink on the hybrid rejected
   (gain only in its fit window); fade-exit taker inside the maker 204-211k (mm_r2_hybrid / hybrid2).
+
+## 2026-11-07 21:45 — mm_r2_fq2 = 349,077 (upload candidate); queue position is the remaining 244k (home)
+
+- **`strategies/mm_r2_fq2.py`**: mm_r2_fq + tau 70 ms, fq_take 200 (one IOC can reverse a full position), take_k 0.2,
+  gate_thr 8. round2 **349,077** (8/8, chunk_min +15.8k, hold 102k), mirror same, round1 444k, sample_v2 260k, breach 0,
+  check PASS 1.2 min. Plateau tau 50-70 x take_k 0.15-0.25 x gate 6-8 = 335-349k.
+- Front-of-queue oracle on mm_r2_fq: 341k -> **585k** (+244k): the remaining gap to the top teams is queue position.
+  Realistic attempts so far all lose: sticky quotes (keep while F only mildly against) -6..-56k, inside-spread quotes
+  -55..-68k, capacity release at neutral signal -57..-350k, inv_stop (maker only reduces) -1..-23k.
+- In mm_r2_fq the inventory sits at +-100 71 % of the time and 98 % of the taker's wanted crosses are room-blocked,
+  but releasing room costs more than it earns (holding with F is itself the edge).
+- Rejected on the fq base: ML shrink (B75 +25k only in its fit window, holdout -3k, sample_v2 -60k; B1 +5.9k 5/8),
+  deeper sweeps, size by signal strength, over-cap (penalty 52-59k), passive exits, skew.
