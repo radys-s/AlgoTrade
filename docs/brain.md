@@ -111,9 +111,17 @@ what runs next, and at most one yes/no question.
   s pasivním výstupem → GPU/HGB verze nemá smysl.
 - **Standing ladder (H11):** neutrální (+0,1 %, 5/8), když má touch přednost; destruktivní (−63 %),
   když příčky berou kapacitu touch. Kapacita na touch je cennější než cokoli v hloubce.
+- **Fill attribution mm_park (14:45):** stuby = naše nejlepší filly (0,39 $/lot vs 0,18 touch; 60 % lotů
+  s 0 před nami), cena parkování = vytlačený bulk (−18 % lotů touch); na v2 je bulk 3× cennější
+  (0,49 $/lot) → parkování tam stojí 4,7 %. Parkování půlí čas na stropu (50 → 26 %). 37 % zlepšení
+  flickeruje zpět do 500 ms, přesto se je vyplatí sledovat hned (H13, min_requote prodělaly).
+- **Koordinace:** Tomáš nezávisle testoval ladder a back-pull (= moje H11, H7) → před spuštěním agenta
+  vždy číst `docs/radys-findings.md` a jeho ledger tagy; teď dělá `exp_ml_shrink` (ridge → shrink přes
+  modify) — nedělat duplicitně.
 - **Plán na R2 (19:00):** kickoff (startovní relace) → data card: režim spreadu (1 vs 2 ticky), reverze
-  vs momentum po obchodech. Hned 4-buňkový test championa mm_park: park off / 10/1/2 / 20/1/3 (+ quote
-  200 vs 100 pro jistotu) na R2 + robustnost round1/sample_v2; compare → doporučení do T+20 min.
+  vs momentum po obchodech. Hned CPU grid championa mm_park na R2 + round1 + sample_v2:
+  `--grid '{"park_size": [0, 10, 20], "park_max": [2, 3, 5], "park_depth": [1]}'` (0 = park off) a
+  `--grid '{"quote_size": [100, 200]}'` pro jistotu; compare vítěze vs champion → doporučení do T+20 min.
   Mechaniky z R1 netestovat znovu, pokud režim nepřinese nový důvod (viz tabulka zamítnutých).
 - **Otevřené otázky:** `max_position` 100 je monotónně nejlepší, trendující privátní páska je riziko
   sdílené s championem; příčky místo parkovaných stubů (netestováno, nízká priorita).
@@ -132,4 +140,5 @@ what runs next, and at most one yes/no question.
 | 13:30 | Wave 1 uzavřena bez změny kandidáta; wave 2 = H7 `deep_pull` + rozbor času bez kotace (kódová cesta) místo dalších filtrů | všech ~80 běhů filtrů prodělává; jediný záporný segment fillů je imbalance proti × hluboká fronta |
 | 13:55 | **R1 finál = `submission/best_strategy.py` = Tomášův `mm_park` (452 651), parametry 20/1/3 nechat** | ověřeno nezávisle (home + notebook), ACCEPT 8/8 na round1; grid: plató ploché, baked hodnoty v jeho středu; −4,7 % na v2 je pro R1 irelevantní (privátní data = trh round1) |
 | 13:55 | ML taker overlay zamítnut i v levné lineární verzi; GPU/HGB verze se nestaví | −9 až −37 % ve všech 12 buňkách |
+| 14:25 | R1 submise hotová: Tomáš nahrál mm_park, server 452 651 = lokál, final. Výzkum R1 mechanik ukončen (H12, H13 REJECT, attribution bez nové páky); do R2 klid + příprava kickoff gridu | 13 mechanik, ~230 běhů; zbývající nápady jsou ±1 % a režimově závislé |
 | 13:50 | (dříve) R1 finál = `submission/best_strategy.py` (exp_full_capacity, 425 708). Výzkum R1 mechanik zastaven (H7–H9 také REJECT, ~110 běhů); nahrát nejpozději ~17:00 a nastavit final; tokeny šetřit na R2 | žádná z 9 mechanik ani 5 os nepřekonala kandidáta; strop pozice drží 50 % času a mimo strop je kotace živá |
