@@ -65,3 +65,34 @@ Immediate adverse selection (-0.32/lot within 1 s = -163k) eats almost all of th
 then gives back +0.10/lot (+50k). Levers, in order: (a) cut the first-second adverse selection (flow pull,
 refitted ML shrink, queue position), (b) a better trend estimate (robust drift, threshold, hysteresis),
 (c) queue position.
+
+## 7. Added 20:30: which fills lose, generator rules, what failed
+
+**Our fills by queue position and sweep depth** (`research/diag/our_fill_queue.py`, plain maker exp_full_capacity,
+max_position 100, round2 -217k): markout at 1 s, ticks/lot:
+
+| bucket | lots | markout 1 s | pnl 1 s |
+|---|---:|---:|---:|
+| the sweep went DEEPER than our level (level depleted) | 211k | -1.49 | -315k |
+| the sweep stopped at our level | 1,252k | +0.09 | +116k |
+| lots ahead 0 / 1-20 / 20-100 / 100-300 / 300-1000 | | -0.09 / -0.03 / -0.13 / -0.39 / -0.73 | |
+
+Gate maker (86k): deeper -1.06 on 58k lots (-61k), stopped +0.19 on 460k lots (+89k).
+
+**Front-of-queue fill of the MARKET** (`research/diag/front_fill_age.py`): at a fresh level made by an improving
+insert +0.64 (level < 50 ms old) / +0.19 (50-200 ms) / +0.1..0.2 later; at a level the touch RETREATED onto -0.57 /
+-0.42 / -0.13 (0-50 / 50-200 / 200-500 ms), +0.15..0.2 after 0.5 s at 1 s but negative at 10 s.
+
+**Generator rules (round2, `logs/generator/r2_p1-6.txt`)**: same generator as round1. IOC size lognormal mu 4.105
+sd 1.40 (KS 0.002), independent of every state variable; IOC rate 4.45/s/side, side coin flip; IOC limit price
+offset through the touch depends on the touch queue, not on size (thin touch, median 39 lots: mean 1.58 ticks,
+P(>=2) 0.33; thick touch, 2,436 lots: mean 0.44); depletion is mechanical: size >= queue depletes 94 %, size < queue
+never. Limit inserts 89.2/s/side, placement shares depend on own touch qty (thin: 29 % at touch, 46 % one behind,
+15 % two behind; thick: 68 / 26 / 4 %), lifetimes i.i.d. (median 312 ms, hazard plateau 2.3/s at 150-650 ms).
+Spread 1->2 episodes: median 19 ms, ended by a G inside insert 88 %, refill on the retreated side only 33 % (the
+move continues 67 %).
+
+**Tried and rejected (round2)**: static grid `exp_grid.py` (-80..-250k, with gate 12-49k); fresh-level-only joining
+`exp_fresh.py` (no gate -217k -> -36k, flow 200 -> +40k, with gate no gain); improving ourselves at spread 2-3
+(-300..-600k: inside orders get crossed by the next market inside insert); thin-touch pull (thin_pull 100-1000:
+helps the no-gate maker, hurts the gate); parking -20k; ladder +1k.
