@@ -834,3 +834,11 @@ položku 'B' v LINEAR_MODELS a `ml_thr` = kvantil |pred| na nové pásce při st
 **Generálka R2:** B fitnuté na sample_v2 (`strategies/mm_ml_b_v2fit.py`, IC 0,27, práh 0,037): sample_v2 252 091 vs mm_ml_b
 (model z round1) **258 042**, round1 207 829. → **Model z round1 je lepší i na druhém trhu než lokální fit na 1,6h pásce.**
 Na R2 kickoffu tedy porovnat obojí: mm_ml_b beze změny vs refit na R2 pásce (compare na R2 + round1 + v2), ne refit slepě.
+
+## 2026-11-07 16:20 — H21 klasifikační cíl „velký pohyb“: REJECT (home, mozek)
+
+`research/fit_bigmove.py`, `strategies/exp_ml_bigmove.py` (D1/D4 v LINEAR_MODELS, parita 503 148 ✔), report `round1_ml_bigmove.md`,
+ledger `r1-ml-bigmove`. Precision horních 5/10/20 % na pohyb ≥ 0,5 ticku: B 0,415/0,362/0,278, D1 0,418/0,367/0,287, D4
+0,422/0,368/0,286 → zlepšení ≤ 0,009 na základu 0,135. Ve strategii při stejné četnosti −2 až −12 k na round1, až −20 k na v2;
+compare D4 @0,17: round1 −6 548 (2/8), v2 −20 230 (0/8) → REJECT. 23-feature lineární prostor je na hranici; B vyhrává, protože je
+podmíněné skutečným zásahem takera. Lepší výběr velkých pohybů potřebuje stav fronty, ne jiný lineární cíl.
