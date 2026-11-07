@@ -1,6 +1,6 @@
 # Market-making edge - `data\round1.csv`
 
-Generated 2026-11-07 13:06 by `research.mm_edge` from `data\features\round1.npz`. Prices in ticks. 4,411,336 events over 12,000 s; 94,691 taker fills of the touch (473.5/min). Conditions from the book 5000 us before each fill.
+Generated 2026-11-07 13:17 by `research.mm_edge` from `data\features\round1.npz`. Prices in ticks. 4,411,336 events over 12,000 s; 94,691 taker fills of the touch (473.5/min). Conditions from the book 5000 us before each fill.
 
 ## Summary
 

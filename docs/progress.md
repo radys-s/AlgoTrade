@@ -27,6 +27,9 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 12:20 | herzic | Practice round: 3. místo (+240 995, server ≈ lokál ±1,5 %); MM sweep na `sample_v2`: velikost dominuje, microprice skew +11 % |
 | 2026-11-07 12:30 | home | Generálka `research.round --fetch sample_v2`: 144 s end-to-end (kroky ~2,2× rychlejší než laptop), baseliny sedí; přesný runtime championa 14,1 s / 2 M řádků → 65 s na 8,8 M; sweep kolem `mm_v2` (162 halving + 144 + 8 běhů): výchozí parametry na hraně mřížky, `imb_pull` 0,875–0,975 plató +1,2–1,8 %, ale compare REJECT (4/8 chunků) |
 | 2026-11-07 13:20 | radys | Round 1: mm_v2 321,024 vs exp_full_capacity 425,708 (+33%) -> submission |
+| 2026-11-07 13:45 | radys | R1 tuning on full_capacity: layers/size/imb_pull/jump/flow_pull all <= 426k; fill analysis: inventory-adding fills lose |
+| 2026-11-07 14:15 | radys | Queue-position diagnostics on R1; imb/thin/requote pulls all lose; handoff `docs/radys-findings.md` |
+| 2026-11-07 14:45 | radys | Park stubs via modify instead of cancel: `mm_park` round1 452,651 (+6.3 %), compare ACCEPT -> submission |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
 
@@ -469,3 +472,41 @@ fronty. **Změna:** žádný kód, Tomášův `strategies/exp_layers.py` s overr
 **Výsledek:** layer 30 @1 tick → 426 034 (+326, +0,08 %), 30 @2 → 425 940, 60 @1 → 425 589 (−119), 100 @1 → 425 705,
 100 @2 → 425 648; fills +40 až +100. **Závěr:** v šumu (±0,1 %), stejně jako na sample_v2 (0 %); hlubší hladina se
 skoro neplní a nic nepřidá. Neprochází protokolem (zisk < šum). Kandidát beze změny.
+## 2026-11-07 13:45 — Round 1 tuning on exp_full_capacity (radys)
+
+**Tape (`analyze_tape.py`):** spread 1 tick 93% of the time, touch ~900 lots, 1 s mid vol 0.92 tick. Unlike v2 the
+mid FOLLOWS trades: +0.22 tick after 1 s, +0.52 after p90+ trades (adverse selection for makers). L1 imbalance
+corr +0.30 at 100 ms.
+
+**Sweeps (all vs champion 425,708):**
+- `r1-tune1` (halving 20%, 32 sets, `exp_layers`): best = layer 30 / quote 300 -> 426,034 (+0.1%, noise);
+  quote 300 == 200 (saturated); max_pos 90 -10%; imb_pull 0.5 -70%; jump_imb 0.6 -3%.
+- `r1-flow-pull` (`strategies/exp_flow_pull.py`: pull the side in the aggressor's way after a big trade):
+  best 1000 lots / 50 ms -> 426,506 (+0.2%); 100 lots / 1 s -> 85,678. Pulling quotes costs more volume than it saves.
+
+**Fill analysis (champion, 50,754 fills, 2.65M lots):** edge vs mid at fill 0.52 $/lot, markout 1 s 0.16, 60 s 0.16.
+Spread-2 fills 0.53, spread-1 fills 0.15. Fills that ADD to |I|: 517k lots, 1 s markout -0.015; fills that REDUCE |I|:
+2.13M lots, +0.20. By |I| before the fill: [0,30) 0.02, [30,70) 0.08, [70,200] 0.25.
+**Next:** `research.mm_edge` and `research.taker_scan` on round1 to see if any filter or taker signal has edge.
+
+## 2026-11-07 14:15 — Queue position is the edge (radys)
+
+Full write-up and tables: [radys-findings.md](radys-findings.md). Ledgers `r1-queue-keep`, `r1-thin-pull`:
+requote_tolerance 1 -27 %, imb_pull 0.9 -11 %, thin_pull 30 -8 %. Our fills with 0 lots ahead earn +0.21 $/lot,
+with 500+ ahead -0.22..-0.52; any cancel sends us to the back of a ~900-lot queue, which is why every filter loses.
+Next: shrink via modify_order instead of cancel; pull only when already at the back.
+
+## 2026-11-07 14:45 — Park a stub instead of cancelling (radys, our model)
+
+**Idea:** every cancel sends us to the back of a ~900-lot queue, and our Q = 0 fills earn +0.21 $/lot. When the
+market improves past our quote, `strategies/exp_shrink.py` shrinks the old order with `modify_order` to a stub
+(the simulator reduces in place, queue place kept) instead of cancelling it; stubs further than park_depth
+ticks behind the touch are cancelled, at most park_max per side.
+**Screen** (ledger `r1-shrink`, 15 sets on 25 % of round1, best 5 on full): park 20 / depth 1 **452,651**,
+depth 2 447,771, depth 4 447,062; park 10 442,882; park 50 439,606; off 425,708. Plateau, not a spike.
+**Fairness check** (`research.compare`, champion exp_full_capacity vs `strategies/mm_park.py`):
+round1 +26,943, holdout +7,605, 8/8 paired chunks; sample_v2 -12,382 (-4.7 %), 0/8 chunks. VERDICT ACCEPT.
+check_submission OK, research.check PASS, 2.3 min projected for 8.8M rows.
+**Result:** `mm_park` -> `submission/best_strategy.py` (not uploaded; Tomáš waits for a bigger jump).
+**Caveat:** helps on momentum tapes, costs a little on mean-reverting ones.
+**Next:** `exp_backpull` quick screen; heavy experiments listed in [radys-findings.md](radys-findings.md) section 5-6.

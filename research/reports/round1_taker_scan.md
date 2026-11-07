@@ -1,6 +1,6 @@
 # Signal-taker proxy scan - `data/round1.csv`
 
-1152 configs on 4,411,336 rows in 30.3 s (14 workers). Proxy model: decision at row i, IOC applied against the book after the last row before ts_i + 5 ms, 5 levels assumed at consecutive ticks, no self-impact. Ranked by train pnl (first 75% of time, 8 chunks); holdout = last 25%.
+1152 configs on 4,411,336 rows in 66.1 s (4 workers). Proxy model: decision at row i, IOC applied against the book after the last row before ts_i + 5 ms, 5 levels assumed at consecutive ticks, no self-impact. Ranked by train pnl (first 75% of time, 8 chunks); holdout = last 25%.
 
 | # | signal | sign | thr | q | hold_ms | qty | slip | rev | pnl | train | wins | chunk_min | hold | orders | vol | max|I| |
 |---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -19,11 +19,6 @@
 | 13 | ltp_dev | 1 | 1.5 | 0.99 | 2000 | 50 | 0 | 0 | -15 | -15 | 0/8 | -15 | 0 | 10 | 122 | 42 |
 | 14 | ltp_dev | 1 | 1.5 | 0.99 | 500 | 10 | 0 | 0 | -35 | -35 | 0/8 | -20 | 0 | 10 | 78 | 20 |
 | 15 | ltp_dev | 1 | 1.5 | 0.99 | 5000 | 25 | 2 | 0 | -42 | -42 | 1/8 | -60 | 0 | 10 | 298 | 75 |
-| 16 | ltp_dev | 1 | 1.5 | 0.99 | 2000 | 10 | 2 | 0 | -54 | -54 | 0/8 | -45 | 0 | 10 | 126 | 30 |
-| 17 | ltp_dev | 1 | 1.5 | 0.99 | 500 | 25 | 0 | 0 | -57 | -57 | 0/8 | -42 | 0 | 10 | 122 | 42 |
-| 18 | ltp_dev | 1 | 1.5 | 0.99 | 500 | 50 | 0 | 0 | -57 | -57 | 0/8 | -42 | 0 | 10 | 122 | 42 |
-| 19 | ltp_dev | 1 | 1.5 | 0.99 | 500 | 10 | 2 | 0 | -74 | -74 | 0/8 | -45 | 0 | 10 | 126 | 30 |
-| 20 | ltp_dev | 1 | 1.5 | 0.99 | 5000 | 50 | 2 | 0 | -78 | -78 | 0/8 | -71 | 0 | 9 | 364 | 80 |
 
 ## Confirm in the real simulator
 

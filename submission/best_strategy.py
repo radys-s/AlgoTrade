@@ -1,14 +1,37 @@
-"""exp_full_capacity (home): mm_v2 with quote_size 200 = quote ALL free capacity on each side.
+"""mm_park (radys): exp_full_capacity + parked 20-lot stubs (park_size 20, park_depth 1, park_max 3) baked in.
+round1 local pnl 452,651 vs champion 425,708.
 
-Why: the invariant (B) I + OUT_buy <= M and (S) -I + OUT_sell <= M lets the side that REDUCES
-|I| carry up to M + |I| lots (200 when |I| = 100), but quote_size 100 capped it at 100. With
-quote_size above max_position, `_quote` sends min(quote_size - have, free) lots, so when flat both
-sides quote 100 as before and when long 60 the ask carries 160: more volume exactly where the
-strategy is stuck at the cap. sample_v2: 237,306 -> 263,618 (+11 %), holdout 54,929 -> 61,917,
-8/8 chunks, breach 0; 200 and 300 are identical (saturated at M + |I|). Nothing else changed.
+exp_shrink (radys): exp_queue + park a stub instead of cancelling when the market improves past us.
 
-Original mm_v2 docstring: sample_v2 sweep best baked in (quote 100, max_pos 100, skew 0, filters off).
-Built from exp_imb_pull: Honza's mm.py + adverse-selection pull filter.
+  * park_size / park_depth / park_max: when the touch quote must move to a better price, the old order is
+    shrunk with modify_order to park_size lots (keeps its queue priority, simulator reduces in place)
+    instead of being cancelled; the freed room goes to the new touch quote. A parked stub is cancelled
+    once it is more than park_depth ticks behind the market touch, or when the side has more than
+    park_max stubs (oldest first). round1: fills with 0 lots ahead earn +0.21 $/lot, every cancel
+    sends us to the back of a ~900-lot queue. park_size 0 = off.
+
+Built from exp_queue (radys): exp_flow_pull + thin-level pull.
+
+  * thin_pull: pull a side when the MARKET quantity at its touch (our own orders excluded) is below
+    thin_pull lots, and quote it again only once it is back above thin_pull * thin_rejoin (hysteresis).
+    round1 fill analysis: our fills on levels with < 100 market lots have 1 s edge -0.12..-0.49 $/lot
+    (the level is about to be depleted and the price moves through us), > 1000 lots +0.32. 0 = off.
+
+Built from exp_flow_pull (radys): exp_layers + pull after big aggressive trades.
+
+  * flow_pull_qty / flow_pull_us: when one book update carries >= flow_pull_qty lots of
+    buyer-initiated volume (book_side 'ask'), pull our ask for flow_pull_us (and the bid after
+    seller-initiated volume). round1: mid moves +0.52 tick in the aggressor's direction within 1 s
+    after p90+ trades, so the side the flow hits next is adversely selected. 0 = off.
+
+Built from exp_layers (radys): exp_imb_pull + a second resting level per side.
+
+  * layer_size / layer_offset: besides the touch quote, keep up to layer_size lots per side
+    layer_offset ticks behind it (bid - offset / ask + offset). Big sweeps that reach it revert
+    (sample_v2: -0.13 tick after big trades), so the deeper fill is cheaper. The invariant is
+    unchanged: both levels count in OUT_k; the touch quote is served first. 0 = off.
+
+Built from exp_imb_pull (radys): Honza's mm.py + adverse-selection pull filter.
 
 Change vs mm.py (both off by default = identical to mm.py):
   * imb_pull: when L1 imbalance (qb - qa)/(qb + qa) < -imb_pull, pull the bid (price about to
@@ -82,9 +105,11 @@ _NEVER_US = -(1 << 62)
 class _Order:
     """Our record of one of our orders; `remaining` bounds what the exchange can still fill."""
 
-    def __init__(self, order_id: str, k: int, sign: int, price: int, quantity: int, ioc: bool) -> None:
+    def __init__(self, order_id: str, k: int, sign: int, price: int, quantity: int, ioc: bool, slot: int) -> None:
         self.order_id = order_id
         self.k = k  # 0 = buy side, 1 = sell side
+        self.slot = slot  # 0/1 touch quote, 2/3 second level (side = slot & 1)
+        self.parked = False  # a shrunk stub left behind the touch for its queue priority
         self.sign = sign  # +1 buy, -1 sell
         self.price = price
         self.remaining = quantity
@@ -129,6 +154,22 @@ class MarketMaker(BaseStrategy):
         'imb_pull': 0.0,
         # Stop quoting the side that grows |I| once |I| >= inv_stop; 0 disables.
         'inv_stop': 0,
+        # Spread == 2 and |imbalance| > jump_imb: improve ONLY the favoured side by 1 tick
+        # (bid if bid-heavy, ask if ask-heavy), so bid < ask still holds; 0 disables.
+        'jump_imb': 0.0,
+        # Second level per side: lots and ticks behind the touch quote; layer_size 0 disables.
+        'layer_size': 0,
+        'layer_offset': 1,
+        # Pull the side in the aggressor's way for flow_pull_us after >= flow_pull_qty lots; 0 disables.
+        'flow_pull_qty': 0,
+        'flow_pull_us': 0,
+        # Pull a side while its market touch quantity < thin_pull lots; rejoin above thin_pull * thin_rejoin.
+        'thin_pull': 0,
+        'thin_rejoin': 1.0,
+        # Park a stub of park_size lots instead of cancelling a quote the market moved past; 0 disables.
+        'park_size': 20,
+        'park_depth': 1,
+        'park_max': 3,
     }
 
     def __init__(self) -> None:
@@ -148,16 +189,30 @@ class MarketMaker(BaseStrategy):
         self.book_scan_orders = max(1, int(params['book_scan_orders']))
         self.imb_pull = float(params['imb_pull'])
         self.inv_stop = int(params['inv_stop'])
+        self.jump_imb = float(params['jump_imb'])
+        self.layer_size = max(0, int(params['layer_size']))
+        self.layer_offset = max(1, int(params['layer_offset']))
+        self.flow_pull_qty = int(params['flow_pull_qty'])
+        self.flow_pull_us = int(params['flow_pull_us'])
+        self.pull_until = [_NEVER_US, _NEVER_US]  # [bid, ask]
+        self.thin_pull = int(params['thin_pull'])
+        self.thin_rejoin = float(params['thin_rejoin'])
+        self.thin_out = [False, False]  # side currently pulled by the thin-level rule
+        self.park_size = max(0, int(params['park_size']))
+        self.park_depth = max(0, int(params['park_depth']))
+        self.park_max = max(1, int(params['park_max']))
+        self.parked: list[list[str]] = [[], []]  # ids of parked stubs per side, oldest first
+        self.parked_qty = [0, 0]
 
         # Position and order state (index k: 0 = buy, 1 = sell).
         self.inv = 0
         self.cash = 0.0
         self.orders: dict[str, _Order] = {}
         self.out = [0, 0]  # OUT_k: remaining of every not-yet-dead order on the side
-        self.act_qty = [0, 0]  # remaining of the side's active quote orders
-        self.active: list[list[str]] = [[], []]  # ids of the side's active quote orders, all at quote_px[k]
-        self.quote_px = [0, 0]
-        self.last_action_us = [_NEVER_US, _NEVER_US]
+        self.act_qty = [0, 0, 0, 0]  # remaining of the side's active quote orders
+        self.active: list[list[str]] = [[], [], [], []]  # ids of the side's active quote orders, all at quote_px[k]
+        self.quote_px = [0, 0, 0, 0]
+        self.last_action_us = [_NEVER_US, _NEVER_US, _NEVER_US, _NEVER_US]
         self.unwind_id: str | None = None
 
         # Debug counters.
@@ -181,7 +236,7 @@ class MarketMaker(BaseStrategy):
         if not bids or not asks:
             return
         scan = self.book_scan_orders
-        need_qty = self.alpha_imbalance != 0.0 or self.imb_pull > 0.0
+        need_qty = self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0
 
         # Market touch and its quantity, skipping our own orders (only market orders count
         # towards the scan limit, so our own fragments can never hide the touch).
@@ -228,6 +283,12 @@ class MarketMaker(BaseStrategy):
         else:
             bid = bb
             ask = ba
+        if self.jump_imb > 0.0 and ba - bb == 2 and qb + qa > 0:
+            jimb = (qb - qa) / (qb + qa)
+            if jimb > self.jump_imb:
+                bid = bb + 1
+            elif jimb < -self.jump_imb:
+                ask = ba - 1
         inv = self.inv
         fair_shift = -self.skew_per_lot * inv
         if need_qty and qb + qa > 0:
@@ -251,19 +312,57 @@ class MarketMaker(BaseStrategy):
             imb = (qb - qa) / (qb + qa)
             pull_bid = imb < -self.imb_pull
             pull_ask = imb > self.imb_pull
+        if self.park_size > 0:
+            for k, touch, sg in ((0, bb, 1), (1, ba, -1)):
+                for order_id in list(self.parked[k]):
+                    if (touch - self.orders[order_id].price) * sg > self.park_depth:
+                        self._unpark(order_id)
+        if self.flow_pull_qty > 0:
+            buy_vol = 0
+            sell_vol = 0
+            for t in trades:
+                if t.book_side == 'ask':
+                    buy_vol += t.quantity
+                else:
+                    sell_vol += t.quantity
+            if buy_vol >= self.flow_pull_qty:
+                self.pull_until[1] = now + self.flow_pull_us
+            if sell_vol >= self.flow_pull_qty:
+                self.pull_until[0] = now + self.flow_pull_us
+            pull_bid = pull_bid or now < self.pull_until[0]
+            pull_ask = pull_ask or now < self.pull_until[1]
+        if self.thin_pull > 0:
+            lo = self.thin_pull
+            hi = lo * self.thin_rejoin
+            for k, qk in ((0, qb), (1, qa)):
+                if self.thin_out[k]:
+                    if qk >= hi:
+                        self.thin_out[k] = False
+                elif qk < lo:
+                    self.thin_out[k] = True
+            pull_bid = pull_bid or self.thin_out[0]
+            pull_ask = pull_ask or self.thin_out[1]
         if self.inv_stop > 0:
             pull_bid = pull_bid or inv >= self.inv_stop
             pull_ask = pull_ask or inv <= -self.inv_stop
+        lay = self.layer_size
+        off = self.layer_offset
         if pull_bid:
             self._pull(0)
+            self._pull(2)
         else:
-            self._quote(0, 1, _BUY, bid, now)
+            self._quote(0, 1, _BUY, bid, now, self.quote_size)
+            if lay:
+                self._quote(2, 1, _BUY, bid - off, now, lay)
         if pull_ask:
             self._pull(1)
+            self._pull(3)
         else:
-            self._quote(1, -1, _SELL, ask, now)
+            self._quote(1, -1, _SELL, ask, now, self.quote_size)
+            if lay:
+                self._quote(3, -1, _SELL, ask + off, now, lay)
 
-    def _pull(self, k: int) -> None:
+    def _pull(self, k: int) -> None:  # k = slot
         """Cancel the side's active quote (retreats are never throttled)."""
         act = self.active[k]
         if not act:
@@ -278,41 +377,53 @@ class MarketMaker(BaseStrategy):
         act.clear()
         self.act_qty[k] = 0
 
-    def _quote(self, k: int, sign: int, side: Side, px: int, now: int) -> None:
-        """Keep the side's active quote at `px` with up to quote_size lots, within the invariant."""
-        act = self.active[k]
-        if act and self.quote_px[k] != px:
-            behind = (px - self.quote_px[k]) * sign  # > 0: our quote is less aggressive than desired
+    def _quote(self, j: int, sign: int, side: Side, px: int, now: int, size: int) -> None:
+        """Keep slot j's active quote at `px` with up to `size` lots, within the invariant (side k = j & 1)."""
+        k = j & 1
+        act = self.active[j]
+        if act and self.quote_px[j] != px:
+            behind = (px - self.quote_px[j]) * sign  # > 0: our quote is less aggressive than desired
             if behind > 0:
-                if behind <= self.requote_tolerance or now - self.last_action_us[k] < self.min_requote_us:
+                if behind <= self.requote_tolerance or now - self.last_action_us[j] < self.min_requote_us:
                     return
             orders = self.orders
+            park = self.park_size > 0 and behind > 0 and j < 2
             for order_id in act:
                 order = orders[order_id]
                 order.active = False
-                order.cancel_sent = True
-                self.cancel_order(order_id)
-            self.n_cancels += len(act)
+                if park:
+                    if order.remaining > self.park_size:
+                        self.modify_order(order_id, self.park_size)
+                    order.parked = True
+                    self.parked[k].append(order_id)
+                    self.parked_qty[k] += order.remaining
+                else:
+                    order.cancel_sent = True
+                    self.cancel_order(order_id)
+                    self.n_cancels += 1
             act.clear()
-            self.act_qty[k] = 0
-            self.last_action_us[k] = now
+            self.act_qty[j] = 0
+            self.last_action_us[j] = now
+            if park:
+                while len(self.parked[k]) > self.park_max:
+                    self._unpark(self.parked[k][0])
 
-        have = self.act_qty[k]
-        want = self.quote_size - have
+        have = self.act_qty[j]
+        want = size - have
         if want <= 0 or px <= 0:
             return
-        if have > 0 and (want < self.topup_min or now - self.last_action_us[k] < self.min_requote_us):
+        if have > 0 and (want < self.topup_min or now - self.last_action_us[j] < self.min_requote_us):
             return
         free = self.max_pos - sign * self.inv - self.out[k]
         if want > free:
-            if self.out[k] > have:
+            if self.out[k] > self.act_qty[k] + self.act_qty[k + 2] + self.parked_qty[k]:
                 return  # in-flight cancels/IOCs hold the room; wait for them rather than fragment the quote
             want = free
             if want <= 0:
                 return
-        if self._send(k, sign, side, px, want, False) is not None:
-            self.quote_px[k] = px
-            self.last_action_us[k] = now
+        if self._send(k, sign, side, px, want, False, j) is not None:
+            self.quote_px[j] = px
+            self.last_action_us[j] = now
 
     def _unwind(self, bb: int, ba: int) -> None:
         """Send one IOC at the touch towards zero inventory."""
@@ -323,11 +434,11 @@ class MarketMaker(BaseStrategy):
             k, sign, side, px = 0, 1, _BUY, ba
         qty = min(self.unwind_size, abs(inv), self.max_pos - sign * inv - self.out[k])
         if qty > 0:
-            self.unwind_id = self._send(k, sign, side, px, qty, True)
+            self.unwind_id = self._send(k, sign, side, px, qty, True, k)
             if self.unwind_id is not None:
                 self.n_unwinds += 1
 
-    def _send(self, k: int, sign: int, side: Side, px: int, qty: int, ioc: bool) -> str | None:
+    def _send(self, k: int, sign: int, side: Side, px: int, qty: int, ioc: bool, j: int) -> str | None:
         """The only place orders are created: refuse anything that could break the invariant."""
         if qty <= 0 or px <= 0 or sign * self.inv + self.out[k] + qty > self.max_pos:
             self.n_blocked += 1
@@ -335,11 +446,11 @@ class MarketMaker(BaseStrategy):
         order_id = self.send_order(
             OrderRequest(side=side, price=px, quantity=qty, order_type=_IOC if ioc else _LIMIT)
         )
-        self.orders[order_id] = _Order(order_id, k, sign, px, qty, ioc)
+        self.orders[order_id] = _Order(order_id, k, sign, px, qty, ioc, j)
         self.out[k] += qty
         if not ioc:
-            self.active[k].append(order_id)
-            self.act_qty[k] += qty
+            self.active[j].append(order_id)
+            self.act_qty[j] += qty
         self.n_orders += 1
         return order_id
 
@@ -393,14 +504,31 @@ class MarketMaker(BaseStrategy):
         order.remaining -= qty
         self.out[order.k] -= qty
         if order.active:
-            self.act_qty[order.k] -= qty
+            self.act_qty[order.slot] -= qty
+        if order.parked:
+            self.parked_qty[order.k] -= qty
+
+    def _unpark(self, order_id: str) -> None:
+        """Cancel a parked stub (it stays counted in OUT until CANCELED arrives)."""
+        order = self.orders[order_id]
+        order.parked = False
+        self.parked[order.k].remove(order_id)
+        self.parked_qty[order.k] -= order.remaining
+        if not order.cancel_sent:
+            order.cancel_sent = True
+            self.cancel_order(order_id)
+            self.n_cancels += 1
 
     def _forget(self, order: _Order) -> None:
         """Drop a dead order from the book-keeping."""
         self.orders.pop(order.order_id, None)
+        if order.parked:
+            order.parked = False
+            self.parked[order.k].remove(order.order_id)
+            self.parked_qty[order.k] -= order.remaining
         if order.active:
             order.active = False
-            self.active[order.k].remove(order.order_id)
-            self.act_qty[order.k] -= order.remaining
+            self.active[order.slot].remove(order.order_id)
+            self.act_qty[order.slot] -= order.remaining
         if order.order_id == self.unwind_id:
             self.unwind_id = None
