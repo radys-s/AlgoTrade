@@ -681,3 +681,12 @@ red 0,25/0,4/nikdy → 472 k (−19 k); dychtivá přidávající strana add 0,1
 491 898 (+1,4 k, 6/8, holdout −370; sample_v2 −19 k, 0/8) → REJECT.
 **Závěr:** shrink odvíjející strany je cenný (adverzní fill tam nás nechá v horší pozici); fill attribution se do
 asymetrie prahů nepřekládá. mm_ml beze změny.
+
+## 2026-11-07 15:05 — improve_stub + park_max 5 na mm_ml bázi: REJECT (home, mozek, R1)
+
+`strategies/exp_ml_istub.py` = mm_ml + port `improve_stub` (stub o tick dovnitř při spreadu ≥ 2 na odvíjející straně),
+parita 490 460 ✔, check PASS. Ledger `r1-ml-istub`: improve_stub 20 → round1 478 707 (−2,4 %), sample_v2 217 107 (−15 %);
+s park_max 5 → 480 818 / 216 248; park_max 5 samo → round1 492 490 (+2 030, holdout −972), sample_v2 252 323 (−1 738) = šum.
+Compare {20, 5}: round1 −9 642 (1/8), sample_v2 −37 813 (0/8) → REJECT.
+**Závěr:** co stub dovnitř na mm_park přidával (+0,5 %), ML shrink už bere lépe; „R1 stack“ (thr 0,12/3 + park_max 5 +
+improve_stub) tedy nemá smysl — zbývá jen thr 0,12/3 (+1,4 %, režimové). Další zisk musí přijít z kvality signálu.
