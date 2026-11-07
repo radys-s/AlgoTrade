@@ -853,3 +853,12 @@ HGB nic navíc; spodní 3 decily nesou −101 k $ markoutu. Ale ve strategii: Pn
 **Proč:** zmenšení na stub stojí objem i na lotech, které jsou jen mírně záporné; mm_ml pred už bere hlavní ocas; queue_ahead
 v tréninku je podmíněn sweepem (ne live). Konzistentní s orákulem (strop 100ms filtru 540–600 k).
 **Nezkoušeno:** trénink na každé události s vahou pravděpodobnosti fillu; velikost shrinku úměrná EV; EV jen pro extrémní ocas.
+
+## 2026-11-07 16:30 — H22 OR-trigger z 1 s modelu nad mm_ml_b: šum (home, mozek) → výzkum R1 uzavřen, finál mm_ml_b
+
+`strategies/exp_b_or1s.py` (thr_1s, or_stub_1s; parita 503 148 ✔, check PASS), ledger `r1-b-or1s`. Nejlepší 0,85 / úplný pull:
+round1 +417 (7/8), v2 +43 (4/8) → < 0,1 %, šum; práh 0,6 pomůže round1 (+1,4 k), uškodí v2 (−1,6 k). Velké 1 s pohyby, které ridge
+umí, už 100ms pravidlo B pokrývá; limitem je kvalita 1 s predikce. Nepovyšovat.
+**Bilance R1 (home):** ~30 mechanik/modelů, ~400 běhů. Nad mm_v2 vyhrály 4 věci: plná kapacita (+33 %), parkování stubů
+(Tomáš, +6 %), ML shrink přes modify (Tomáš, +8 %), cíl B (+2,6 %). **Finál R1 = `strategies/mm_ml_b.py` 503 148.** Orákulum:
+strop 100ms toxicity filtru 540–600 k; 650 k lídra touto rodinou nejde.
