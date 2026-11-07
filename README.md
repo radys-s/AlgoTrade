@@ -1,3 +1,16 @@
+# AlgoTrade — tým radys-s + Herz1c (Algo Trade Arena 2026)
+
+Soukromé týmové repo pro Algo Trade Arena 2026 (Qminers × MFF UK).
+Kontext soutěže a pravidla: [docs/kontext.md](docs/kontext.md) · deník: [docs/progress.md](docs/progress.md) · stav: [STATUS.md](STATUS.md).
+
+Workflow: každý pracuje ve své větvi (`radys` = Tomáš, `herzic` = Honza), commit aspoň
+každých 30 minut i u neúspěšných experimentů, do `main` jen merge (žádný rebase, squash ani force-push).
+Strategie v `strategies/`, nové mechaniky za parametrem/flagem místo mazání.
+
+---
+
+Původní README starteru:
+
 # Qminers trading hackathon starter
 
 ```
