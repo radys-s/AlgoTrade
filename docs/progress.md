@@ -965,3 +965,11 @@ at thresholds 1.0 / 1.5 / 2.0 (500 ms hold, optimistic overlapping samples). No 
 **Why it matters:** it is the first real directional edge we have; usable as a maker filter and a taker overlay.
 **Files:** `playground/explore_data.py` (reproducible cells), `docs/radys-findings.md` section 11 (tasks T1-T4).
 **Next:** Tomáš's agents run T1-T4 in the simulator (radys stops running heavy compute on request).
+
+## 2026-11-07 21:20 — R2 upload: mm_r2_fair (Honza/home) verified on radys, 101,933 (radys)
+
+- Brought `strategies/mm_r2_fair.py` from origin/home (gate 30 s / 4 / spread <= 3 + hidden-fair filter thr 0.3,
+  tau 50 ms) and re-ran it on radys: round2 **101,933**, penalty 0, 4,806 fills, all 10 deciles positive,
+  sandbox check OK. Now `submission/best_strategy.py` (was mm_r2_gate86, 86,333).
+- Still open: inventory sits at |I| = 100 (p50/p90/p99), fill count is low (4.8k vs R1 winner's 426k) -> the
+  leaderboard 75th pct (~400k) needs a structural change, not more filtering.

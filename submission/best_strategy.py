@@ -1,7 +1,21 @@
-"""mm_r2_gate86: exp_r2_ladder (Honza/home) with the R2-best params baked in: gate_thr 4, gate_window 30 s,
-gate_max_spread 3, gate_rungs 1, park_size 0, ladder 0. Ledger r2-ladder-s3: round2 86,333 (8/8 chunks).
-"""
-"""exp_r2_ladder (home, R2): exp_ladder_home (mm_park + standing rungs) + the round-2 trend gate.
+"""mm_r2_fair (home, R2 candidate): exp_r2_fair with fair_thr 0.3, fair_tau_ms 50 baked in (gate as mm_r2_gate).
+round2 101,933 (8/8 chunks, chunk_min +2,067) vs mm_r2_gate 86,333.
+
+exp_r2_fair (home, R2): mm_r2_gate + the hidden-fair filter (radys findings s.11).
+
+The generator places new limit orders around a hidden fair price, so every new market limit order is a noisy look at
+it: dev = price - side offset - mid before the insert (offsets ~ -1.2 bids / +1.2 asks on round2, estimated online).
+sig = time-decayed mean of dev (fair_tau_ms) over new inserts, found as market order ids above the highest id seen
+in the first fair_levels price levels of each side (a new limit order is the last order of its level).
+research/diag/fair_fills.py: our maker fills with the signal against us (buy with sig < 0, sell with sig > 0) lose
+-305k at 1 s on the plain maker, those with it on our side win +106k.
+  * fair_thr: pull the bid while sig < -fair_thr, the ask while sig > +fair_thr. 0 = off (identical to mm_r2_gate).
+
+mm_r2_gate (home, R2 candidate): exp_r2_ladder with gate_thr 4, gate_max_spread 3, park_size 0, gate_rungs 1 baked in.
+round2 86,333 (8/8 chunks, chunk_min +95, holdout 44,739). A passive trend follower: the against-trend side is pulled
+while the robust 30 s mid drift is beyond 4 ticks, so inventory rides the minute-scale drift.
+
+exp_r2_ladder (home, R2): exp_ladder_home (mm_park + standing rungs) + the round-2 trend gate.
 
 Why (round2 anatomy, research/diag/queue_age.py): market orders live ~0.3 s, so an order parked at a
 level >= 1 s before that level becomes the touch is at the very FRONT of the queue 84 % of the time
@@ -98,7 +112,7 @@ s*I + R + q <= M <= 100, and s*I >= -M, so the value lies in [-100, 100].
 """
 
 from collections import deque
-from math import floor
+from math import exp, floor
 
 from simulator.models import (
     OrderBookSnapshot,
@@ -199,10 +213,13 @@ class MarketMaker(BaseStrategy):
         'ladder_size': 0,
         'ladder_depth': 3,
         'ladder_reserve': 1,
-        'gate_thr': 4,
+        'gate_thr': 4.0,
         'gate_window_us': 30000000,
         'gate_max_spread': 3,
         'gate_rungs': 1,
+        'fair_thr': 0.3,
+        'fair_tau_ms': 50.0,
+        'fair_levels': 3,
     }
 
     def __init__(self) -> None:
@@ -248,6 +265,17 @@ class MarketMaker(BaseStrategy):
         self.gate_pts: deque = deque()
         self.gate_last_ts = _NEVER_US
         self.gate_mid2 = 0
+        self.fair_thr = float(params['fair_thr'])
+        self.fair_tau_us = max(1.0, float(params['fair_tau_ms']) * 1000.0)
+        self.fair_levels = max(1, int(params['fair_levels']))
+        self.fair_max_id = 0
+        self.fair_s = 0.0
+        self.fair_w = 0.0
+        self.fair_t = 0
+        self.fair_sig = 0.0
+        self.fair_off = [-1.2, 1.2]  # running mean of (insert price - mid before) for bids / asks
+        self.fair_n = [0, 0]
+        self.fair_prev_mid2 = 0
 
         # Position and order state (index k: 0 = buy, 1 = sell).
         self.inv = 0
@@ -322,6 +350,8 @@ class MarketMaker(BaseStrategy):
         if ba < 0:
             return
 
+        if self.fair_thr > 0.0:
+            self._fair_update(snapshot.timestamp_us, bids, asks, bb, ba)
         if ba - bb >= self.improve_min_spread:
             bid = bb + 1
             ask = ba - 1
@@ -390,6 +420,11 @@ class MarketMaker(BaseStrategy):
         if self.inv_stop > 0:
             pull_bid = pull_bid or inv >= self.inv_stop
             pull_ask = pull_ask or inv <= -self.inv_stop
+        if self.fair_thr > 0.0:
+            if self.fair_sig < -self.fair_thr:
+                pull_bid = True
+            elif self.fair_sig > self.fair_thr:
+                pull_ask = True
         if self.gate_thr > 0.0:
             drift = self._drift(now, bb, ba)
             if drift <= -self.gate_thr:
@@ -423,6 +458,50 @@ class MarketMaker(BaseStrategy):
         if ladder and self.ladder_reserve:
             self._ladder(0, 1, _BUY, bb, ask, pull_bid)
             self._ladder(1, -1, _SELL, ba, bid, pull_ask)
+
+    def _fair_update(self, now: int, bids, asks, bb: int, ba: int) -> None:
+        """Fold a new market limit order (if this row inserted one) into the hidden-fair signal."""
+        prev2 = self.fair_prev_mid2
+        if ba - bb <= 3:
+            self.fair_prev_mid2 = bb + ba
+        if prev2 <= 0:
+            return
+        found = None
+        for k, views in ((0, bids), (1, asks)):
+            last_px = -1
+            last_view = None
+            nlev = 0
+            for v in views:
+                if v.price != last_px:
+                    if last_view is not None and last_view.owner == 'market':
+                        oid = int(last_view.order_id)
+                        if oid > self.fair_max_id:
+                            self.fair_max_id = oid
+                            found = (k, last_view.price)
+                    nlev += 1
+                    if nlev > self.fair_levels:
+                        last_view = None
+                        break
+                    last_px = v.price
+                last_view = v
+            if last_view is not None and last_view.owner == 'market':
+                oid = int(last_view.order_id)
+                if oid > self.fair_max_id:
+                    self.fair_max_id = oid
+                    found = (k, last_view.price)
+        if found is None:
+            return
+        k, px = found
+        x = px - prev2 / 2.0
+        n = self.fair_n[k] + 1
+        self.fair_n[k] = n
+        self.fair_off[k] += (x - self.fair_off[k]) / min(n + 50, 20000)
+        dev = x - self.fair_off[k]
+        a = exp(-(now - self.fair_t) / self.fair_tau_us)
+        self.fair_t = now
+        self.fair_s = self.fair_s * a + dev
+        self.fair_w = self.fair_w * a + 1.0
+        self.fair_sig = self.fair_s / self.fair_w
 
     def _drift(self, now: int, bb: int, ba: int) -> float:
         """Mid change (ticks) over the gate window, from samples taken while the spread is normal."""
