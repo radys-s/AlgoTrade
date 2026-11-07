@@ -19,6 +19,7 @@ Kontext soutěže: [kontext.md](kontext.md).
 | 2026-11-07 11:25 | herzic | Data/ML pipeline: features (1 průchod simulátorem), data card, walk-forward signály, export modelu; sample: ridge IC +0.79 (7/7 foldů) |
 | 2026-11-07 11:40 | radys → main | Added `submission/best_strategy.py` (the single file to upload, always the current best) + `submission/README.md` |
 | 2026-11-07 11:45 | herzic → main | Sjednocení nástrojů: runner ladí i konstanty třídy (`QTY`, `HOLD_US`), ledger přeskakuje výstupy `grid.py`, champion = `submission/best_strategy.py`. Sample plató: HOLD 5–8 s všech 8/8 chunků kladných (8 s: pnl 52 029, holdout 12 209; 5 s: 50 965, holdout 12 622), ledger tag `sample-momentum-plateau` |
+| 2026-11-07 11:50 | herzic | `momentum_hold_v2`: konec dat relativní a vypnutý; v1 na pásce od 10 h neobchoduje vůbec a na 2h pásce stojí po hodině; v2 → `submission/best_strategy.py` |
 | 2026-11-07 12:15 | radys | Playground v2: momentum loses (-1.52M server). Passive MM on Honza's `mm.py` core, sweep -> `mm_v2` pnl 237,306, now `submission/best_strategy.py` |
 
 ## 2026-11-07 10:15 — Založení repa (radys)
@@ -116,6 +117,25 @@ nápady. Postaveno (plán kola a protokol v [workflow.md](workflow.md)):
 sadách najde dobré, ne nutně nejlepší nastavení → halving na široký scan, pak úzký plný sweep.
 
 **Další krok:** playground = sample (viz radys 11:05), takže první reálná data jsou Round 1: kickoff podle `.claude/skills/round-kickoff`, data card, MM i `momentum_hold` na nových datech.
+
+## 2026-11-07 11:50 — momentum_hold_v2: konec dat nezávislý na délce kola (herzic, playground)
+
+Hypotéza: absolutní `FLATTEN_AT_US = 3 590 s` je riziko na reálných kolech jiné délky nebo s jiným
+začátkem času; dřívější zavírání nic nepřináší, protože markout na konci je sám IOC likvidace do knihy.
+Změna: `strategies/momentum_hold_v2.py` — `FLATTEN_AFTER_US` měřený od první události, výchozí 0 (vypnuto).
+Data: `sample.csv` + zátěžové pásky v `data/stress/` (sample posunutý na 10 h; sample 2× za sebou = 2 h).
+Výsledek (ledger `flatten-v1-stress`, `flatten-v2-stress`), breach 0 všude:
+
+| páska | v1 `momentum_hold` | v2 výchozí | v2 se zavíráním po 3 590 s |
+|---|---|---|---|
+| sample 1 h | 50 965 | **51 225** | 50 965 (= v1, parita) |
+| posunutý na 10 h | **0** (vůbec neobchoduje) | 51 225 | 50 965 |
+| 2 h | 50 965 (2. hodinu stojí) | **99 665** | 50 965 |
+
+Závěr: funguje; v2 povýšena do `submission/best_strategy.py` (research.check PASS, odhad 1,4 min na
+8,8 M řádků). `research.compare` by dal REJECT (trénovací chunky jsou totožné, liší se jen konec) —
+vědomý override: jde o robustnost, ne o alfu.
+Další krok: na datech Round 1 ověřit momentum vs. reverze (`analyze_tape.py`, data card) dřív, než v2 nahrajeme.
 
 ## Šablona experimentu
 
