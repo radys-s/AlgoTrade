@@ -73,9 +73,11 @@ PHASE 1 - SETUP (report after each step in one or two lines)
     inventory, benchmark and GPU results; push to origin home. Report the summary to Honza.
 
 PHASE 2 - OPERATING MODE (after setup, for every round)
-- Round data: Honza uploads the round file to a private GitHub release; get it with
-  gh release download data-<round> -R radys-s/AlgoTrade -D data and unzip with
-  uv run python -m gzip -dk data/<round>.csv.gz. Earlier rounds' data stays in data/.
+- Round start: when Honza says round <name> is published, run
+  uv run python -m research.round --fetch <name>
+  (downloads the private release data-<name>, unzips, runs baselines, check, data card, signals,
+  taker scan and market-making edge; report in research/reports/<name>_kickoff.md). Earlier
+  rounds' data stays in data/ and is used automatically as the robustness set.
 - Before any work: git fetch origin; merge origin/main into home (merge, not rebase) so you have
   the latest tools and the current champion (submission/best_strategy.py, never edit it yourself).
 - You are the heavy-compute node: features/data cards on the full round, wide sweeps with
