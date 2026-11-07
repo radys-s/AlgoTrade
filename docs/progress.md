@@ -1060,3 +1060,19 @@ adverse selection, then the trend estimate.
 - **Fresh-level maker** (`strategies/exp_fresh.py`, joins only a touch made by improvement <= fresh_us ago):
   no gate -217k -> -36k (keep_alone 0), with flow_pull 200 -13k -> +40k; with the gate no gain (84k vs 86k).
   Improving ourselves (improve2 / improve_min_spread 3) -300..-600k: our own inside orders get picked off. 
+
+## 2026-11-07 20:50 — R2: hidden-fair filter integrated, mm_r2_fair = 101,933 (home, mozek)
+
+- radys' hidden-fair signal (findings s.11) implemented online in `strategies/exp_r2_fair.py` (new market ids = last
+  order of each of the first 3 levels; running side offsets; tau 50 ms). Offline split of our fills by the signal
+  (`research/diag/fair_fills.py`): plain maker fills with sig against us -305k at 1 s, with it +106k.
+- **Upload candidate `strategies/mm_r2_fair.py`** (gate 30 s / 4 / spread<=3 + fair_thr 0.3): round2 **101,933** (8/8,
+  chunk_min +2,067), mirror same, round1 / sample_v2 positive, check PASS (~1.1 min / 8.8M rows). Previous candidate
+  `mm_r2_gate.py` 86,333; insurance `mm_r2_insurance.py` 20,151.
+- Rejected today (subagents): depletion-EV filter (no gain), trend-layer hysteresis / 2nd window / vol-scaled thr /
+  flip IOC (30 s / 4 is a spike; 120 s plateau 84-105k but chunk-unstable), synthetic R2 generator (no holes ->
+  inconclusive).
+- Running at home now (do not duplicate, radys): T2 fair taker overlay (`exp_r2_fairtake.py`), T4 better fair
+  estimator (`exp_r2_fair2.py`), fair x gate robustness map + gate on fair drift (`exp_r2_fairgate.py`), small-order
+  grid + fair filter + over-cap beyond the 100 invariant (`exp_r2_grid2.py`, your s.10 idea), ML refit + gate
+  (`exp_r2_ml.py`). Free for radys: D1-D7 data questions, anything else.
