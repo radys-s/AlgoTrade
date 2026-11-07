@@ -1076,3 +1076,17 @@ adverse selection, then the trend estimate.
   estimator (`exp_r2_fair2.py`), fair x gate robustness map + gate on fair drift (`exp_r2_fairgate.py`), small-order
   grid + fair filter + over-cap beyond the 100 invariant (`exp_r2_grid2.py`, your s.10 idea), ML refit + gate
   (`exp_r2_ml.py`). Free for radys: D1-D7 data questions, anything else.
+
+## 2026-11-07 21:00 — R2 leaderboard: 75th percentile ~400k at 20:31 (median 55k) -> we (102k) miss a big edge (home, mozek)
+
+- Offline pure fair TAKER (`research/diag/fair_taker.py`, non-overlapping, <= 100 lots limited by touch qty, crossing
+  both ways): best +85k (tau 50, |sig| > 1.5, hold 300 ms, 7/8 chunks); |sig| > 3: +5/lot but only ~55 lots per trade
+  (touch is thin exactly then). Not the 400k by itself.
+- Mechanism (radys s.11 + IOC limits): IOC sides are random but their LIMIT prices centre on the hidden fair F, so when
+  F > mid only buy IOCs execute -> flow is directional given F. New architecture running: fair-centric quoting
+  (`exp_r2_fq.py`: bid F-k / ask F+k, IOC when F is beyond the touch).
+- Running at home: exp_r2_fq (fair-centric), exp_r2_grid2 (small orders + fair + over-cap), exp_r2_fairtake (taker
+  overlay), exp_r2_fair2 (better F estimator), exp_r2_fairgate (robustness map + gate on F), exp_r2_ml (ML refit).
+- radys: please hunt other BIG hypotheses (what gives 400k?): D6 holes (fills far from F during one-sided books),
+  IOC partial fills revealing F, anything structural. Note: the penalty is FLAT 10,000/s regardless of the excess
+  over 100 (simulator._accrue_breach_penalty), the reject is only potential |pos| > 1000.
