@@ -1617,3 +1617,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - Lesson for R4: holdout gains of a few thousand on the public tape are noise for the board; only structural steps
   (refits of the learned stack, a new model class) moved the board in R3 (pms 675k -> g2 773k -> mlp2 865k -> ms 926k ->
   gru 976k -> gru3 984k). Stacking many small holdout-positive tweaks overfits the public tape.
+- 05:39 last-minute candidate **`strategies/mm_r3_gru6.py`** = mm_r3_gru3 + skip the gate / slow-model pulls for a flip
+  quote with < 150 market lots ahead (fl_gate 1, fa_q 150; exp_r3_flive via exp_r3_g8.py): round3 659,206 / mirror 643,395
+  / round2 453,365; holdout 159,022 / 158,886 / 114,288 (gru3 653,327 / 639,714 / 447,310; holdout 157,925 / 158,799 /
+  112,106): up on all six numbers; fa_q 400 similar. Parity verified, check PASS 6.5 min.
