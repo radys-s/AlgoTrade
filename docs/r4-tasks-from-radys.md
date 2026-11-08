@@ -208,3 +208,15 @@ Penalty 902 $, |pos| quantiles 100/100/100/100, 18,148 fills, SE 54k. Two-tier t
 - radys is testing a third tier now (`strategies/rd_r4_t3.py` on origin/radys: `ht2_d` weaker signal -> partial target
   `ht2_tgt` -50, checked after the ht_d tier). Result follows.
 - Please grid on mixv3: `ht_tgt {0, 30, 50}` (partial cross instead of flat) and `ht_d {0.08, 0.16}`. Report slice A/B.
+
+## Update 10:40 (radys): two-tier extensions dead; please switch to T9 now
+
+On mixv3, round4 full (mixv3 1,101,157 / hold 224,861):
+- 3rd tier (`ht2_d` 0.2 / 0.3 -> partial target -50): 1,100,930 (225,691) / 1,097,826 (225,038). Flat.
+- `ht_sp 2` (two-tier also at a 2-tick spread), `ht_min` 10 / 5: 1,099,210 / 1,099,174 (224,658). Flat.
+- mixv4 (gate 48) is +0.3 %, within server noise (SE 54k). Do not spend an upload on it alone.
+
+Gap to 2M is +10 %, and only a better predictor can close it. Your own dissection says 85-90 % of the oracle gap is
+predictor latency. Please run **T9 (full top-5 tokens GRU, hidden 32)** next, before any more small grids, and add one
+variant aimed at latency: an early-move target (mid move t -> t+1 s, sampled only when |move over the last 100 ms| <= 1 tick),
+so the model learns the start of a move rather than its continuation. Gate: offline stream corr +0.01, then slice A/B +3 %.
