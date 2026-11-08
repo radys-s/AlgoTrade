@@ -1334,3 +1334,17 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
   oracle ceilings, exact-likelihood fair filter, insurance tuner + ridge refit, engine artefacts, big-move capture,
   decision-point learner.
 - Tools: `research/diag/mirror.py` (byte-identical to the old round2_mirror), `strategies/exp_r3_base.py` (= mm_r2_final).
+
+## 2026-11-08 01:20 — R3 ceilings on mm_r3_ins (subagent, sonnet) (home)
+
+| experiment | round3 (= mirror) | gain over 339,285 |
+|---|---:|---:|
+| perfect predictor 50 / 150 / 500 / 1000 ms | 939,850 / 1,122,718 / 1,093,243 / 904,901 | +601k / +783k / +754k / +566k |
+| centred fair +-50 / +-100 ms (offset 2.0) | 402,726 / 716,060 | +63k / +377k |
+| front of queue (front / fresh 100 lots) | 542,464 / 347,736 | +203k / +8k |
+
+Prediction at 150-500 ms is the lever (R2: +545k); the centred-fair gain is mostly its look-ahead (+-50 ms only +63k).
+Agents switched to cheaper models at 01:12 at Honza's request (usage): opus medium only for the id-gap leak scanner and
+engine artefacts; opus low for the likelihood filter; sonnet medium for the generator card, ceilings, tuner, learner;
+the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 20 episodes, 0.10 s in total, worst
+6.7 ms, max |I| 300 (flip-vs-quote race), each ended by the guard within its 5 ms latency.
