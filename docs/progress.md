@@ -1460,3 +1460,6 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   Expected leaderboard ~ x1.6 of the local gain: ~ +50k over mlp2's 864,770.
 - Wide-feature MLP (sonnet): all 73 features +0.014 holdout corr / +1.6 % edge, the exactly-online subset ~ +0.005:
   stopped. The 22-feature MLP holds most of the information; prediction gains now need new information, not models.
+- Raw-book-state MLP (sonnet, research/diag/mlpr_r3.py): 22 features + 77 raw book/trade columns, best holdout corr
+  0.5016 (+0.009), edge per take up but take rate down: stopped. Conclusion of the predictor wave: the 22-feature MLP
+  extracts nearly all short-term information we can see online (all model variants land at corr 0.49-0.51).
