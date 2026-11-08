@@ -1424,3 +1424,5 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - 02:40 running (sonnet, due 03:15-03:25): MLP v2 (seeds + ioc_sweep50 inputs), prediction-proportional target position,
   inside-spread quotes on strong MLP signals, learned 1-5 s direction model instead of the 30 s gate, MLP in the passive
   quotes, taker retune for the MLP, final MLP on 100 % of round3 + mirror (seed ensemble).
+- Target-inventory policy (3-level / proportional to the MLP signal, sonnet): every variant loses (best 521,903 / holdout
+  134,428 vs 540,341 / 138,223); fewer flips, lost flip revenue outweighs avoided adverse holding. Killed (exp_r3_tgt.py).
