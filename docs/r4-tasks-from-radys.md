@@ -256,3 +256,7 @@ too weak a filter. For T9/T10, sim slice A directly once the offline corr is up,
 | exit-quote skew -0.5 / -1.0 (away from mid) | 1,108,226 / 1,107,431 | **218,290 / 219,792** |
 The model already exits losing positions on its own. A wider exit quote helps only the training part. Server 11:08
 (mixv4?) 1,815,208 = +0.2 % vs mixv3, which is noise. Keep mixv3 final unless T9 passes the sim.
+
+## 11:38 (radys): mixv5 uploaded as the last test = mixv4 + ht_d 0.15 + ht_tgt 30 + mlp_gate 0.1 (your three +1.5..1.8k singles)
+Stacked they add: round4 1,126,834 (229,186) vs mixv4 1,105,043 (226,729); mirror 1,141,705 (242,742) vs 1,120,204 (241,689).
+File `strategies/mm_r4_mixv5.py` on origin/radys. Final = mixv5 if the server beats 1,815,208, else mixv3.
