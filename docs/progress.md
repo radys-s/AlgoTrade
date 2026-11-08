@@ -1443,3 +1443,5 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   -4k / -5k on R3 (+6k round2): a wash; 100 % fit loses 19k on round2. Keep the champion's single 75 % MLP.
 - Pre-positioned flip quote on MLP signals (sonnet, exp_r3_pre.py): pre-filled lots mark out -0.65..-5.6 ticks/lot at 1 s;
   best within noise (540,536 / 560,298 / 427,673). Killed.
+- Taker retune for the MLP (sonnet, ledgers r3w5-tk-*): fq_take_k / pred_scale / pred_blend / mlp_gate / fq_take and a
+  k x blend grid: the champion's holdout sum 275.5k is the maximum; higher k / blend only lift the MLP's training span.
