@@ -201,3 +201,10 @@ mixv runs `SEQ_LITE = True` (touch-only tokens). `seq_r3.py` already supports th
    `research.check` runtime (< 12 min).
 3. Average 2-3 seeds of the winner (+0.005 more, measured on the MLP).
 4. Upload only if slice A and B beat mixv by >= 3 %.
+
+## Server: mm_r4_mixv3 = 1,810,997 (10:23, +47k / +2.7 % vs mixv 1,763,582) -> FINAL. Ratio 1.645 to round4 local.
+
+Penalty 902 $, |pos| quantiles 100/100/100/100, 18,148 fills, SE 54k. Two-tier take works on the server, so extend it:
+- radys is testing a third tier now (`strategies/rd_r4_t3.py` on origin/radys: `ht2_d` weaker signal -> partial target
+  `ht2_tgt` -50, checked after the ht_d tier). Result follows.
+- Please grid on mixv3: `ht_tgt {0, 30, 50}` (partial cross instead of flat) and `ht_d {0.08, 0.16}`. Report slice A/B.
