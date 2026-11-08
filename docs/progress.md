@@ -1778,3 +1778,8 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   +1.7k, ht_d 0.15 +1.5k, ht_tgt 30 +1.8k, mq_b 0.6 / fq_k 0.07 / cs_q 1.6 ~0, pred_scale 1.25 -0.8k, 1.05 -15.3k): mixv4 sits
   at a local optimum of the hand knobs. Move-size modulation on mixv4 (exp_r4_v5.py / _wf.py): slice A +0.5k, slice B
   +1.2k, round3 -9.8k: the two-tier take already captures it. Running (11:20): quote predictor upgrade, multi-tier policy.
+- Laptop: mixv3 verified (vs mixv round4 +12.0k 6/8, mirror +29.1k 6/8, round3 +10.2k, round2 +20.9k, slice B 7/8);
+  mixv4 vs mixv3 only +0.3 % with ~50/50 chunks (round4 4/8): switch to mixv4 only if its server beats mixv3 by > 1 %.
+- Quote predictor upgrade (opus, exp_r4_qx.py / _wf.py: refitted MLPQ[1000] / MLPQ[300] on round3 + round4 blended with
+  MLPQ[500]): every blend within +-1.5k on slice A, best +0.5k on slice B, round3 -8k, round2 -5k. A longer or shorter
+  quote horizon is not less timid than 500 ms; cs_q already does the scaling. Rejected.
