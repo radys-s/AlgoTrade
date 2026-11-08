@@ -31,6 +31,14 @@ queued ahead of us). Our quotes are cancelled before they climb the queue (24k c
 (exp_r3_res.py, exp_r3_qcap.py, exp_r3_flive.py) test reservations, pull exemptions near the front, longer-lived quotes:
 read their reports first. If one of them works, it is the first thing to port to R4.
 
+## Process lessons from R3 (brain)
+- Run the ceilings in the FIRST 30 minutes on the new tape, before any tuning: taker oracle and quote oracle
+  (research/diag/oracle_pred_r3.py), front-of-queue sim (research/diag/frontq_r3.py). In R3 the queue ceiling (+196k)
+  was only measured at 04:45, so the biggest lever got 45 minutes instead of 4 hours.
+- Stop a direction as soon as its offline gains stop reaching holdout pnl (R3: ensembles, bigger GRUs, new targets
+  and tokens all raised offline corr and never pnl); move the agents to the lever with the biggest measured ceiling.
+- Do not stack small holdout-positive tweaks at the end (gru5 970k vs gru3 984k).
+
 ## R4 timeline
 
 | when | step |
