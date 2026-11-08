@@ -14,6 +14,8 @@ signals we already have and **regime-scaled thresholds**, not another model or m
 - **Transfer is decaying (05:15):** s13 -> s14 = +3.0 % local (634,519 -> 653,327) but only +0.85 % server
   (976,148 -> 984,495); ratio 1.54 -> 1.51. Recent local gains are partly public-tape fit. Weight the holdout and
   mirror / round2 more than the full round3 number from here on (s14 holdout gain was only +1.2 %).
+- **slw_thr 2.5 on s14 (05:45):** local better on all 3 tapes + holdouts (r3 +0.3 %, round2 +1.2 %), server ~983k vs
+  984,495 = flat. Local gains under ~2 % no longer show on the server; next round, judge only bigger structural changes.
 - Server PnL standard error is ~55k: differences under ~3 % on the board are noise.
 
 ## 2. Dead ends (do not repeat)
