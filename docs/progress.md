@@ -1432,3 +1432,5 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - Inside-spread quotes on strong MLP signals (sonnet): best +3.5k on round3, negative on round2 and mirror. Killed.
 - 02:55 big-jump bets launched: GRU / causal-CNN sequence model on the raw event stream (opus medium), wide-feature MLP
   with exactly-online event features (sonnet), longer-horizon MLP for the quotes (sonnet).
+- Two-sided MM inside a neutral MLP band (sonnet): all 12 cells below the champion on round3 (best 535,222 / holdout
+  131,795 vs 540,341 / 138,223); the MM fills are adverse-selected. Killed (exp_r3_mm2.py).
