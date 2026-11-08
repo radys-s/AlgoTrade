@@ -1348,3 +1348,13 @@ Agents switched to cheaper models at 01:12 at Honza's request (usage): opus medi
 engine artefacts; opus low for the likelihood filter; sonnet medium for the generator card, ceilings, tuner, learner;
 the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 20 episodes, 0.10 s in total, worst
 6.7 ms, max |I| 300 (flip-vs-quote race), each ended by the guard within its 5 ms latency.
+
+## 2026-11-08 01:29 — R3 upload candidate mm_r3_pms = 413,750 (+22 %): ridge refitted on round 3 (home)
+
+- Subagent pms (opus low): the round-2 lean ridge (22 features: fair taus 20-300 ms with clamp terms, imbalance, touch
+  counts, queues, flow, last trade, hole) refitted on round3's first 75 % (150 ms target) for the taker only. Holdout corr
+  0.419 -> 0.456; at the same trigger count edge 0.733 -> 0.767; at scale 1 fewer fires at higher edge (95k at 0.89).
+  New features (mid / fair momentum, sweep-implied fair) added nothing; the 500 ms target fires more on noise and loses.
+- **`strategies/mm_r3_pms.py`** (pms_on 1, pred_blend 0.5, pred_scale 1.0): round3 **413,750**, mirror 411,861, round2
+  416,647; holdout 104,902 / 105,585 (base 87,007), 8/8 chunks on all three, check PASS 3.0 min. Holdout gain (+20 %) ~
+  train gain (+22 %): not an in-sample artefact.
