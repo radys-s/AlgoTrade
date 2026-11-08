@@ -1715,3 +1715,8 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   1 s mid changes over a round3 reference; pred_scale = clip(r^1.25, 1, 1.6), gate / slw x clip(r^2, 1, 2.2): round4
   1,077,589 (214,637), mirror 1,072,770 (214,279), round3 653,703, round2 448,508 (both unchanged), round4p75 holdout
   245,057 / 235,676. Porting onto mm_r4_mix next.
+- Mix-table variants (sonnet; slice A tape / mirror hold, slice B tape / mirror hold; base mixv 222,726 / 222,767,
+  241,953 / 249,133): + round2 data 224,128 / 217,108, 244,658 / 252,383 (round3 -17k); MLP seed 1 222,792 / 222,695,
+  246,256 / 248,524; seed 2 222,410 / 222,886, 244,074 / 249,545: all within noise. More round4 data (0-56 % -> 0-75 %
+  fit) moved slice A +6.9k / -0.7k: weak evidence. `strategies/mm_r4_mixv_full.py` (round3 + ALL round4) built but
+  unvalidatable (round3 609,336, round2 449,734, check PASS 7.0 min). Keep mm_r4_mixv.
