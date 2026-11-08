@@ -1419,3 +1419,8 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   138,223 / 137,230) and round2 -9.5k: not additive with the MLP, not used. The filter's offline tracking is weaker than
   the 70 ms EWMA (insert depth is not a clean function of F).
 - Best upload: `strategies/mm_r3_mlp2.py`.
+- Leaderboard R3: `mm_r3_mlp2` **864,770.06** (19,931 filled orders, penalty 1,614, sim 2:34): +92k over g2, leaderboard /
+  local 1.60. Above the ~800k 75th percentile of 01:49.
+- 02:40 running (sonnet, due 03:15-03:25): MLP v2 (seeds + ioc_sweep50 inputs), prediction-proportional target position,
+  inside-spread quotes on strong MLP signals, learned 1-5 s direction model instead of the 30 s gate, MLP in the passive
+  quotes, taker retune for the MLP, final MLP on 100 % of round3 + mirror (seed ensemble).
