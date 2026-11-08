@@ -1471,3 +1471,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   106,960 vs ms 573,111 / 589,261 / 428,199 (143,885 / 142,614 / 107,749): a wash, not used.
 - Decision-point classifier (sonnet, `exp_r3_dpc.py`): ridge veto / force fail the holdout; a depth-3 GBM veto lifts the
   R3 holdouts +1-3k but loses 1-3k on round2 and is non-monotone in its threshold. Killed.
+- Leaderboard R3: `mm_r3_ms` **925,809.20** (20,241 filled orders, penalty 1,336, sim 2:50): +61k over mlp2 (x1.62).
+- 500 ms MLP for the quote signal (sonnet, `exp_r3_mlpq.py`; merged onto ms as `exp_r3_msq.py`, mq_h 500): round3 571,085 /
+  mirror 595,553 / round2 439,016, holdout 144,549 / 143,063 / 109,960 (ms 573,111 / 589,261 / 428,199; 143,885 / 142,614 /
+  107,749): all holdouts up a little, round2 +10.8k -> `strategies/mm_r3_msq.py`.
