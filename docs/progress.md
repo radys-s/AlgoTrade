@@ -1659,3 +1659,8 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   Holdout sum mean 418.0k, sd ~5.6k; every seed beats the unrefitted gru3 (392.9k) by ~+25k (+6 %): the refit is the
   robust step, the seed choice is noise. Running (due 08:45): GRU on round3 + round4 data (opus), hand-parameter retune
   for R4 (sonnet).
+- **Walk-forward (laptop's suggestion): the R4-only refit is NOT robust.** data/round4p75.csv = round4 rows with Time <
+  4500 s; refit on its first 75 % (0-56 % of round4), tested on its last 25 % (56-75 %), holdout round4p75 / mirror:
+  mm_r3_gru3 (R3-trained, no refit) **240,675 / 241,518**; refit s0 236,009 / 236,394; s2 234,158 / 228,867; s4 232,430 /
+  236,270. The +25k of the refits on the last 25 % is slice-specific (that slice rebounds after a long fall). Keep
+  mm_r3_gru3 as the R4 insurance; candidates must beat it on both slices. Agents told to judge on both slices.
