@@ -1434,3 +1434,8 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   with exactly-online event features (sonnet), longer-horizon MLP for the quotes (sonnet).
 - Two-sided MM inside a neutral MLP band (sonnet): all 12 cells below the champion on round3 (best 535,222 / holdout
   131,795 vs 540,341 / 138,223); the MM fills are adverse-selected. Killed (exp_r3_mm2.py).
+- Taker slip 1 tick on mm_r3_mlp2 (brain): 471,106 / 449,327 (-69k / -111k). Still terrible with the MLP.
+- Learned slow-direction pull (sonnet, `strategies/exp_r3_slow.py`, 5 s ridge, slw_on 1 / h5 / thr 2, on top of the gate):
+  round3 548,403 (holdout 143,276), mirror 565,627 (138,778), round2 423,061 (107,776) vs mlp2 540,341 / 138,223,
+  560,237 / 137,230, 427,786 / 108,183. Modest; the 30 s hand gate's drift itself correlates slightly NEGATIVELY with
+  future moves (holdout corr -0.05 / -0.14 at 1 s / 5 s). Candidate component.
