@@ -12,7 +12,7 @@ SD = d.Side.values; V = d.Volume.fillna(0).values.astype(int); P = d.Price.filln
 IOC = (d.Lifespan.values == 'F')
 bids, asks, orders = {}, {}, {}
 n = len(d)
-mid = np.zeros(n); fs = np.zeros(n); ci = np.zeros(n); near = np.zeros(n)
+mid = np.zeros(n); BB = np.zeros(n); BA = np.zeros(n); SWV = {}; fs = np.zeros(n); ci = np.zeros(n); near = np.zeros(n)
 ew, ewt, ewinit = 0.0, 0.0, False
 cb = ca = 0.0; ct = 0.0
 sweeps = []  # (idx, dir, levels)
@@ -32,7 +32,7 @@ for i in range(n):
                 if take == q: del asks[a]
                 else: asks[a] = q - take
             if IOC[i]:
-                if lv >= 3: sweeps.append((i, 1, lv))
+                if lv >= 2: sweeps.append((i, 1, lv)); SWV[i] = V[i]
             elif v > 0:
                 bids[p] = bids.get(p, 0) + v; orders[OID[i]] = ('B', p, v)
                 x = p + 0.5
@@ -47,7 +47,7 @@ for i in range(n):
                 if take == q: del bids[b]
                 else: bids[b] = q - take
             if IOC[i]:
-                if lv >= 3: sweeps.append((i, -1, lv))
+                if lv >= 2: sweeps.append((i, -1, lv)); SWV[i] = V[i]
             elif v > 0:
                 asks[p] = asks.get(p, 0) + v; orders[OID[i]] = ('A', p, v)
                 x = p - 0.5
@@ -69,6 +69,7 @@ for i in range(n):
                     else: ca += rem
     b_, a_ = best()
     m = (b_ + a_) / 2 if bids and asks else (mid[i - 1] if i else 0)
+    BB[i] = b_; BA[i] = a_
     mid[i] = m; fs[i] = ew - m; ci[i] = (ca - cb) / (ca + cb + 1)
 # targets
 def fwd(h):
@@ -92,3 +93,18 @@ for h in (0.1, 1.0):
 if len(sys.argv) > 3:  # append fs30 + ci50 as columns 26, 27 -> new npz
     np.savez(sys.argv[3], X=np.c_[X, fs[k], ci[k]].astype(np.float32), t=tz, mid2=z['mid2'], rm2=z['rm2'])
     print('saved', sys.argv[3])
+
+# sweep riding at our real entry: IOC arrives 5 ms later, pays far touch, exit at mid after h
+for lmin in (2, 3, 4):
+    for h in (0.1, 0.5, 1.0, 3.0):
+        e = []
+        for i, dr, lv in sweeps:
+            if lv < lmin: continue
+            j = np.searchsorted(T, T[i] + 0.005)
+            if j >= n: continue
+            px = BA[j] if dr > 0 else BB[j]
+            x = np.searchsorted(T, T[j] + h, side='right') - 1
+            if abs(px - mid[j]) > 30 or abs(mid[x] - mid[j]) > 200: continue
+            e.append(dr * (mid[x] - px))
+        e = np.array(e)
+        print(f'sweep>={lmin} lv h{int(h*1000):5d}: edge after 5 ms + spread {e.mean():+.3f} ticks/lot  win {np.mean(e>0):.2f}  n {len(e)}')
