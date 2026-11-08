@@ -1001,3 +1001,10 @@ at thresholds 1.0 / 1.5 / 2.0 (500 ms hold, optimistic overlapping samples). No 
 - Final R2 leaderboard (public): 1 delfini 1,875,116; 2 Codehorses 1,302,831; 3 Southeast Fortress 1,269,037; 10 Půl Kelliho 1,017,551; 12 p<0.05 (us) 952,725.
 - The leader is about 2x us and 1.97x the median of the top 10. Small knob tuning (+0.4% to +7%) will not close that gap. The next round needs a structural change, not grids.
 - To do first next round: find what delfini does differently (likely much higher volume or a stronger hidden-fair-price use). Check turnover, fills and end position of our run against it.
+
+| 2026-11-08 02:50 | radys | R3: Honza s10/s11 verified locally (413,750 / 478,572; server 675k / 772k, ratio x1.6); s11 structural grid = plateau; submission/best_strategy.py = s11 |
+
+### 2026-11-08 radys: Round 3 calibration and structural grid on s11
+- Local pnl tracks the server at x1.6, so 1.2M server needs about 750k local (+57 % over s11).
+- Grid layer_size / tr_rest / pred_scale / park_size / ri_ms on s11: best 480,026 (+0.3 %); tr_rest 1, pred_scale 1.4, park 20 clearly worse. Quote mechanics are saturated.
+- Next: predictor-side work (spread-split ridge, prediction-driven quote pull, vol-adaptive thresholds); see docs/proposals-r3-radys.md.

@@ -1,10 +1,31 @@
-"""mm_r2_rts (home, R2 leaderboard candidate): mm_r2_zd + three passive-side filters.
+"""mm_r3_g2 (home, R3 upload candidate): mm_r3_pms + passive filters retuned for R3 (rt_ms 100, fq_k_sp2 1.5, gate_thr 10, qs_k 0.6)
++ taker ridge refitted for a 200 ms target on round3 + mirror (first 75 %, rfit 19) at pred_blend 0.7.
+round3 478,572 / mirror 477,772 / round2 426,845; holdout 117,658 / 117,867 (mm_r3_pms 104,902 / 105,585), 8/8 chunks.
 
-  * fq_k_sp2 0.7: at a spread >= 2 a passive touch quote needs F_hat >= 0.7 ticks inside it (fq_k 0.05 at spread 1);
-    the base quoted both sides of a wide spread unless F leaned ~1 tick (subagent tkst: +21.7k / +21.2k alone).
-  * rt_ms 20: no passive quote for 20 ms after its side's touch retreats (fills on a retreated level mark out -0.57).
-  * qs_k 0.45 / qs_weak 100: the touch quote is the full 200-lot flip only while F_hat is >= 0.45 ticks beyond it.
-round2 + round2_mirror 840,149 vs 783,271 for mm_r2_zd (+56.9k, both tapes >= +28.6k); sp2 alone 826.1k, + rt 836.4k.
+mm_r3_pms (home, R3 upload candidate): mm_r3_ins + a ridge predictor refitted on round 3 (first 75 %, 150 ms target, lean
+22 features) driving the IOC taker (pms_on 1, pred_blend 0.5, pred_scale 1.0; passive quotes keep fair_sig).
+Subagent pms: round3 413,750 / mirror 411,861 (base 339,285), holdout 104,902 / 105,585 (base 87,007), 4/4 chunks.
+
+mm_r3_ins (home, R3 insurance): our R2 final (mm_r2_final, R2 leaderboard 974,031) with the round-2 ridge switched off (pred_on 0).
+round3 339,285 / round3_mirror 339,285 (holdout 87,007, 7/8 chunks); with the R2 ridge 338,970 / 342,176 but holdout
+80,507 / 79,129; without the R2 passive filters 273-279k.
+
+mm_r2_final (home, R2 last upload): mm_r2_rth (leaderboard 970,101) + passive refinements only, taker unchanged
+(pred_blend 0.5): qs_k 0.3, fq_k_sp2 0.75, fq_k_sp3 0.15, hk_k 0.6. round2 434,477 / mirror 432,324 in the subagent grid
+(+3.7k / +3.0k over mm_r2_rth).
+
+mm_r2_rth2 (home, R2 leaderboard candidate): mm_r2_rth with qs_k 0.3 and fq_k_sp3 0.3.
+
+round2 + round2_mirror 863,925 vs 860,077 for mm_r2_rth (leaderboard 970,101); both tapes up (+0.8k..+2.3k), i.e. a
+small refinement: the 200-lot flip quote from a 0.3-tick lean (was 0.45), and at a spread >= 3 the lean threshold 0.3
+(spread 2 keeps 0.7).
+
+mm_r2_rth (home, R2 leaderboard candidate): mm_r2_rts + a stricter quote over a hole behind the touch.
+
+hk_gap 3 / hk_k 0.8: when the next market level behind our side's touch is >= 3 ticks away, the touch quote needs
+F_hat >= 0.8 ticks inside it (fq_k 0.05 otherwise): a sweep that takes the level runs through the hole (fills where the
+sweep went deeper mark out -1.5 ticks/lot). round2 + round2_mirror 860,077 vs 840,149 for mm_r2_rts (both tapes ~+10k);
+hk_gap 2 858,284. mm_r2_rts: fq_k_sp2 0.7, rt_ms 20, qs_k 0.45 (leaderboard 957,133).
 
 exp_r2_rt (home, R2): mm_r2_zd + no passive quote on a touch that just retreated (+ qs_k / qs_weak as exp_r2_qsw).
 
@@ -197,6 +218,44 @@ PRED_MODELS = (
     (-0.1376293, (0.1241886, 1.0000457, -0.8574578, 0.1962215, -0.0459786, -0.0031503, 0.0115308, 0.2154807, 0.0168906,
                   0.0406975, -0.1544921, -0.0163024, 0.0655148, -0.0529128, -0.0901387, 0.0057237, 0.0798153, -0.2998945,
                   0.0003081, 5.95e-05, -3e-06, 0.001068)),
+    # exp_r3_pms (research/diag/pred_ms_r3.py): lean ridge, H = 150 ms, fitted on the first 75 % of round3, holdout corr 0.456
+    (-0.062417, (0.2775507, -1.5860022, 4.0092883, -1.1545062, 0.4269749, -0.5366721, 0.001776, 0.0732531, 0.0104478,
+                 0.0365482, -0.1613575, 0.1527298, 0.0518662, -0.0493269, -0.054811, 0.0044655, 0.1031784, -0.4176847,
+                 0.0003904, 0.0003088, -1.74e-05, -0.0021945)),
+    # same, H = 500 ms, holdout corr 0.450
+    (0.0014319, (0.4915197, -3.4882645, 5.7144612, -3.4437006, 1.7689845, 0.0203486, 0.0034531, 0.2038764, 0.0073592,
+                 0.0532544, -0.2642959, 0.4456907, 0.0198291, -0.0235174, -0.07914, 0.022941, 0.1142459, -0.548584,
+                 0.0006258, 0.0006661, -5.49e-05, -0.0171894)),
+    # rfit 5 (parity_r3_75); params rfit=5
+    (-0.0624031, (0.277322, -1.5824591, 4.0031018, -1.1521293, 0.4264759, -0.5362993, 0.0017923, 0.0731271, 0.0104396, 0.0367361, -0.1611373, 0.1525277, 0.0518743, -0.0493497, -0.0542882, 0.004415, 0.1031497, -0.4180602, 0.0003906, 0.0003078, -1.76e-05, -0.0022234)),
+    # rfit 6 (r3_100); params rfit=6
+    (-0.0312048, (0.2524195, -1.3480718, 3.3785846, -0.861668, 0.3252749, -0.4616473, 0.0039907, 0.0887642, 0.0104336, 0.0330804, -0.1469838, 0.1544691, 0.0474075, -0.0491369, -0.0678913, 0.0067726, 0.1081369, -0.4207363, 0.0003946, 0.0002871, -1.46e-05, -0.0018087)),
+    # rfit 7 (r3m_75); params rfit=7
+    (0.0057834, (0.2815741, -1.5935843, 3.9275782, -1.1594923, 0.4303528, -0.510283, 0.005897, 0.0708377, 0.0107017, -0.0030404, -0.1612667, 0.1574112, 0.049974, -0.050176, -0.0588904, 0.005253, 0.1088707, -0.4565042, 0.0003878, 0.0003099, -1.47e-05, -0.0002002)),
+    # rfit 8 (r3m_100); params rfit=8
+    (0.0054826, (0.2466326, -1.2869831, 3.2095648, -0.8381711, 0.3205404, -0.433942, 0.0090329, 0.0897958, 0.0105591, -0.0036631, -0.1470923, 0.1603695, 0.0478484, -0.0478539, -0.0724708, 0.0077466, 0.1125127, -0.4387961, 0.0003906, 0.0002869, -1.14e-05, -0.0002533)),
+    # rfit 9 (r3r2_75); params rfit=9
+    (-0.0713038, (0.2382439, -0.5503573, 2.2009459, -0.6307873, 0.2446267, -0.3812074, 0.0104099, 0.1187834, 0.0122256, 0.0135575, -0.1686974, 0.1091626, 0.0579816, -0.049788, -0.0780315, 0.0067838, 0.1084385, -0.3902581, 0.0003895, 0.0002508, -8.2e-06, -0.0010775)),
+    # rfit 10 (r3r2_100); params rfit=10
+    (-0.0648742, (0.2105307, -0.1880777, 1.8586417, -0.4405044, 0.1869755, -0.4230065, 0.0032603, 0.1277431, 0.0134098, 0.0247087, -0.1629833, 0.1038543, 0.0551304, -0.0499972, -0.08014, 0.0072563, 0.098058, -0.3955948, 0.0003957, 0.000219, -6e-06, -0.0005508)),
+    # rfit 11 (h100); params rfit=11
+    (-0.0535764, (0.1986696, -1.1499214, 3.5870151, -0.8245487, 0.2840145, -0.6206259, 0.0026813, 0.0370241, 0.0109065, 0.0338854, -0.1289682, 0.0896141, 0.048413, -0.0468462, -0.0542142, 0.0021219, 0.0965979, -0.4151024, 0.0003238, 0.0002183, -1.65e-05, -0.0013505)),
+    # rfit 12 (h200); params rfit=12
+    (-0.0827942, (0.3240314, -1.8918189, 4.2843136, -1.4612609, 0.5873722, -0.4526961, 0.0015868, 0.1012547, 0.0097485, 0.044972, -0.166947, 0.2014094, 0.0470965, -0.0439305, -0.0558036, 0.0069273, 0.109682, -0.4199382, 0.0004335, 0.0003967, -1.95e-05, -0.0010397)),
+    # rfit 13 (a30); params rfit=13
+    (-0.0622792, (0.2243555, -1.1074354, 3.3663358, -0.8674549, 0.3337896, -0.5294242, 0.0018603, 0.0728563, 0.0105099, 0.0367516, -0.1610352, 0.1528795, 0.0518183, -0.0493092, -0.0542123, 0.0044774, 0.1029307, -0.4178398, 0.0003941, 0.0003062, -1.79e-05, -0.0022288)),
+    # rfit 14 (a3); params rfit=14
+    (-0.0624589, (0.3015645, -1.7992775, 4.2923061, -1.2817882, 0.4686366, -0.5389994, 0.0017672, 0.0732306, 0.0104078, 0.0367303, -0.1611726, 0.1523779, 0.0518954, -0.049364, -0.054311, 0.0043852, 0.1032468, -0.4181489, 0.000389, 0.0003085, -1.74e-05, -0.0022209)),
+    # rfit 15 (h250); params rfit=15
+    (-0.07794, (0.3595536, -2.2248901, 4.6752248, -1.821058, 0.7794161, -0.3920195, 0.0019532, 0.1302642, 0.008737, 0.0422214, -0.170975, 0.2523107, 0.0404407, -0.0357294, -0.0664491, 0.0117513, 0.1115327, -0.4640593, 0.0004835, 0.0004559, -2.33e-05, -0.0042474)),
+    # rfit 16 (h300); params rfit=16
+    (-0.0724841, (0.3900014, -2.5147352, 4.8607743, -2.1605277, 0.9738315, -0.2807812, 0.0026442, 0.1481326, 0.0081509, 0.0536237, -0.1987224, 0.303423, 0.0365457, -0.0342982, -0.066235, 0.014328, 0.1113762, -0.4866288, 0.0005272, 0.0005067, -2.73e-05, -0.0055818)),
+    # rfit 17 (h400); params rfit=17
+    (-0.0282405, (0.466667, -3.2114534, 5.4724355, -2.8877678, 1.3836155, -0.1034287, 0.003558, 0.180911, 0.0075644, 0.0506587, -0.2457532, 0.3890844, 0.0306282, -0.0309191, -0.0744028, 0.0204671, 0.111792, -0.5352834, 0.0005708, 0.0005952, -4e-05, -0.0130527)),
+    # rfit 18 (h200_r3r2_75); params rfit=18
+    (-0.0973287, (0.2980089, -0.8502869, 2.4510317, -0.906685, 0.37287, -0.2955706, 0.0099235, 0.1505303, 0.0114378, 0.0158284, -0.1828066, 0.154566, 0.0555681, -0.044164, -0.0873357, 0.010265, 0.1145985, -0.3912, 0.0004421, 0.0003158, -8.7e-06, -0.0008097)),
+    # rfit 19 (h200_r3m_75); params rfit=19
+    (0.005415, (0.3303941, -1.9259269, 4.2404875, -1.4825975, 0.5955986, -0.4271199, 0.0057687, 0.0997469, 0.0100156, -0.0028265, -0.1671455, 0.2063794, 0.0448473, -0.0450412, -0.0610664, 0.0078129, 0.11599, -0.4641638, 0.0004312, 0.0003986, -1.65e-05, -0.0001859)),
 )
 PRED_TAUS_US = (20000.0, 50000.0, 70000.0, 150000.0, 300000.0)
 
@@ -300,7 +359,7 @@ class MarketMaker(BaseStrategy):
         'ladder_size': 0,
         'ladder_depth': 3,
         'ladder_reserve': 1,
-        'gate_thr': 8.0,
+        'gate_thr': 10.0,
         'gate_window_us': 30000000,
         'gate_max_spread': 3,
         'gate_rungs': 1,
@@ -319,11 +378,17 @@ class MarketMaker(BaseStrategy):
         'fq_level': 0,
         'fq_take_k': 0.2,
         'fair_mid_any': 1,
-        'pred_on': 1,
+        'pred_on': 0,
         'pred_scale': 1.0,
         'pred_model': 0,
         'pred_mode': 1,
-        'pred_blend': 0.5,
+        'pred_blend': 0.7,
+        # exp_r3_pms: 1 = the IOC taker uses the round-3 150 ms ridge (pred_on 1, pred_mode 1, pred_model 3), 2 = the
+        # 500 ms one (pred_model 4); blended with fair_sig by pred_blend, scaled by pred_scale. 0 = off (base).
+        'pms_on': 1,
+        # exp_r3_rfit: 0 = champion model 3; else the PRED_MODELS index of a refit variant (5 parity, 6 r3_100, 7 r3m_75, 8 r3m_100,
+        # 9 r3r2_75, 10 r3r2_100, 11 h100, 12 h200, 13 alpha x3, 14 alpha /3, 15 h250, 16 h300, 17 h400, 18 h200+r2, 19 h200+mirror).
+        'rfit': 19,
         # exp_r2_new_a, zero-delay take: the IOC taker counts the room of the favoured-side quote it cancels in the
         # same callback (and of cancels still in flight), so IOC and cancel land together after 5 ms instead of the
         # IOC waiting for CANCELED (>= 10 ms). A race fill of the cancelled quote can push |I| over max_position;
@@ -337,11 +402,15 @@ class MarketMaker(BaseStrategy):
         # the old one (crediting the cancelling quantity) instead of after CANCELED: it reaches the new level >= 5 ms
         # earlier, i.e. further forward in its queue. Same over-cap guard. 0 = off.
         'zd_quote': 2,
-        'rt_ms': 20.0,
+        'rt_ms': 100.0,
         'ri_ms': 0.0,
         'qa_max': 0,
-        'fq_k_sp2': 0.7,
-        'qs_k': 0.45,
+        'fq_k_sp2': 1.5,
+        'of_ms': 0.0,
+        'fq_k_sp3': 0.15,
+        'hk_gap': 3,
+        'hk_k': 0.6,
+        'qs_k': 0.6,
         'qs_weak': 100,
         # zd_quote 2: credit only quotes cancelled because the desired price moved toward the market (following an
         # improving touch onto a fresh level), never retreats, whose old quote is the one at risk of a race fill.
@@ -422,6 +491,10 @@ class MarketMaker(BaseStrategy):
         self.fq_take_k = float(params['fq_take_k'])
         self.fair_mid_any = int(params['fair_mid_any'])
         self.fq_next_take = [0, 0]  # earliest time of the next IOC take per side
+        if int(params.get('pms_on', 0)):
+            params = dict(params, pred_on=1, pred_mode=1, pred_model=2 + int(params['pms_on']))
+            if int(params.get('rfit', 0)):
+                params = dict(params, pred_model=int(params['rfit']))
         self.pred_on = int(params['pred_on'])
         self.pred_scale = float(params['pred_scale'])
         self.pred_mode = int(params['pred_mode'])
@@ -458,6 +531,13 @@ class MarketMaker(BaseStrategy):
         self.ri_t = [-10**15, -10**15]
         self.qa_max = int(params['qa_max'])
         self.fq_k_sp2 = float(params['fq_k_sp2'])
+        self.of_us = int(float(params['of_ms']) * 1000.0)
+        self.fq_k_sp3 = float(params['fq_k_sp3'])
+        self.hk_gap = int(params['hk_gap'])
+        self.hk_k = float(params['hk_k'])
+        self.hole = [0, 0]
+        self.of_t = [-10**15, -10**15]
+        self.of_now = 0
         self.zd_guard_pull = int(params['zd_guard_pull'])
         self.tr_rest = int(params['tr_rest'])
         self.tr_keep_k = float(params['tr_keep_k'])
@@ -539,6 +619,20 @@ class MarketMaker(BaseStrategy):
                 break
         if ba < 0:
             return
+        self.of_now = snapshot.timestamp_us
+        if self.hk_gap > 0:
+            g = 99
+            for view in bids:
+                if view.owner == 'market' and view.price < bb:
+                    g = bb - view.price
+                    break
+            self.hole[0] = g
+            g = 99
+            for view in asks:
+                if view.owner == 'market' and view.price > ba:
+                    g = view.price - ba
+                    break
+            self.hole[1] = g
         if self.ri_us > 0:
             if self.last_ba > 0 and ba < self.last_ba:
                 self.ri_t[0] = snapshot.timestamp_us  # the ask improved: F likely lower, our bid is at risk
@@ -644,6 +738,11 @@ class MarketMaker(BaseStrategy):
                 pull_ask = True
                 if self.gate_rungs:
                     self._clear_side(1, -1)
+        if self.of_us > 0:
+            if now - self.of_t[0] < self.of_us:
+                pull_bid = True
+            if now - self.of_t[1] < self.of_us:
+                pull_ask = True
         if self.qa_max > 0:
             # do not START a quote behind a thick market queue: only sweeps reach its back (markout -0.4..-0.7)
             if not self.active[0] and qb > self.qa_max:
@@ -848,8 +947,18 @@ class MarketMaker(BaseStrategy):
         k = self.fq_k
         if self.fq_k_sp2 >= 0.0 and ba - bb >= 2:
             k = self.fq_k_sp2
-        dbid = floor(f - k)
-        dask = -floor(-(f + k))
+        if self.fq_k_sp3 >= 0.0 and ba - bb >= 3:
+            k = self.fq_k_sp3
+        kb = k
+        ka = k
+        if self.hk_gap > 0:
+            # a touch with a hole right behind it: a sweep that takes our level runs far (markout -1.5/lot)
+            if self.hole[0] >= self.hk_gap and self.hk_k > kb:
+                kb = self.hk_k
+            if self.hole[1] >= self.hk_gap and self.hk_k > ka:
+                ka = self.hk_k
+        dbid = floor(f - kb)
+        dask = -floor(-(f + ka))
         tk = self.fq_take_k
         if tk > 0.0:
             ft = f
@@ -1181,6 +1290,8 @@ class MarketMaker(BaseStrategy):
             self.cash -= sign * qty * event.fill_price
             self.n_fills += 1
             self.fill_volume += qty
+            if self.of_us > 0 and not order.ioc:
+                self.of_t[order.k] = self.of_now
             self._shrink(order, qty)
             if order.remaining <= 0:
                 self._forget(order)
