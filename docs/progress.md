@@ -1451,3 +1451,12 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - **mq + slow merged** (`strategies/exp_r3_ms.py`, mq_on 1 / mq_b 0.5 / fq_k 0.05 + slw_on 1 / h5 / thr 2): round3 571,801,
   mirror 582,881, round2 425,385; holdout 142,962 / 142,490 / 107,993 (mlp2 540,341 / 560,237 / 427,786; 138,223 /
   137,230 / 108,183). mq alone (fq_k 0.05): 564,095 / 579,779 / 433,861, holdout 138,214 / 140,903 / 109,906.
+
+## 2026-11-08 03:09 — Best R3 file now: mm_r3_ms = 573,111 / 589,261 / 428,199 (home)
+
+- **`strategies/mm_r3_ms.py`** = mm_r3_mlp2 + MLP in the passive quote signal (mq_on 1, mq_b 0.5, fq_k 0.1) + learned 5 s
+  direction pull (slw_on 1, h5, thr 2): round3 **573,111**, mirror 589,261, round2 428,199; holdout 143,885 / 142,614 /
+  107,749 (mlp2 540,341 / 560,237 / 427,786; holdout 138,223 / 137,230 / 108,183); 8/8 chunks; check PASS 4.3 min.
+  Expected leaderboard ~ x1.6 of the local gain: ~ +50k over mlp2's 864,770.
+- Wide-feature MLP (sonnet): all 73 features +0.014 holdout corr / +1.6 % edge, the exactly-online subset ~ +0.005:
+  stopped. The 22-feature MLP holds most of the information; prediction gains now need new information, not models.
