@@ -1475,3 +1475,8 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - 500 ms MLP for the quote signal (sonnet, `exp_r3_mlpq.py`; merged onto ms as `exp_r3_msq.py`, mq_h 500): round3 571,085 /
   mirror 595,553 / round2 439,016, holdout 144,549 / 143,063 / 109,960 (ms 573,111 / 589,261 / 428,199; 143,885 / 142,614 /
   107,749): all holdouts up a little, round2 +10.8k -> `strategies/mm_r3_msq.py`.
+- Flip anatomy of mm_r3_ms on round3 (sonnet, research/diag/flips_r3.py): 4,241 flips; taker flips 2,022 = +517,916
+  (+256 per flip, entry cost -0.62/lot, 1 s markout +1.19), passive flips 1,850 = +2,364 (zero edge), mixed 369 = +44,673;
+  hindsight whipsaws (next flip < 0.5 s) -75,686. Taker flips are positive in every bucket (signal, spread, time since
+  last flip, gate, hole). Capping weak-signal passive flips (exp_r3_flp.py) lifts the round3 holdout but loses on mirror
+  and round2: killed. The profit engine is the taker's precision x frequency.
