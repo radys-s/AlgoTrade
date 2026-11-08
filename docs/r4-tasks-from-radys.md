@@ -188,3 +188,16 @@ MLP 32-16, h200, trained on round4 + mirror 0-75 %, holdout corr 75-100 % (`rese
   below the 3 % upload bar. Run the GRU ensemble only if the home PC is idle. The GRU had larger seed variance (+-20k), so
   its gain may be larger. Check the offline corr of 3 GRUs first, then sim only if it is >= +0.01.
 - Multi-horizon heads (rest of T8) are untested. Same offline gate.
+
+## T9 (radys, URGENT, top priority): full-depth GRU. The only lever left that adds information
+
+Measured here: a bigger MLP does NOT help (64-32: holdout corr 0.6555 / 0.6547 vs 32-16: 0.6570 / 0.6590). The model is
+limited by information, not capacity. The file has ~800 kB free, so size is no constraint.
+mixv runs `SEQ_LITE = True` (touch-only tokens). `seq_r3.py` already supports the full top-5 tokens (LITE False) and larger GRUs.
+
+1. Train on round3 + round4 + both mirrors, 0-75 %: (a) LITE False, hidden 16; (b) LITE False, hidden 32;
+   (c) LITE True, hidden 32. Report holdout corr vs the current mixv GRU on round4 + mirror.
+2. Gate +0.01 corr. Then bake the best one into mixv. The strategy must build the level 2-5 tokens online, so check
+   `research.check` runtime (< 12 min).
+3. Average 2-3 seeds of the winner (+0.005 more, measured on the MLP).
+4. Upload only if slice A and B beat mixv by >= 3 %.
