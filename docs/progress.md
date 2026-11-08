@@ -1375,3 +1375,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - **`strategies/mm_r3_g2.py`**: round3 **478,572**, mirror 477,772, round2 426,845 (mm_r3_pms 413,750 / 411,861 /
   416,647); holdout 117,658 / 117,867 (pms 104,902 / 105,585); 8/8 chunks on all three; check PASS 3.0 min.
   Safer variant (blend 0.5): 464,210 / 464,248 / 433,300, holdout 112,744 / 112,787.
+- 02:05 wave 3 (sonnet medium, due 02:35-02:40) on mm_r3_g2: fine-tune (sp3, rt 80-160, gate 9-11, qs_k, sp2, blend),
+  multi-horizon / per-spread ridge ensemble, quote-side markout model, id-gap jump detector (redo), modify-instead-of-
+  cancel for the filters (keep queue place). The wave-1 leak scanner / engine / filter / generator / tuner / learner
+  agents were stopped before reporting (no ledgers).
