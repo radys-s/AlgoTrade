@@ -1621,3 +1621,10 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   quote with < 150 market lots ahead (fl_gate 1, fa_q 150; exp_r3_flive via exp_r3_g8.py): round3 659,206 / mirror 643,395
   / round2 453,365; holdout 159,022 / 158,886 / 114,288 (gru3 653,327 / 639,714 / 447,310; holdout 157,925 / 158,799 /
   112,106): up on all six numbers; fa_q 400 similar. Parity verified, check PASS 6.5 min.
+
+## 2026-11-08 06:05 — R3 final result: 12th of 53 (home)
+
+- Final R3 ranking (private evaluation of the marked final mm_r3_gru3): p<0.05 **12th, 874,971.48** (public board 984k,
+  x0.89). Field: 53 teams, mean 681k, std 298k (pnl <= 0 counted as 0) -> our z3 = +0.65. Top 5 from 1,073,870 (z +1.32),
+  1st delfini 1,458,005 (z +2.61), 10th 929,224. Third round in a row at 12th; score so far 0.8 z1 + z2 + z3 ~ 1.32 + 0.65.
+- R4 (weight 1.2) needs a top-5 round (~+0.7 z over this one) to move up: structural steps only (docs/r4_plan.md).
