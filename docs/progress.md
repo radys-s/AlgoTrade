@@ -1604,3 +1604,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   (exempting near-front quotes at spread >= 2 is the only small plateau). Longer-lived quotes (sonnet, exp_r3_flive.py):
   only the gate / slow-pull exemption near the front helps a little (fl_gate, fa_q 150: +5.8k / +4.2k / +5.8k full,
   holdout +0.5k / +0.3k / +1.9k on gru2); the other exemptions lose.
+- Reservation orders / early seat (opus, exp_r3_res.py): a small persistent order on the inventory-reducing side climbs
+  the queue, but its fills are +0.1-0.2 tick at 100 ms and adverse by 1 s (they also push inventory off +-100 and displace
+  taker flips); every setting is within +-2k or loses up to 82k. The front-queue ceiling needs being first at once, which
+  no strategy can buy in this replay. Final R3 candidate: **mm_r3_gru5**.
