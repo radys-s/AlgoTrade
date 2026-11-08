@@ -3,7 +3,11 @@
 Read `origin/radys` for the files. Judge every task the home way: holdout sums tape + mirror on slice A (last 25 %) AND
 slice B (walk-forward 56-75 %), base = `mm_r4_mix` (x1.15 if that is the current pick). Stop a task as soon as it is flat.
 
-## T1 (new alpha, highest priority): sweep riding
+## T1 sweep riding - DEAD in the sim (radys 08:35), skip
+
+Sim on round4 (rd_r4_sw, base rd_r4_q 1,035,606 / hold 198,036): sw_k 1 988,562 (188,953), sw_k 2 956,507,
+sw_k 4 937,549. The GRU already trades these sweeps; the shift only adds late takes. `fq_deep` (IOC limit past the
+touch at the forecast price) = no change at all (1,035,582). Offline evidence kept for the record:
 
 Offline on round4_public (`research/diag/tape_ideas.py`, radys): a market IOC that trades at >= 3 price levels is
 followed by continuation, measured at OUR real entry (far touch 5 ms later) and exit at mid:
