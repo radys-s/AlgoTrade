@@ -1,4 +1,47 @@
-"""mm_r2_fq2 (home, R2 candidate): mm_r2_fq with tau 70 ms, fq_take 200 (one IOC can reverse a full position),
+"""mm_r2_rts (home, R2 leaderboard candidate): mm_r2_zd + three passive-side filters.
+
+  * fq_k_sp2 0.7: at a spread >= 2 a passive touch quote needs F_hat >= 0.7 ticks inside it (fq_k 0.05 at spread 1);
+    the base quoted both sides of a wide spread unless F leaned ~1 tick (subagent tkst: +21.7k / +21.2k alone).
+  * rt_ms 20: no passive quote for 20 ms after its side's touch retreats (fills on a retreated level mark out -0.57).
+  * qs_k 0.45 / qs_weak 100: the touch quote is the full 200-lot flip only while F_hat is >= 0.45 ticks beyond it.
+round2 + round2_mirror 840,149 vs 783,271 for mm_r2_zd (+56.9k, both tapes >= +28.6k); sp2 alone 826.1k, + rt 836.4k.
+
+exp_r2_rt (home, R2): mm_r2_zd + no passive quote on a touch that just retreated (+ qs_k / qs_weak as exp_r2_qsw).
+
+round2 anatomy: market fills at a level the touch RETREATED onto mark out -0.57 / -0.42 ticks (0-50 / 50-200 ms), at a
+fresh level made by an improving insert +0.64. rt_ms: after the bid touch falls (ask touch rises) the side's passive
+quote is pulled for rt_ms; 0 = off (identical to mm_r2_zd).
+
+mm_r2_zd (home, R2 leaderboard candidate): mm_r2_pred (gate 8 / 30 s) + zero-delay take (the flip IOC goes out in the
+same callback as the cancel of our blocking passive quote; a guard IOC trims any |I| > 100 at once) + zero-delay
+requote toward the market (zd_quote 2), quote_size 200. Subagent A. round2 local: see progress.md (2026-11-07 22:55).
+Leaderboard: mm_r2_pred 797,904.
+
+exp_r2_new_a: mm_r2_pred2 + zero-delay take (zd_take). Base = mm_r2_pred2 (home, R2 candidate): mm_r2_pred with gate_window 20 s, gate_thr 10 (fq_take_k 0.2): robust across regimes:
+round2 378,507 (+6.5k), round1 480,854 (+39k), sample_v2 267,440 vs mm_r2_pred. Leaderboard: mm_r2_fq2 740,067, mm_r2_pred 797,904.
+
+mm_r2_pred (home, R2 candidate): exp_r2_pred baked with pred_on 1, pred_mode 1 (the prediction drives only the
+IOC taker test; passive quotes keep fair_sig), pred_blend 0.5 (taker signal = 0.5 ridge + 0.5 fair_sig), pred_scale 1.0,
+fq_take_k 0.2, pred_model 0 (ridge fitted on the first 75 % of round2). round2 371,961 (hold 106,650, 8/8),
+mirror 369,664, round1 441,626, sample_v2 265,868.
+
+exp_r2_pred (home, R2): mm_r2_fq2 with a better F_hat - mid predictor fed to the fair taker/quoter.
+
+research/diag/oracle_fair.py: with the REAL 150 ms move instead of fair_sig the same strategy makes 935k, so the
+predictor is the bottleneck. research/diag/pred_r2.py fits a ridge (no winsorizing: the edge is in the tails) on
+fair_sig at taus 20/50/70/150/300 ms, its decayed insert count, touch queues/imbalance, trade flow, last trade and
+the book-hole offset, target = robust mid (spread <= 3) at t+5ms+150ms minus the current mid (ticks, the unit _fq
+adds to the mid). Holdout (last 25 % of round2) corr 0.417 vs fair_sig 0.392; mean move in the top 1/3/6 % of
+|pred| 3.45/2.15/1.47 ticks vs 2.91/1.86/1.31 for |fair_sig|.
+  * pred_on: 1 = _fq uses pred_scale * prediction instead of fair_sig. 0 = identical to mm_r2_fq2.
+  * pred_model: 0 = ridge fitted on the first 75 % of round2 (honest holdout), 1 = fitted on 100 %,
+    2 = the same features with a 100 ms target (first 75 %).
+  * pred_blend: the signal used is pred_blend * prediction + (1 - pred_blend) * fair_sig (1 = the prediction only).
+  * pred_mode: 0 = the prediction drives both the IOC taker test and the passive quotes, 1 = taker test only
+    (quotes keep fair_sig), 2 = quotes only (the taker keeps fair_sig).
+Features use only market flow (our own IOC trades are skipped) and market orders at the touch.
+
+mm_r2_fq2 (home, R2 candidate): mm_r2_fq with tau 70 ms, fq_take 200 (one IOC can reverse a full position),
 fq_take_k 0.2, gate_thr 8. round2 349,077 (8/8, chunk_min +15.8k).
 
 mm_r2_fq (home, R2 candidate): exp_r2_fq baked with the subagent's best cell: aggressive hidden-fair IOC taker (100 lots
@@ -135,7 +178,27 @@ s*I + R + q <= M <= 100, and s*I >= -M, so the value lies in [-100, 100].
 """
 
 from collections import deque
-from math import exp, floor
+from math import exp, floor, log1p
+
+# Ridge predictor of (robust mid at t+5ms+150ms) - mid now, folded to raw-feature weights: (c0, weights in PRED_NAMES order).
+PRED_NAMES = ('fs20', 'fs50', 'fs70', 'fs150', 'fs300', 'fs70_x_lw', 'fs70_cube', 'sgnflow100_x_absfs', 'fs70_x_spread',
+              'spread', 'imb1', 'cnt_imb1', 'lq_b', 'lq_a', 'ltr_sign', 'ltr_lsz', 'ltp_dev', 'hole', 'flow_ev10',
+              'flow_ms100', 'flow_ms1000', 'dt_tr_log')
+PRED_MODELS = (
+    # fitted on the first 75 % of round2 (time), holdout corr 0.417
+    (-0.1640373, (0.1537846, 1.5590139, -1.9111093, 0.5027856, -0.1723518, 0.1470229, 0.0134986, 0.2770717, 0.014809,
+                  0.0323918, -0.1716682, 0.006399, 0.0677491, -0.0504011, -0.106348, 0.0074704, 0.0968138, -0.2549203,
+                  0.0004209, 0.0001058, -1.2e-06, 0.0018721)),
+    # fitted on 100 % of round2
+    (-0.156208, (0.2649571, 1.9563702, -2.2357974, 0.6931888, -0.2452375, 0.0289781, 0.0098034, 0.2456548, 0.0117925,
+                 0.0415263, -0.1733876, 0.0089595, 0.0649292, -0.0500369, -0.0969171, 0.0070827, 0.0767696, -0.3871174,
+                 0.0004106, 7.41e-05, 6.9e-06, 0.0021099)),
+    # H = 100 ms instead of 150, fitted on the first 75 % of round2, holdout corr 0.421
+    (-0.1376293, (0.1241886, 1.0000457, -0.8574578, 0.1962215, -0.0459786, -0.0031503, 0.0115308, 0.2154807, 0.0168906,
+                  0.0406975, -0.1544921, -0.0163024, 0.0655148, -0.0529128, -0.0901387, 0.0057237, 0.0798153, -0.2998945,
+                  0.0003081, 5.95e-05, -3e-06, 0.001068)),
+)
+PRED_TAUS_US = (20000.0, 50000.0, 70000.0, 150000.0, 300000.0)
 
 from simulator.models import (
     OrderBookSnapshot,
@@ -180,6 +243,7 @@ class _Order:
         self.accepted = False
         self.cancel_sent = False
         self.active = not ioc  # part of the side's current quote (not cancelling, not an IOC)
+        self.zq = False  # cancelled because the quote moved TOWARD the market (zd_quote 2 credits only these)
 
 
 class MarketMaker(BaseStrategy):
@@ -255,6 +319,39 @@ class MarketMaker(BaseStrategy):
         'fq_level': 0,
         'fq_take_k': 0.2,
         'fair_mid_any': 1,
+        'pred_on': 1,
+        'pred_scale': 1.0,
+        'pred_model': 0,
+        'pred_mode': 1,
+        'pred_blend': 0.5,
+        # exp_r2_new_a, zero-delay take: the IOC taker counts the room of the favoured-side quote it cancels in the
+        # same callback (and of cancels still in flight), so IOC and cancel land together after 5 ms instead of the
+        # IOC waiting for CANCELED (>= 10 ms). A race fill of the cancelled quote can push |I| over max_position;
+        # the guard then sends an IOC back to the cap at once (penalty ~50 per 5 ms). 0 = off (champion).
+        'zd_take': 1,
+        'zd_guard_slip': 3,
+        # Credit a cancelling quote only when at least this much market quantity is queued ahead of it (a race fill
+        # in the 5 ms window then needs a sweep through all of it); 0 = always credit.
+        'zd_min_ahead': 0,
+        # Zero-delay requote: a passive quote moved to a new price is re-placed in the same callback as the cancel of
+        # the old one (crediting the cancelling quantity) instead of after CANCELED: it reaches the new level >= 5 ms
+        # earlier, i.e. further forward in its queue. Same over-cap guard. 0 = off.
+        'zd_quote': 2,
+        'rt_ms': 20.0,
+        'ri_ms': 0.0,
+        'qa_max': 0,
+        'fq_k_sp2': 0.7,
+        'qs_k': 0.45,
+        'qs_weak': 100,
+        # zd_quote 2: credit only quotes cancelled because the desired price moved toward the market (following an
+        # improving touch onto a fresh level), never retreats, whose old quote is the one at risk of a race fill.
+        # Guard also pulls the over-cap side's resting quotes (1) or only IOCs the excess (0).
+        'zd_guard_pull': 1,
+        # Take-and-rest: the taker is a LIMIT at the far touch instead of an IOC; when the touch is thinner than the
+        # order, the residual rests at the swept price, alone at the front of a fresh best level inside the spread,
+        # and stays while floor(F_t - tr_keep_k) >= its price (asks mirrored). 0 = off.
+        'tr_rest': 0,
+        'tr_keep_k': 0.0,
     }
 
     def __init__(self) -> None:
@@ -325,7 +422,48 @@ class MarketMaker(BaseStrategy):
         self.fq_take_k = float(params['fq_take_k'])
         self.fair_mid_any = int(params['fair_mid_any'])
         self.fq_next_take = [0, 0]  # earliest time of the next IOC take per side
+        self.pred_on = int(params['pred_on'])
+        self.pred_scale = float(params['pred_scale'])
+        self.pred_mode = int(params['pred_mode'])
+        self.pred_blend = float(params['pred_blend'])
+        self.pred_c0, self.pred_w = PRED_MODELS[int(params['pred_model'])]
+        self.pred_sig = 0.0
+        self.pf_s = [0.0] * 5  # decayed sums of insert devs at PRED_TAUS_US
+        self.pf_w = [0.0] * 5
+        self.pf_sig = [0.0] * 5
+        self.pf_t = 0
+        self.pf_seen = False
+        self.pr_hist: deque = deque()  # signed market flow of the last 10 events
+        self.pr_ev10 = 0.0
+        self.pr_w100: deque = deque()
+        self.pr_s100 = 0.0
+        self.pr_w1000: deque = deque()
+        self.pr_s1000 = 0.0
+        self.pr_ltp = 0
+        self.pr_ltv = 0.0
+        self.pr_ttr = -1
+        self.pr_rm2 = 0
         self.n_takes = 0
+        self.zd_take = int(params['zd_take'])
+        self.zd_guard_slip = max(0, int(params['zd_guard_slip']))
+        self.zd_min_ahead = max(0, int(params['zd_min_ahead']))
+        self.last_views = [None, None]
+        self.zd_quote = int(params['zd_quote'])
+        self.rt_us = int(float(params['rt_ms']) * 1000.0)
+        self.qs_k = float(params['qs_k'])
+        self.qs_weak = int(params['qs_weak'])
+        self.qs_f = 0.0
+        self.rt_t = [-10**15, -10**15]
+        self.ri_us = int(float(params['ri_ms']) * 1000.0)
+        self.ri_t = [-10**15, -10**15]
+        self.qa_max = int(params['qa_max'])
+        self.fq_k_sp2 = float(params['fq_k_sp2'])
+        self.zd_guard_pull = int(params['zd_guard_pull'])
+        self.tr_rest = int(params['tr_rest'])
+        self.tr_keep_k = float(params['tr_keep_k'])
+        self.last_bb = 0
+        self.last_ba = 0
+        self.n_guard = 0
 
         # Position and order state (index k: 0 = buy, 1 = sell).
         self.inv = 0
@@ -356,10 +494,12 @@ class MarketMaker(BaseStrategy):
         """Recompute the desired bid/ask from the market touch and move our quotes if needed."""
         bids = snapshot.bids
         asks = snapshot.asks
+        if self.pred_on:
+            self._pred_flow(snapshot.timestamp_us, trades)
         if not bids or not asks:
             return
         scan = self.book_scan_orders
-        need_qty = self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0
+        need_qty = self.alpha_imbalance != 0.0 or self.imb_pull > 0.0 or self.jump_imb > 0.0 or self.thin_pull > 0 or self.qa_max > 0
 
         # Market touch and its quantity, skipping our own orders (only market orders count
         # towards the scan limit, so our own fragments can never hide the touch).
@@ -399,9 +539,28 @@ class MarketMaker(BaseStrategy):
                 break
         if ba < 0:
             return
+        if self.ri_us > 0:
+            if self.last_ba > 0 and ba < self.last_ba:
+                self.ri_t[0] = snapshot.timestamp_us  # the ask improved: F likely lower, our bid is at risk
+            if 0 < self.last_bb < bb:
+                self.ri_t[1] = snapshot.timestamp_us
+        if self.rt_us > 0:
+            if 0 < bb < self.last_bb:
+                self.rt_t[0] = snapshot.timestamp_us
+            if self.last_ba > 0 and ba > self.last_ba:
+                self.rt_t[1] = snapshot.timestamp_us
+        self.last_bb = bb
+        self.last_ba = ba
+        if self.zd_take:
+            self.last_views[0] = bids
+            self.last_views[1] = asks
+            if self.inv > self.max_pos or self.inv < -self.max_pos:
+                self._guard()  # a guard IOC that found too little liquidity: try again
 
         if self.fair_thr > 0.0 or self.fq_on:
             self._fair_update(snapshot.timestamp_us, bids, asks, bb, ba)
+            if self.pred_on:
+                self._pred_update(snapshot.timestamp_us, bids, asks, bb, ba)
         if ba - bb >= self.improve_min_spread:
             bid = bb + 1
             ask = ba - 1
@@ -485,6 +644,22 @@ class MarketMaker(BaseStrategy):
                 pull_ask = True
                 if self.gate_rungs:
                     self._clear_side(1, -1)
+        if self.qa_max > 0:
+            # do not START a quote behind a thick market queue: only sweeps reach its back (markout -0.4..-0.7)
+            if not self.active[0] and qb > self.qa_max:
+                pull_bid = True
+            if not self.active[1] and qa > self.qa_max:
+                pull_ask = True
+        if self.ri_us > 0:
+            if now - self.ri_t[0] < self.ri_us:
+                pull_bid = True
+            if now - self.ri_t[1] < self.ri_us:
+                pull_ask = True
+        if self.rt_us > 0:
+            if now - self.rt_t[0] < self.rt_us:
+                pull_bid = True
+            if now - self.rt_t[1] < self.rt_us:
+                pull_ask = True
         if self.fq_on:
             bid, ask, pull_bid, pull_ask = self._fq(now, bb, ba, fair_shift, pull_bid, pull_ask)
         lay = self.layer_size
@@ -497,14 +672,20 @@ class MarketMaker(BaseStrategy):
             self._pull(0)
             self._pull(2)
         else:
-            self._quote(0, 1, _BUY, bid, now, self.quote_size)
+            qsz = self.quote_size
+            if self.qs_k > 0.0 and self.qs_f - bid < self.qs_k:
+                qsz = self.qs_weak
+            self._quote(0, 1, _BUY, bid, now, qsz)
             if lay:
                 self._quote(2, 1, _BUY, bid - off, now, lay)
         if pull_ask:
             self._pull(1)
             self._pull(3)
         else:
-            self._quote(1, -1, _SELL, ask, now, self.quote_size)
+            qsz = self.quote_size
+            if self.qs_k > 0.0 and ask - self.qs_f < self.qs_k:
+                qsz = self.qs_weak
+            self._quote(1, -1, _SELL, ask, now, qsz)
             if lay:
                 self._quote(3, -1, _SELL, ask + off, now, lay)
         if ladder and self.ladder_reserve:
@@ -549,6 +730,18 @@ class MarketMaker(BaseStrategy):
         self.fair_n[k] = n
         self.fair_off[k] += (x - self.fair_off[k]) / min(n + 50, 20000)
         dev = x - self.fair_off[k]
+        if self.pred_on:
+            dtp = now - self.pf_t if self.pf_seen else 0
+            ps = self.pf_s
+            pw = self.pf_w
+            pg = self.pf_sig
+            for i in range(5):
+                ai = exp(-dtp / PRED_TAUS_US[i])
+                ps[i] = ps[i] * ai + dev
+                pw[i] = pw[i] * ai + 1.0
+                pg[i] = ps[i] / pw[i]
+            self.pf_t = now
+            self.pf_seen = True
         a = exp(-(now - self.fair_t) / self.fair_tau_us)
         self.fair_t = now
         self.fair_s = self.fair_s * a + dev
@@ -556,22 +749,121 @@ class MarketMaker(BaseStrategy):
         self.fair_w = self.fair_w * a + 1.0
         self.fair_sig = self.fair_s / self.fair_w
 
+    def _pred_flow(self, now: int, trades: list[Trade]) -> None:
+        """Market trade flow windows (our own IOC trades are not market flow), as research.signals.OnlineFeatures."""
+        fl = 0.0
+        traded = False
+        for t in trades:
+            if t.taker_owner == 'user':
+                continue
+            traded = True
+            fl += t.quantity if t.book_side == 'ask' else -t.quantity
+            self.pr_ltp = t.price
+        if traded:
+            self.pr_ltv = fl
+            self.pr_ttr = now
+        h = self.pr_hist
+        h.append(fl)
+        self.pr_ev10 += fl
+        if len(h) > 10:
+            self.pr_ev10 -= h.popleft()
+        if fl:
+            self.pr_w100.append((now, fl))
+            self.pr_s100 += fl
+            self.pr_w1000.append((now, fl))
+            self.pr_s1000 += fl
+        w = self.pr_w100
+        lim = now - 100000
+        while w and w[0][0] <= lim:
+            self.pr_s100 -= w.popleft()[1]
+        w = self.pr_w1000
+        lim = now - 1000000
+        while w and w[0][0] <= lim:
+            self.pr_s1000 -= w.popleft()[1]
+
+    def _pred_update(self, now: int, bids, asks, bb: int, ba: int) -> None:
+        """Evaluate the baked ridge on this event's features (see PRED_NAMES) into pred_sig (ticks)."""
+        qb = nb = 0
+        for v in bids:
+            if v.owner != 'market':
+                continue
+            if v.price != bb:
+                break
+            qb += v.quantity
+            nb += 1
+        qa = na = 0
+        for v in asks:
+            if v.owner != 'market':
+                continue
+            if v.price != ba:
+                break
+            qa += v.quantity
+            na += 1
+        spread = ba - bb
+        mid2 = bb + ba
+        if spread <= 3:
+            self.pr_rm2 = mid2
+        rm2 = self.pr_rm2 if self.pr_rm2 > 0 else mid2
+        pg = self.pf_sig
+        f70 = pg[2]
+        af = f70 if f70 >= 0.0 else -f70
+        fw = self.pf_w[2] * exp(-(now - self.pf_t) / 70000.0) if self.pf_seen else 0.0
+        s100 = self.pr_s100
+        ltv = self.pr_ltv
+        ltp = self.pr_ltp
+        w = self.pred_w
+        p = (self.pred_c0 + w[0] * pg[0] + w[1] * pg[1] + w[2] * f70 + w[3] * pg[3] + w[4] * pg[4]
+             + w[5] * f70 * log1p(fw) + w[6] * f70 * af + w[8] * f70 * spread + w[9] * spread
+             + w[17] * (mid2 - rm2) * 0.5 + w[18] * self.pr_ev10 + w[19] * s100 + w[20] * self.pr_s1000)
+        if s100 > 0.0:
+            p += w[7] * af
+        elif s100 < 0.0:
+            p -= w[7] * af
+        if qb + qa > 0:
+            p += w[10] * (qb - qa) / (qb + qa) + w[11] * (nb - na) / (nb + na)
+        p += w[12] * log1p(qb) + w[13] * log1p(qa)
+        if ltv > 0.0:
+            p += w[14] + w[15] * log1p(ltv)
+        elif ltv < 0.0:
+            p -= w[14] + w[15] * log1p(-ltv)
+        if ltp > 0:
+            p += w[16] * (ltp - mid2 * 0.5)
+        p += w[21] * (log1p((now - self.pr_ttr) / 1000.0) if self.pr_ttr >= 0 else 10.0)
+        if self.pred_blend != 1.0:
+            p = self.pred_blend * p + (1.0 - self.pred_blend) * self.fair_sig
+        self.pred_sig = p
+
     def _fq(self, now: int, bb: int, ba: int, fshift: float, pull_bid: bool, pull_ask: bool):
         """Fair-centric prices: quote around F_hat, cross with an IOC when F_hat - k is beyond the far touch."""
         ref2 = self.fair_prev_mid2
         mid = ref2 / 2.0 if ref2 > 0 else (bb + ba) / 2.0
         if self.fq_level:
             sig = self.fair_ls / self.fair_w - mid if self.fair_w > 0.0 else 0.0
+        elif self.pred_on and self.pred_mode != 1:
+            sig = self.pred_scale * self.pred_sig
         else:
             sig = self.fair_sig
         f = mid + self.fq_scale * sig + fshift
+        self.qs_f = f
         k = self.fq_k
+        if self.fq_k_sp2 >= 0.0 and ba - bb >= 2:
+            k = self.fq_k_sp2
         dbid = floor(f - k)
         dask = -floor(-(f + k))
         tk = self.fq_take_k
         if tk > 0.0:
-            take_buy = floor(f - tk) >= ba
-            take_sell = -floor(-(f + tk)) <= bb
+            ft = f
+            if self.pred_on and self.pred_mode:
+                ft = mid + (self.pred_scale * self.pred_sig if self.pred_mode == 1 else self.fq_scale * self.fair_sig) + fshift
+            take_buy = floor(ft - tk) >= ba
+            take_sell = -floor(-(ft + tk)) <= bb
+            if self.tr_rest:
+                for px in list(self.rungs[0]):
+                    if floor(ft - self.tr_keep_k) < px:
+                        self._cancel_rung(0, px)
+                for px in list(self.rungs[1]):
+                    if -floor(-(ft + self.tr_keep_k)) > px:
+                        self._cancel_rung(1, px)
         else:
             take_buy = dbid >= ba
             take_sell = dask <= bb
@@ -604,18 +896,107 @@ class MarketMaker(BaseStrategy):
             if take_buy:
                 pull_bid = True  # its room goes to the IOC once CANCELED arrives
                 if now >= self.fq_next_take[0]:
-                    q = min(take, self.max_pos - self.inv - self.out[0])
-                    if q > 0 and self._send(0, 1, _BUY, ba + self.fq_slip, q, True, 0) is not None:
+                    if self.tr_rest:
+                        self._clear_side(0, 1)  # an older residual gives its room to this take
+                    cred = self._cxl_credit(0) if self.zd_take else 0
+                    q = min(take, self.max_pos - self.inv - self.out[0] + cred)
+                    if q > 0 and self._take(0, 1, _BUY, ba + self.fq_slip, q, cred) is not None:
                         self.fq_next_take[0] = now + self.fq_cool_us
                         self.n_takes += 1
             elif take_sell:
                 pull_ask = True
                 if now >= self.fq_next_take[1]:
-                    q = min(take, self.max_pos + self.inv - self.out[1])
-                    if q > 0 and self._send(1, -1, _SELL, bb - self.fq_slip, q, True, 1) is not None:
+                    if self.tr_rest:
+                        self._clear_side(1, -1)
+                    cred = self._cxl_credit(1) if self.zd_take else 0
+                    q = min(take, self.max_pos + self.inv - self.out[1] + cred)
+                    if q > 0 and self._take(1, -1, _SELL, bb - self.fq_slip, q, cred) is not None:
                         self.fq_next_take[1] = now + self.fq_cool_us
                         self.n_takes += 1
         return bid, ask, pull_bid, pull_ask
+
+    def _cxl_credit(self, k: int) -> int:
+        """Resting quantity on side k that is being cancelled now (active quotes, pulled by the caller) or already."""
+        c = 0
+        mina = self.zd_min_ahead
+        for o in self.orders.values():
+            if o.k == k and not o.ioc and (o.active or o.cancel_sent):
+                if mina and self._ahead(o) < mina:
+                    continue
+                c += o.remaining
+        return c
+
+    def _ahead(self, o: _Order) -> int:
+        """Market quantity queued ahead of our order o in the last snapshot (large if it is not listed)."""
+        views = self.last_views[o.k]
+        if views is None:
+            return 1 << 30
+        px = o.price
+        oid = o.order_id
+        a = 0
+        sg = o.sign
+        for v in views:
+            if (v.price - px) * sg > 0:
+                continue
+            if v.price != px:
+                break
+            if v.order_id == oid:
+                return a
+            if v.owner == 'market':
+                a += v.quantity
+        return 1 << 30
+
+    def _take(self, k: int, sign: int, side: Side, px: int, q: int, cred: int) -> str | None:
+        """The taker's order: an IOC, or with tr_rest a LIMIT whose residual rests as a rung at the swept price."""
+        if self.tr_rest and px not in self.rungs[k]:
+            oid = self._send(k, sign, side, px, q, False, 4, cred)
+            if oid is not None:
+                self.rungs[k][px] = oid
+            return oid
+        return self._send(k, sign, side, px, q, True, k, cred)
+
+    def _cancel_rung(self, k: int, px: int) -> None:
+        """Cancel one resting take residual (it stays in OUT until CANCELED arrives)."""
+        rungs = self.rungs[k]
+        order = self.orders[rungs[px]]
+        order.rung = False
+        del rungs[px]
+        self.rung_qty[k] -= order.remaining
+        if not order.cancel_sent:
+            order.cancel_sent = True
+            self.cancel_order(order.order_id)
+            self.n_cancels += 1
+
+    def _cxl_only(self, k: int) -> int:
+        """Resting quantity on side k whose cancel is already in flight."""
+        c = 0
+        only_up = self.zd_quote == 2
+        for o in self.orders.values():
+            if o.k == k and o.cancel_sent and not o.ioc and (o.zq or not only_up):
+                c += o.remaining
+        return c
+
+    def _guard(self) -> None:
+        """|I| is over the cap after a race fill: IOC the excess (minus reducing IOCs in flight) back at once."""
+        inv = self.inv
+        if inv > self.max_pos:
+            k, sign, side = 1, -1, _SELL
+            px = self.last_bb - self.zd_guard_slip
+            ex = inv - self.max_pos
+        elif inv < -self.max_pos:
+            k, sign, side = 0, 1, _BUY
+            px = self.last_ba + self.zd_guard_slip
+            ex = -inv - self.max_pos
+        else:
+            return
+        if self.zd_guard_pull:
+            self._pull(1 - k)
+            self._pull(3 - k)
+        for o in self.orders.values():
+            if o.k == k and o.ioc:
+                ex -= o.remaining
+        if ex > 0 and px > 0 and self._send(k, sign, side, px, ex, True, k) is not None:
+            self.n_guard += 1
 
     def _drift(self, now: int, bb: int, ba: int) -> float:
         """Mid change (ticks) over the gate window, from samples taken while the spread is normal."""
@@ -719,6 +1100,8 @@ class MarketMaker(BaseStrategy):
                     self.parked_qty[k] += order.remaining
                 else:
                     order.cancel_sent = True
+                    if behind > 0:
+                        order.zq = True
                     self.cancel_order(order_id)
                     self.n_cancels += 1
             act.clear()
@@ -734,14 +1117,15 @@ class MarketMaker(BaseStrategy):
             return
         if have > 0 and (want < self.topup_min or now - self.last_action_us[j] < self.min_requote_us):
             return
-        free = self.max_pos - sign * self.inv - self.out[k]
+        cred = self._cxl_only(k) if self.zd_quote else 0
+        free = self.max_pos - sign * self.inv - self.out[k] + cred
         if want > free:
-            if self.out[k] > self.act_qty[k] + self.act_qty[k + 2] + self.parked_qty[k] + self.rung_qty[k]:
+            if self.out[k] - cred > self.act_qty[k] + self.act_qty[k + 2] + self.parked_qty[k] + self.rung_qty[k]:
                 return  # in-flight cancels/IOCs hold the room; wait for them rather than fragment the quote
             want = free
             if want <= 0:
                 return
-        if self._send(k, sign, side, px, want, False, j) is not None:
+        if self._send(k, sign, side, px, want, False, j, cred) is not None:
             self.quote_px[j] = px
             self.last_action_us[j] = now
 
@@ -758,9 +1142,9 @@ class MarketMaker(BaseStrategy):
             if self.unwind_id is not None:
                 self.n_unwinds += 1
 
-    def _send(self, k: int, sign: int, side: Side, px: int, qty: int, ioc: bool, j: int) -> str | None:
+    def _send(self, k: int, sign: int, side: Side, px: int, qty: int, ioc: bool, j: int, credit: int = 0) -> str | None:
         """The only place orders are created: refuse anything that could break the invariant."""
-        if qty <= 0 or px <= 0 or sign * self.inv + self.out[k] + qty > self.max_pos:
+        if qty <= 0 or px <= 0 or sign * self.inv + self.out[k] - credit + qty > self.max_pos:
             self.n_blocked += 1
             return None
         order_id = self.send_order(
@@ -805,6 +1189,8 @@ class MarketMaker(BaseStrategy):
                 self.invariant_breaks += 1
             if abs(inv) > self.max_abs_inv:
                 self.max_abs_inv = abs(inv)
+            if (self.zd_take or self.zd_quote) and (inv > self.max_pos or inv < -self.max_pos):
+                self._guard()
         elif status is _ACCEPTED:
             order.accepted = True
         elif status is _CANCELED:
