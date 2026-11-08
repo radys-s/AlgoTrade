@@ -1734,3 +1734,6 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   241,953 / 249,133: +4.9k summed, noise), round3 631,580 (+11.7k, the mechanism never fires there), round2 423,818
   (-25.9k: round2 has LOWER volatility than round3 yet prefers mixv's static knobs). Kept mm_r4_mixv (simpler, verified,
   better on the third regime).
+- Volatility-normalised GRU (opus, `strategies/exp_r4_vnorm.py` / `_wf.py`, vn_mode 2: 2-seed GRU on vol-normalised
+  inputs and target, trained on round3 + round4 0-75 %): round4 1,068,715 (217,217), mirror 1,065,113 (208,472),
+  round3 651,067 (kept), round2 428,184; slice B 240,851 / 236,541: the mirrors lose on both slices. Not adopted.
