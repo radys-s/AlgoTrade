@@ -133,3 +133,19 @@ keeping by survival / rank does not pay on R4.
 
 Still open on your side: T6 (vol-normalized GRU/MLP retrain) and the vol-adaptive variants. Upload only if both
 slices (A and B) beat mm_r4_mixv by >= 3 % (server 1,763,582 = current final).
+
+## T7 (radys 11:05): taker predictor upgrade, the only lever with measured headroom
+
+Why: the perfect 205 ms taker makes 1.486M local vs mixv 1.090M. The board 2M needs ~1.23M local, about 1/3 of that gap.
+All execution mechanics we tried were flat or negative. The predictor itself has not changed since R3 (16-hidden GRU,
+and your own R3 note says the exported GRU is partly a lucky seed, +-20k between retrains).
+
+Steps, cheapest first. Stop at the first flat step:
+1. **Offline first (minutes).** On the round4 + mirror dumps, measure the holdout corr of the current GRU taker output vs
+   the 205 ms target. That is the baseline number.
+2. **Seed ensemble.** Train 4-5 GRUs (same arch, `seq_r3.py`, trained on round3 + round4 + both mirrors, 0-75 %)
+   and average their outputs offline. Seed averaging removes the lucky-seed noise and normally adds corr.
+   Also try hidden 24/32 for a single model. Gate: holdout corr >= baseline + 0.01, otherwise stop.
+3. **Runtime.** The GRU costs ~45 us/event (check was 6.7 min). Three GRUs fit inside 15 min. Five probably do not, so
+   check `research.check` runtime before any grid.
+4. Bake the ensemble into mixv. Upload only if slice A **and** slice B (tape + mirror) beat mixv by >= 3 %.
