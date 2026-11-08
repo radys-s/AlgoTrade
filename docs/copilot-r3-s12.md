@@ -69,4 +69,16 @@ Combine every individually positive change from T1-T6 into `strategies/cp_s12_st
 
 `| task | file | params | r3 | r3 hold | mirror | round2 | chunks | breach | verdict |` plus one line on what you learned.
 
+## radys findings (03:20, read before T3/T5)
+
+- MLP retraining is saturated: 32-16 / 64-32 / 128-64, +level-2 depth features, horizons 150/300 ms, +round2 in training
+  all give holdout corr 0.50 (gated 0.58), same as s12's MLP +-0.003. Do not spend runs on new MLP weights.
+- Fill probe of s12 on round3_public (`research/diag/fill_probe.py`): taker IOC fills = 448k lots at +1.05 tick/lot
+  (30 s mark-out) = 470k of the 540k; maker fills only 96k. |inv| >= 95 for 71 % of the time: the cap binds,
+  the strategy is a position flipper. Taker edge by horizon: 1 s 1.08, 5 s 1.37, 30 s 1.05 (peaks ~5 s).
+- T5 (IOC exit on a faded signal) is unlikely to pay: crossing costs >= 0.5 tick, the decay it saves is ~0.3. Run it last,
+  only the `exit_k >= 0.6` cells.
+- Maker fills when the prediction is against the fill (pred in fill direction < -0.3) lose: -3.2 tick/lot at 30 s on 16k lots
+  (-52k). That is exactly what T3 (quote pull) removes, so T3 has priority over T2. Start T3 with pull_k 0.3-0.6.
+
 ## Results
