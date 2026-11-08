@@ -73,3 +73,9 @@ already limited at the touch and re-takes on the next event).
   (-17..-19 %). A blocked flip holds the wrong side through the move. Do not test drift lockouts or trailing exits
   built on 30 s mark-outs: our flips pay at 1 s, the 30 s reversion is not tradeable by holding.
 - Remaining from radys: T2 (vol-elastic threshold / hysteresis) and T3 (queue priority) only.
+
+## Update 09:35 (radys): flip completion / IOC past the touch DEAD on R4 too
+- Flip anatomy (mm_r4_mix x1.15, round4 fill probe): 2,537 flips, 128 lots each, 87 % of the lots fill in the FIRST IOC
+  at the touch (112 lots), 1.2 IOCs per flip, the later 13 % fill +2.3 ticks worse.
+- IOC limit 1 tick past the touch from the first take (rd_r4_mixdeep, deep_max 1): deep_m -1 998,536 / 1,000,519
+  (-5.7 %), deep_m -0.5 1,059,683 / 1,059,469 (flat). Execution is not the gap; the predictor and the queue are.
