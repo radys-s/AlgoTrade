@@ -1664,3 +1664,9 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   mm_r3_gru3 (R3-trained, no refit) **240,675 / 241,518**; refit s0 236,009 / 236,394; s2 234,158 / 228,867; s4 232,430 /
   236,270. The +25k of the refits on the last 25 % is slice-specific (that slice rebounds after a long fall). Keep
   mm_r3_gru3 as the R4 insurance; candidates must beat it on both slices. Agents told to judge on both slices.
+- R4 anatomy (sonnet, research/diag/anat_r4.py) of mm_r3_gru3: round4 = round3's book (same event rates, spread 1 tick
+  82 %, touch queues, trade sizes) with 1.4x the 1 s, 1.9x the 10 s and 1.6x the 60 s mid volatility (persistent moves).
+  pnl 1,027k on 2,937 flips (round3 653k on 3,739): taker flips 864k (699 per flip vs 346), passive 95k, whipsaws -31k;
+  holds >= 10 s earn 178k from 61 flips; no 10-minute block loses (41k-173k), block pnl tracks mid path length (corr
+  0.94), not drift direction. Hypothesis: the R3 predictors understate R4's moves -> pred_scale / threshold test added
+  to the parameter agent's grid.
