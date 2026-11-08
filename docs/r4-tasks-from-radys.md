@@ -114,3 +114,60 @@ keeping by survival / rank does not pay on R4.
   hl 60 s of |1 s mid change|), multiply the prediction back by the same vol at run time. Train on round3 + round2 +
   round4 0-56 % (+ mirrors), judge on both slices. This makes one model valid in all regimes, which is what the private
   seed needs. If short on time: do it for the MLP taker (seq_on 0) only, which radys found equal to the GRU on R4.
+
+## Update 10:45 (radys): Gemini "structural" ideas checked against simulator code. None are worth a run.
+
+- **Over-cap penalty arbitrage.** The penalty really is flat (`simulator.py:1290`, 10k $/s whenever |inv| > 100,
+  no matter how far over), and orders up to |inv| 1000 are accepted (`MAX_POTENTIAL_POSITION`). But there is no
+  liquidity to take. Our flip IOCs ask for up to 200 lots and fill on average 112 at the touch, so the touch is already
+  emptied. Extra lots would come from deeper levels, and IOC past the touch was already measured at -5.7 %.
+  Over-cap quoting lost -133k..-316k in R1 (`exp_overcap.py`). Skip.
+- **Replay front-running / liquidity hollowing** (take L1, rest at L1+1, so a replayed IOC "walks" into us).
+  `_execute_taker` stops at the IOC's own limit price. An IOC at the touch whose liquidity we consumed fills nothing,
+  because it is a zombie. It does not walk. Only IOCs whose limit price was already deep reach L1+1, and there we
+  sit behind the historical L2 queue. That is the sweep case, which the GRU already trades (sweep riding was -4.5 %). Skip.
+- **Path-length micro-cycling, trailing lock** = graduated / partial flips. Dead in R3 and R4 (lockout -17 %). Skip.
+- **Order-age queue promotion**: the cancel probe already measured it. Near-front cancels mark out +0.10 / -0.50
+  and the keep zone -0.90. Skip.
+- **Inside-spread quoting on wide spreads** = `fq_inside`, dead in R3. Skip.
+
+Still open on your side: T6 (vol-normalized GRU/MLP retrain) and the vol-adaptive variants. Upload only if both
+slices (A and B) beat mm_r4_mixv by >= 3 % (server 1,763,582 = current final).
+
+## T7 (radys 11:05): taker predictor upgrade, the only lever with measured headroom
+
+Why: the perfect 205 ms taker makes 1.486M local vs mixv 1.090M. The board 2M needs ~1.23M local, about 1/3 of that gap.
+All execution mechanics we tried were flat or negative. The predictor itself has not changed since R3 (16-hidden GRU,
+and your own R3 note says the exported GRU is partly a lucky seed, +-20k between retrains).
+
+Steps, cheapest first. Stop at the first flat step:
+1. **Offline first (minutes).** On the round4 + mirror dumps, measure the holdout corr of the current GRU taker output vs
+   the 205 ms target. That is the baseline number.
+2. **Seed ensemble.** Train 4-5 GRUs (same arch, `seq_r3.py`, trained on round3 + round4 + both mirrors, 0-75 %)
+   and average their outputs offline. Seed averaging removes the lucky-seed noise and normally adds corr.
+   Also try hidden 24/32 for a single model. Gate: holdout corr >= baseline + 0.01, otherwise stop.
+3. **Runtime.** The GRU costs ~45 us/event (check was 6.7 min). Three GRUs fit inside 15 min. Five probably do not, so
+   check `research.check` runtime before any grid.
+4. Bake the ensemble into mixv. Upload only if slice A **and** slice B (tape + mirror) beat mixv by >= 3 %.
+
+## T8 (radys 11:40): add multi-level order flow (MLOFI) and multi-horizon targets to the T7 retrain
+
+Source: Xu-Gould-Howison 2018 (multi-level OFI) and Kolm-Turiel-Westray 2023 ("Deep order flow imbalance": models on
+order flow beat models on raw book states; multi-horizon "alpha term structure" outputs).
+
+Measured (radys, `research/diag/mlofi_probe.py` on origin/radys, round4_public, OLS on our 26 npz features, fit 0-75 %,
+holdout corr 75-100 %):
+
+| target | own | own + MLOFI | MLOFI only |
+|---|---:|---:|---:|
+| 200 ms | 0.5502 | **0.5561** (+0.006) | 0.395 |
+| 1 s | 0.5942 | **0.6024** (+0.008) | 0.422 |
+
+MLOFI = signed flow per depth bucket 0..4 ticks from the same-side best (bid add +v, bid cancel/consumed -v, ask add -v,
+ask cancel/consumed +v), summed over 50 ms / 200 ms / 1 s windows, signed log1p. 15 cols, and the per-event update is
+O(1) in the strategy.
+It beats every earlier add-on (fs30 +0.0003, ci50 +0.0025) but is below a standalone upload bar. Use it only inside T7:
+- Add the 15 MLOFI cols to the GRU head inputs (or the 5 per-event bucket flows to the GRU tokens).
+- Train with multi-horizon outputs (100 / 200 / 500 / 1000 ms). Use the 200 ms output for the taker and optionally the
+  500 ms output for quotes. Multi-task targets usually regularise the main head.
+- Same gate as T7: holdout corr +0.01 offline, then both slices +3 % vs mixv.
