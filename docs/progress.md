@@ -1742,3 +1742,6 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   by-design breach penalty (rule 1). The gate / slow-threshold changes add in every chunk.
 - **Server (radys' note): mm_r4_mixv = 1,763,582, now the R4 final** (mm_r4_mix x1.15 was 1,720,970; +42.6k, the
   predicted x1.62 of the local gain). Launched T7 (GRU seed ensemble on round3 + round4 into mixv) per radys' list.
+- Slow model in the taker (sonnet, exp_r4_slt.py): signal blend loses monotonically, reverse-flip veto loses, entry veto
+  noise. Head-only retrain on the frozen R3 GRU (sonnet, exp_r4_head.py / _wf.py): offline corr +0.02, slice A +2..6k but
+  slice B -2..-13k for every head at x1.15. Neither adopted.
