@@ -5,7 +5,12 @@ p<0.05
 Claude Opus 5.5 (medium / high / extra high)
 Claude Fable 5.1 (extra high / max)
 
+Nemotron 3 Ultra (550B MoE / 55B Active)
+Nemotron 3.5 Super VL (120B MoE / 12B Active)
+Nemotron 3 Nano Omni (30B MoE / 3B Active)
+
 ===
 
 Claude Max subscription (Honza)
 Claude Pro subscription (Tomáš)
+Free api's of some models
