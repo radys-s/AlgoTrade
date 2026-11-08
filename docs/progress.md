@@ -1022,3 +1022,13 @@ at thresholds 1.0 / 1.5 / 2.0 (500 ms hold, optimistic overlapping samples). No 
   round3 550,455 / mirror 565,810 / round2 427,803, every holdout up, 8/8 chunks. Candidate `strategies/rd_r3_pull.py`.
 - Learned: on a cap-bound flipper, quote-side and threshold changes are worth 1-4 %; reaching 1M server needs a new
   information source or a different capacity use, not tuning.
+
+## 2026-11-08 06:15 radys - R3 close and round 4 prep
+
+- R3 final: Honza's s14 `mm_r3_gru3` = 984,495 server (from 772k with s11 at the start of the night). It is now the champion
+  in `submission/best_strategy.py` on `radys` and `main`.
+- radys candidate s14 + slw_thr 2.5 beat s14 locally on every tape (+0.3 % r3, +1.2 % round2) but scored ~983k on the
+  server: local gains under ~2 % no longer transfer (server / local fell 1.63 -> 1.51 over the round).
+- Process lessons: Copilot hit its credit limit mid-grid; its orphaned workers kept running and halved our CPU.
+- Round 4 playbook: `docs/round4-playbook-radys.md` (retrain predictors on the new tape first, judge on holdout +
+  other tapes, small grids only, kill orphan workers).
