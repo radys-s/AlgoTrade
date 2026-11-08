@@ -1410,3 +1410,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   check PASS 4.1 min (numpy MLP).
 - Rejected in this wave: quote-side markout model (round2 down everywhere), over-cap bursts (-40k), id-gap detector,
   modify-instead-of-cancel, ridge ensembles.
+- `strategies/mm_r3_mlp2.py` = mm_r3_mlp + g3 thresholds + pred_blend 0.7: round3 540,341 / mirror 560,237 / round2 427,786;
+  holdout 138,223 / 137,230 / 108,183 (better than mm_r3_mlp on all three holdouts, -9k on the full round3).
+- GBM edge study (opus): wide event features add little linearly (ioc_sweep50 the only robust one); GBM + ridge holdout
+  corr 0.488 vs the MLP's 0.493: the MLP already takes the nonlinear part. Wave 4: MLP seeds / extra inputs (sonnet).
