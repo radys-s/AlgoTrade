@@ -1383,3 +1383,5 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   leaderboard / local 1.61. Public chart at 01:49: median ~503k, 75th percentile ~800k: still just below the top 25 %.
 - 02:10 added: over-cap bursts on strong 200 ms predictions (sonnet), replay-artefact exploitation redo (sonnet); running
   opus: Bayesian filter for the hidden fair price, gradient-boosting edge discovery.
+- Ridge ensemble on mm_r3_g2 (sonnet): 150 / 250 ms alone -7..-13k, avg of 150/200/250 or 150+250 within -2k, per-spread
+  ridges -4..-10k, blend 0.6 / 0.8 worse on R3: 200 ms at blend 0.7 stays (files exp_r3_ens.py, pred_ens_r3.py).
