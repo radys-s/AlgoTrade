@@ -1322,3 +1322,15 @@ cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| 
 - Public chart at 23:41: 75th percentile ~930k (+-10k), median 347k; our best then was 957,133 (rts), now 974,031.
 - round1 attribution (cont.): rt off 451,227 (qs 0.3) / 447,578 (qs off) vs mm_r2_final 450,065 - rt and qs are neutral
   off-R2 (+-2k). Session end 00:15: best leaderboard mm_r2_final 974,031; last upload mm_r2_final2.
+
+## 2026-11-08 01:07 — Round 3 kickoff: same regime as R2; insurance mm_r3_ins = 339,285; 8 break-it agents running (home)
+
+- round3 (release data-round3): 6,000 s, 2.41M rows; limit inserts 98.2/s/side (R2 89.2), IOC 4.69/s/side (4.45), cancels
+  196/s, sizes as R2 (limit median 18, IOC median 60 / mean 159), price 9,732-10,160. Same generator family as R2.
+- Insurance `strategies/mm_r3_ins.py` = mm_r2_final with pred_on 0: round3 339,285, mirror 339,285, holdout 87,007, 7/8
+  chunks, check PASS 2.3 min. The R2 ridge does not transfer (338,970 / 342,176, holdout 80.5k / 79.1k); the R2 passive
+  filters are worth ~+61k on R3 (without them 273-279k).
+- Wave 1 (docs/r3_playbook.md, opus effort medium, reports due 01:55): leak scanner / id-gap detector, generator card,
+  oracle ceilings, exact-likelihood fair filter, insurance tuner + ridge refit, engine artefacts, big-move capture,
+  decision-point learner.
+- Tools: `research/diag/mirror.py` (byte-identical to the old round2_mirror), `strategies/exp_r3_base.py` (= mm_r2_final).
