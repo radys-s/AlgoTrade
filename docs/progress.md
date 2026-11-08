@@ -1358,3 +1358,8 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - **`strategies/mm_r3_pms.py`** (pms_on 1, pred_blend 0.5, pred_scale 1.0): round3 **413,750**, mirror 411,861, round2
   416,647; holdout 104,902 / 105,585 (base 87,007), 8/8 chunks on all three, check PASS 3.0 min. Holdout gain (+20 %) ~
   train gain (+22 %): not an in-sample artefact.
+- Leaderboard R3: `mm_r3_pms` **675,487.64** (21,785 filled orders, penalty 2,575, end -58, mark-out 10,035, sim 1:59);
+  leaderboard / local = 1.63 (R2 ~2.1). Laptop session reproduced it (+74,465 vs mm_r3_ins on round3, 8/8) and
+  flagged runtime under load (15 min projected while loaded, 5.6 min unloaded on the laptop; home 3.0 min).
+- Wave 2 (sonnet medium, due 02:15) on mm_r3_pms: ridge refit variants (100 % / +mirror / +round2 / targets / alpha),
+  ridge in the passive quotes (pred_mode 0/2), passive-filter retune, taker-threshold retune.
