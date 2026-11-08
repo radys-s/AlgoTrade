@@ -171,3 +171,20 @@ It beats every earlier add-on (fs30 +0.0003, ci50 +0.0025) but is below a standa
 - Train with multi-horizon outputs (100 / 200 / 500 / 1000 ms). Use the 200 ms output for the taker and optionally the
   500 ms output for quotes. Multi-task targets usually regularise the main head.
 - Same gate as T7: holdout corr +0.01 offline, then both slices +3 % vs mixv.
+
+## Update 12:30 (radys): T8 MLOFI dead in a nonlinear model; T7 ensemble is small. Both measured here.
+
+MLP 32-16, h200, trained on round4 + mirror 0-75 %, holdout corr 75-100 % (`research/diag/mlp_fit.py`, radys):
+
+| model | round4 | mirror |
+|---|---:|---:|
+| own 26 feats, seed 0 / 1 | 0.6570 / 0.6574 | 0.6590 / 0.6576 |
+| own + 15 MLOFI, seed 0 / 1 | 0.6580 / 0.6557 | 0.6585 / 0.6564 |
+| avg of 2 seeds | 0.6609 | 0.6618 |
+| avg of 4 seeds | **0.6627** | **0.6639** |
+
+- **MLOFI: dead.** The OLS gain (+0.006) disappears in the MLP. The nonlinear model already gets that information. Drop it from T8.
+- **Seed ensemble: +0.005 corr** with 4 seeds, consistent on both tapes. By R3 scaling (~+0.05 corr = +10 %) that is about +1 % pnl,
+  below the 3 % upload bar. Run the GRU ensemble only if the home PC is idle. The GRU had larger seed variance (+-20k), so
+  its gain may be larger. Check the offline corr of 3 GRUs first, then sim only if it is >= +0.01.
+- Multi-horizon heads (rest of T8) are untested. Same offline gate.
