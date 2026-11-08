@@ -1414,3 +1414,8 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   holdout 138,223 / 137,230 / 108,183 (better than mm_r3_mlp on all three holdouts, -9k on the full round3).
 - GBM edge study (opus): wide event features add little linearly (ioc_sweep50 the only robust one); GBM + ridge holdout
   corr 0.488 vs the MLP's 0.493: the MLP already takes the nonlinear part. Wave 4: MLP seeds / extra inputs (sonnet).
+- Bayesian clamp-aware grid filter (opus) on g2: 502,738 / 504,044 (+5 %), holdout +6.3k each, round2 -2.2k. Merged onto
+  mm_r3_mlp2 (`strategies/exp_r3_mf.py`): flt_w 0.3 gives 553,192 / 565,636 but holdout flat (137,402 / 137,385 vs
+  138,223 / 137,230) and round2 -9.5k: not additive with the MLP, not used. The filter's offline tracking is weaker than
+  the 70 ms EWMA (insert depth is not a clean function of F).
+- Best upload: `strategies/mm_r3_mlp2.py`.
