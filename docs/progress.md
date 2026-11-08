@@ -1426,3 +1426,6 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   quotes, taker retune for the MLP, final MLP on 100 % of round3 + mirror (seed ensemble).
 - Target-inventory policy (3-level / proportional to the MLP signal, sonnet): every variant loses (best 521,903 / holdout
   134,428 vs 540,341 / 138,223); fewer flips, lost flip revenue outweighs avoided adverse holding. Killed (exp_r3_tgt.py).
+- MLP in the passive quotes (sonnet, `strategies/exp_r3_mq.py`, mq_on): quote signal = mid + mq_b * MLP + (1 - mq_b) *
+  fair_sig. mq_b 0.5 / fq_k 0.15: round3 553,458 / mirror 572,696 / round2 435,485 (mlp2 540,341 / 560,237 / 427,786),
+  holdout +0.7k / +2.8k / +1.6k. Small, consistent: a component for the final merge.
