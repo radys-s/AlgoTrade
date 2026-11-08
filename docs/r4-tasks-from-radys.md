@@ -96,3 +96,11 @@ Result will be appended here. Only start Q1 / Q2 if that check shows ahead <= 15
   simulator/ before anything; pre-placing was dead in R3); order-id acceleration (unsigned event rate cannot predict a
   signed move; a vol-burst threshold is covered by exp_r4_vol); lower reverse-flip threshold at the cap (= lower
   fq_take_k, lost in every grid); IOC depth cap (our IOC is limited at the touch, it never walks).
+
+### 10:05 result: Q1 / Q2 KILLED, do not implement
+cancel_probe on mm_r4_mixv round4 (1,090,202; 22,429 cancels of resting quotes). Counterfactual "kept" quote, fill
+proxy = our price becomes the touch within 1 s (optimistic), mark-out per lot:
+ahead 0: n 1,993, mo1 -0.21, mo5 +0.10 | ahead 1-15: n 1,260, mo1 -0.56, mo5 -0.50 | 16-50: +0.05 | >200: -0.20.
+Ahead <= 15 by direction-signed pred: <= -0.3: -3.09; -0.3..-0.1: -0.46; -0.1..0.1 (the proposed keep zone): -0.90;
+0.1..0.3: +0.53; > 0.3: +2.24 (those are re-pricings, not losses). Kill line was +0.4: our cancels are right; queue
+keeping by survival / rank does not pay on R4.
