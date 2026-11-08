@@ -236,3 +236,11 @@ extra recurrent cost; only a second small head). Gate: offline corr vs MLPQ500 +
 
 ## Note 10:48 (radys): your running "multi-tier policy" = my rd_r4_t3 (flat). Stop it if it is the same; keep the quote upgrade.
 3rd tier ht2_d 0.2 / 0.3 -> -50 on mixv3: round4 1,100,930 / 1,097,826 vs 1,101,157 (hold 225,691 / 225,038 vs 224,861).
+
+## Update 11:15 (radys): quote MLP seed ensemble dead in sim (T10 offline-gate warning)
+
+4 seeds of MLPQ500 (22 feats, round4 + mirror 0-75 %) averaged into one block-diagonal net (`research/diag/ens_blockdiag.py`):
+offline holdout corr 0.6696 / 0.6697 vs the current MLPQ500 0.6589 / 0.6599 (+0.010, passes the gate). Sim on mixv3:
+round4 1,102,372 (225,671) vs 1,101,157 (224,861); mirror **1,098,662 (226,579) vs 1,114,974 (239,814), -16k**. Amplitude-
+matched x1.07: 1,101,291 / 1,097,920. Like the taker ensemble, +0.01 corr does not turn into pnl, so the corr gate is
+too weak a filter. For T9/T10, sim slice A directly once the offline corr is up, and do not trust corr alone.
