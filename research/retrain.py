@@ -165,12 +165,12 @@ def main() -> None:
     rows_args = [str(rows_p[csv]), str(rows_p[mir])]
     for s in ('mlp', 'mq', 'seq'):
         if s in steps:
-            out = logd / f'retrain_{tag}_{s}.py'
+            out = logd / f'retrain_{tag}_s{a.seed}_{s}.py'
             cmd = [TORCH_PY, '-X', 'utf8', '-m', 'research.retrain_torch', s, '--rows', *rows_args, '--out', str(out),
                    '--seed', str(a.seed), '--seq-epochs', str(a.seq_epochs)]
             if s == 'seq':
                 cmd += ['--feat', str(feats[csv]), str(feats[mir])]
-            log = logd / f'retrain_{tag}_{s}.log'
+            log = logd / f'retrain_{tag}_s{a.seed}_{s}.log'
             print('[retrain] $', ' '.join(cmd), f'> {log}', flush=True)
             tpro[s] = (subprocess.Popen(cmd, cwd=ROOT, stdout=open(log, 'w'), stderr=subprocess.STDOUT), out, log, time.time())
 

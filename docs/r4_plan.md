@@ -63,6 +63,12 @@ round3 (seed 0, base mm_r3_gru): 614,277 (150,909) / mirror 634,721 (152,896) / 
 634,519 (156,075) / 624,778 (157,441) / 437,941 (109,156): inside the +-5k holdout seed noise. In R4 run 3 seeds
 (--seed 0 / 1 / 2, different --out) and keep the best by tape + mirror holdout.
 
+## Kickoff at 07:00
+Copy the public R4 tape to data/round4.csv, then `bash research/r4_kickoff.sh data/round4.csv`: mirror + features,
+refit with GRU seeds 0 / 1 / 2 on base mm_r3_gru3 (strategies/exp_r4_auto_s*.py), baselines (mm_r3_gru3, mm_r3_ms,
+mm_r2_final, exp_r3_gx) on tape + mirror, taker and quote oracles, then the three refits on tape + mirror + round3.
+Logs: logs/r4_*.log. First pick = the best refit by tape + mirror HOLDOUT if it beats the baselines there.
+
 ## Tooling to have ready
 - research/diag/seq_r3.py (+ seqt_r3.py `--npz` swap), mlp2_r3.py feature builder, mlpq_r3.py, slow_r3.py, pred_rfit_r3.py:
   all hard-code round3 / round3_mirror names; copy to *_r4.py with the new names at 07:05.
