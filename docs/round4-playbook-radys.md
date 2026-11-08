@@ -22,6 +22,10 @@ The R3 jump came from predictors fitted on the R3 tape (ridge refit, MLP, GRU), 
 
 ## Judging (lessons from R3)
 
+- **The final ranking is a re-run on a private tape.** R3: live best 984,495 -> final 874,971 (-11 %), 12th again.
+  The live board only says the strategy is not broken; choose the final submission by cross-tape robustness, and make
+  sure the one marked final is the most robust, not the last or the live-best.
+
 - Judge on new public + its mirror + round3 + round2; holdout and the non-public tapes count more than the full public pnl.
 - Server / local fell from 1.63 to 1.51 over R3 and local gains under ~2 % did not show on the server
   (s14 + slw_thr 2.5: +0.3 % r3 local, +1.2 % round2, server 983k vs 984k). Spend uploads only on >= 3 % structural gains.

@@ -1032,3 +1032,11 @@ at thresholds 1.0 / 1.5 / 2.0 (500 ms hold, optimistic overlapping samples). No 
 - Process lessons: Copilot hit its credit limit mid-grid; its orphaned workers kept running and halved our CPU.
 - Round 4 playbook: `docs/round4-playbook-radys.md` (retrain predictors on the new tape first, judge on holdout +
   other tapes, small grids only, kill orphan workers).
+
+## 2026-11-08 radys: R3 final standing (private re-run)
+- Final R3 leaderboard: 1 delfini 1,458,005; 2 Codehorses 1,240,532; 3 GammaStrike 1,198,048; 7 FullRandom 995,565;
+  10 920-930k; **12 p<0.05 (us) 874,971**. Same place as R2 (12th).
+- Our final score is ~11 % below the live board best (984,495): the final is a re-run on a private tape, so live-tape
+  fitting (the late +3 % local / +0.85 % live steps) does not carry over. delfini leads again (R2 1.88M, R3 1.46M).
+- Lesson: optimise for robustness across tapes (holdout, mirror, older rounds), not for the live board. The gap to the
+  top 3 (+37-67 %) is structural, not tuning.
