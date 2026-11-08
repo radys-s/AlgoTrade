@@ -1365,3 +1365,13 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   ridge in the passive quotes (pred_mode 0/2), passive-filter retune, taker-threshold retune.
 - Taker retune on mm_r3_pms (sonnet): fq_take_k 0.2 / fair_tau 70 / pred_scale 1.0 stay best; fq_take 150 + zd_quote 1
   gives +1.4k / +1.4k (holdout +0.7k / +0.5k, round2 -0.4k): noise-level, not taken. Ledgers r3w2-tk-*.
+
+## 2026-11-08 02:00 — R3 upload candidate mm_r3_g2 = 478,572 / 477,772 (+16 % over mm_r3_pms) (home)
+
+- Wave 2 (sonnet): passive filters re-tuned for R3 (rt_ms 20 -> 100, fq_k_sp2 0.75 -> 1.5, gate_thr 8 -> 10, qs_k 0.3 -> 0.6;
+  each monotone or a clean peak, holdout up) = 453.9k / 457.1k; ridge for a 200 ms target fitted on round3 + mirror (first
+  75 %, antisymmetric, rfit 19); taker blend 0.7 (holdout +6 %). Ridge in the passive quotes (pred_mode 0/2) loses; taker
+  threshold / tau / size at their optimum.
+- **`strategies/mm_r3_g2.py`**: round3 **478,572**, mirror 477,772, round2 426,845 (mm_r3_pms 413,750 / 411,861 /
+  416,647); holdout 117,658 / 117,867 (pms 104,902 / 105,585); 8/8 chunks on all three; check PASS 3.0 min.
+  Safer variant (blend 0.5): 464,210 / 464,248 / 433,300, holdout 112,744 / 112,787.
