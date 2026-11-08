@@ -1579,3 +1579,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - rt_ms 150 + fq_k_sp2 1.5 alone: 641,508 (157,166) / 628,681 (159,008) / 447,032 (112,192).
 - Learned take veto (opus, exp_r3_veto.py): decision-level gains vanish in the strategy (a vetoed crossing re-fires a few
   events later); holdout +0.2..1.1k. GRU fine-tune on 100 % (sonnet, exp_r3_gft*.py): -2.5 % round3, -3.5..-4.5 % round2.
+- Multi-regime GRU (opus, `strategies/exp_r3_gx.py`, research/diag/mlp2x_r3.py; round3 + round2 + mirrors): round2 holdout
+  +5..7k on 3 seeds (+14 % taker edge) but round3 / mirror holdout -3..-11k: not for R3, noted as R4 insurance.
+  Partial-flip completion (sonnet, exp_r3_rem.py): join / retake / wait all neutral or worse (45 % of takes fill partially,
+  ~59 of ~170 lots; the remainder fills 0.31 tick better later, so the cost is delay, not price).

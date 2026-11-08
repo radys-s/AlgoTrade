@@ -37,6 +37,11 @@ read their reports first. If one of them works, it is the first thing to port to
 | 10:00-11:30 | robustness: chunks, holdout, round3 cross-check; bake, research.check (< 7 min per 8.8M rows), parity |
 | 11:30 | final upload; R4 has no leaderboard, so the final is the most robust local candidate |
 
+## Insurance predictor for a new regime
+strategies/exp_r3_gx.py carries a GRU trained on round3 + round2 (+ mirrors), research/diag/mlp2x_r3.py: on round3 it
+loses 3-5k holdout vs the round3-only GRU, but on round2 it gains +5..7k holdout (+14 % taker edge). Before the R4 refit
+is done, compare it with mm_r3_gru2 on the new tape: the multi-regime GRU should transfer better to an unseen regime.
+
 ## Tooling to have ready
 - research/diag/seq_r3.py (+ seqt_r3.py `--npz` swap), mlp2_r3.py feature builder, mlpq_r3.py, slow_r3.py, pred_rfit_r3.py:
   all hard-code round3 / round3_mirror names; copy to *_r4.py with the new names at 07:05.
