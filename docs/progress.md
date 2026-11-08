@@ -1686,3 +1686,18 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   gru3 x1.3 424,979 / 479,141 (full round4 +29.5k, mirror +19.4k, fully out of sample; round3 -19.5k); mm_r4_mix x1.0
   408,226 / 489,244 (mix_wf); **mm_r4_mix x1.15 430,493 / 484,726**; mm_r4_mix x1.3 435,948 / 478,484. The scale helps
   on the first 56 % and the last 25 % but not on the 56-75 % span.
+- **Volatility-scaled thresholds on gru3 (brain)**: with pred_scale 1.3, gate_thr 14 -> 24 and slw_thr 2 -> 3 (R4's
+  10-60 s volatility is 1.6-1.9x round3's): round4 **1,072,906 (216,316)**, mirror **1,071,650 (217,670)**, round4p75
+  holdout 246,094 / 241,362 vs gru3 1,027,483 (189,536) / 1,036,706 (203,350) / 240,675 / 241,518: +45k / +35k on the
+  fully out-of-sample tapes, both slices up; each part adds on its own (x1.3 alone 1,056,986 / 1,056,124; + gate 24
+  1,064,607 / 1,067,051; + slw 3 alone 1,064,423 / 1,061,374).
+- Minutes-scale trend tilt (opus, exp_r4_trend.py): no consistent offline sign at 1-15 min; taker tilts lose in both
+  directions; trend-following passive quotes fit only round4's down-leg (round3 / round2 -3..-39k). Rejected.
+- Volatility set neighbours on gru3 (round4 / mirror full; holdout): x1.3 + gate 24-32 + slw 3-4 all 1,069-1,075k /
+  1,069-1,072k (plateau); x1.45 lower on the mirror (1,055-1,058k). mm_r4_mix + gate 24 + slw 3: x1.15 slice A 222,726 /
+  222,767, slice B (mix_wf) 241,953 / 249,133; x1.3 A 224,232 / 226,042, B 241,015 / 242,713.
+- **R4 candidate `strategies/mm_r4_mixv.py`** = mm_r4_mix + pred_scale 1.15, gate_thr 24, slw_thr 3: round4 1,090,202
+  (holdout 222,726), mirror 1,087,684 (222,767), round3 619,879 (154,974), round2 449,699 (118,841); walk-forward twin
+  on slice B 241,953 / 249,133. vs mm_r3_gru3: round4 1,027,483 (189,536), mirror 1,036,706 (203,350), round3 653,327
+  (157,925), round2 447,310 (112,106), slice B 240,675 / 241,518. check PASS 6.4 min. Quote scale fq_scale 1.15 / 1.3:
+  no gain.
