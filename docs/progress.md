@@ -1628,3 +1628,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   x0.89). Field: 53 teams, mean 681k, std 298k (pnl <= 0 counted as 0) -> our z3 = +0.65. Top 5 from 1,073,870 (z +1.32),
   1st delfini 1,458,005 (z +2.61), 10th 929,224. Third round in a row at 12th; score so far 0.8 z1 + z2 + z3 ~ 1.32 + 0.65.
 - R4 (weight 1.2) needs a top-5 round (~+0.7 z over this one) to move up: structural steps only (docs/r4_plan.md).
+- Overall after R3 (brain's computation per docs/kontext.md: z over teams with PnL > 0, population std, PnL <= 0 or
+  missing = 0; weights 0.8 / 1.0 / 1.0): p<0.05 **13th of 61, total +1.95** (z1 +0.56, z2 +0.87, z3 +0.63). 11th Girls Just
+  Wanna Have Funds +2.03, 12th quantový mouchy +1.98, 10th Kto je tvaroh nie je človek +2.30, 5th Olexa namichej +3.92,
+  1st delfini +5.95. R4 (weight 1.2): beating the 10th needs ~+0.29 z more than them in R4.
