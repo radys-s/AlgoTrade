@@ -11,6 +11,9 @@ signals we already have and **regime-scaled thresholds**, not another model or m
 - Realized move after a signal, by |pred| (s12 MLP, round3 holdout, spread 1):
   0.4-0.5 -> 200 ms +0.44 / 3 s +0.74 / 15 s +0.38;  0.7-0.9 -> +0.77 / +1.66 / +0.74;  > 1.2 -> +1.72 / +5.47 / +1.39.
   The edge peaks at 1-5 s and fades by 15 s. Despite that, lower taker thresholds lose in the sim (latency + flip cost).
+- **Transfer is decaying (05:15):** s13 -> s14 = +3.0 % local (634,519 -> 653,327) but only +0.85 % server
+  (976,148 -> 984,495); ratio 1.54 -> 1.51. Recent local gains are partly public-tape fit. Weight the holdout and
+  mirror / round2 more than the full round3 number from here on (s14 holdout gain was only +1.2 %).
 - Server PnL standard error is ~55k: differences under ~3 % on the board are noise.
 
 ## 2. Dead ends (do not repeat)
