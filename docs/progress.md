@@ -1737,3 +1737,6 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - Volatility-normalised GRU (opus, `strategies/exp_r4_vnorm.py` / `_wf.py`, vn_mode 2: 2-seed GRU on vol-normalised
   inputs and target, trained on round3 + round4 0-75 %): round4 1,068,715 (217,217), mirror 1,065,113 (208,472),
   round3 651,067 (kept), round2 428,184; slice B 240,851 / 236,541: the mirrors lose on both slices. Not adopted.
+- mm_r4_mixv vs the uploaded final mm_r4_mix x1.15 (server 1,720,970), research.compare: round4 +29,937 (holdout +8,106,
+  **8/8 chunks**), mirror +29,074 (+6,894, **8/8**), round2 +16,277 (+6,604, 6/8). The only REJECT reason is the small
+  by-design breach penalty (rule 1). The gate / slow-threshold changes add in every chunk.
