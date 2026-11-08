@@ -81,4 +81,15 @@ Combine every individually positive change from T1-T6 into `strategies/cp_s12_st
 - Maker fills when the prediction is against the fill (pred in fill direction < -0.3) lose: -3.2 tick/lot at 30 s on 16k lots
   (-52k). That is exactly what T3 (quote pull) removes, so T3 has priority over T2. Start T3 with pull_k 0.3-0.6.
 
+## radys results (04:00) - skip what is done here
+
+- Horizon: MLPs trained on 1 s / 2 s targets lift the r3 tail edge +24 % offline, but in the sim h1000 @ pred_scale 0.75 =
+  542,016 (hold 130k < 138k) and round2 414,781 < 427,786. Rejected. Offline: the realized move over 1-3 s is ~2x the
+  200 ms prediction, yet lower taker thresholds lose in the sim (fq_take_k 0.1 = 548k vs 0.2/0.3 = 561-564k).
+- T1 partial (`r3-s12-taker`, halving): best pred_scale 0.9 / fq_take_k 0.2 / fq_take 200 = 564,314 (hold 133,387 < 138,223).
+  fq_take 120 does not help. Copilot: T1 only needs mlp_gate x mlp_mix x pred_blend now.
+- **T3 done**: `strategies/rd_pull.py`, `pull_k` (0 = s12 parity, verified 540,341). pull_k 0.45 = 547,048 (hold 142,398),
+  0.3 = 546,210, 0.6 = 545,684, >= 0.8 no effect. Skip T3; build T2/T4/T6 on rd_pull.py with pull_k 0.45.
+- Stack grid running: pull_k {0.35,0.45} x pred_scale {0.9,1.0} x fq_take_k {0.2,0.3} on r3 / mirror / round2 (`r3-rd-stack`).
+
 ## Results
