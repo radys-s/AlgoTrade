@@ -1480,3 +1480,18 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   hindsight whipsaws (next flip < 0.5 s) -75,686. Taker flips are positive in every bucket (signal, spread, time since
   last flip, gate, hole). Capping weak-signal passive flips (exp_r3_flp.py) lifts the round3 holdout but loses on mirror
   and round2: killed. The profit engine is the taker's precision x frequency.
+
+## 2026-11-08 03:32 — mm_r3_gru = 634,519 / 624,778: streaming GRU taker predictor on the msq stack (+11 %) (home)
+
+- GRU sequence model (opus, `research/diag/seq_r3.py`, `strategies/exp_r3_seq.py`): 16-hidden GRU over 13-dim per-event
+  tokens (touch moves, queue changes, trades, spread, imbalance) + the 22 hand features -> 38-64-32-1 head, 200 ms target,
+  round3 + mirror first 75 %; the strategy runs it streaming (numpy, one state carried over the tape). On mm_r3_mlp2:
+  596,312 / 601,063, holdout 146,413 / 147,821, round2 426,965. First model to beat the MLP's ~0.50 holdout corr.
+- **`strategies/mm_r3_gru.py`** = mm_r3_msq + the GRU taker (merge file `exp_r3_msqs.py`, seq_on 0 reproduces msq
+  exactly): round3 **634,519**, mirror 624,778, round2 437,941; holdout 156,075 / 157,441 / 109,156 (msq 571,085 /
+  595,553 / 439,016; holdout 144,549 / 143,063 / 109,960); 8/8 chunks on all three; check PASS 6.7 min (45 us/event).
+  Expected leaderboard ~ +100k over mm_r3_ms (925,809) at the usual x1.6.
+- slow / mq retune on mm_r3_ms (sonnet): slw_on 2 (h5, thr 2) holdout +2.3k / +1.4k / round2 +1.4k but full round3
+  -10.7k; mq_b 0.5, fq_k 0.1, slw_thr 2, slw_h 5 are at their optimum.
+- Running: GRU v2 (opus, due 04:40: streaming-consistent training, larger hidden, a 500 ms head for the quotes);
+  taker retune and GRU / MLP mix on mm_r3_gru (brain).
