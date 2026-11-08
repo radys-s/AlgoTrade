@@ -1707,3 +1707,11 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   (offline +2.7 ticks @500 ms after latency, but sim -4.5 %: the GRU already trades it), IOC past the touch (no change),
   30 ms insert-price fair leak, cancel imbalance, R4 MLP taker instead of the GRU (same pnl). Proposed next: vol-scaled
   hysteresis on the taker (T2), queue priority (T3). Current upload pick: mm_r4_mix x1.15.
+- Laptop verification of mm_r4_mixv (b6903e0): numbers identical; vs mm_r3_gru3 round4 +62.7k (8/8 chunks, holdout
+  +33.2k), mirror +51.0k (7/8, +19.4k); walk-forward twin on round4p75 7/8 and 7/8 chunks (holdout +1.3k / +7.6k);
+  round3 -33.4k (4/8, holdout -3.0k), round2 +2.4k (+6.7k). Caveat: the three volatility parameters were chosen on the
+  full round4, so slice B is not clean for them (smooth plateau, three principled parameters). Recommended as the R4 upload.
+- Volatility-adaptive version (opus, interim, `strategies/exp_r4_vol.py` on gru3): EWMA (hl 600 s) of clipped squared
+  1 s mid changes over a round3 reference; pred_scale = clip(r^1.25, 1, 1.6), gate / slw x clip(r^2, 1, 2.2): round4
+  1,077,589 (214,637), mirror 1,072,770 (214,279), round3 653,703, round2 448,508 (both unchanged), round4p75 holdout
+  245,057 / 235,676. Porting onto mm_r4_mix next.
