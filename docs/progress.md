@@ -1463,3 +1463,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - Raw-book-state MLP (sonnet, research/diag/mlpr_r3.py): 22 features + 77 raw book/trade columns, best holdout corr
   0.5016 (+0.009), edge per take up but take rate down: stopped. Conclusion of the predictor wave: the 22-feature MLP
   extracts nearly all short-term information we can see online (all model variants land at corr 0.49-0.51).
+- Regime-adaptive thresholds (sonnet, `strategies/exp_r3_vol.py`, on mlp2): vol_a_pas 0.5 + vol_a_rt 1.0 (stricter passive
+  lean and longer retreat pause when the 2 s volatility is above its 300 s baseline): round3 546,156 / mirror 560,277 /
+  round2 435,531, holdout 140,157 / 140,245 / 108,139 (mlp2 138,223 / 137,230 / 108,183). Taker and gate scaling: no.
+  Merging onto mm_r3_ms as `strategies/exp_r3_msv.py` (test running).
