@@ -1439,3 +1439,5 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   round3 548,403 (holdout 143,276), mirror 565,627 (138,778), round2 423,061 (107,776) vs mlp2 540,341 / 138,223,
   560,237 / 137,230, 427,786 / 108,183. Modest; the 30 s hand gate's drift itself correlates slightly NEGATIVELY with
   future moves (holdout corr -0.05 / -0.14 at 1 s / 5 s). Candidate component.
+- Final-fit MLP (sonnet, `strategies/exp_r3_mlpf.py`): 3-seed ensembles; 75 % fit 551,293 / 560,383 / 429,160 but holdout
+  -4k / -5k on R3 (+6k round2): a wash; 100 % fit loses 19k on round2. Keep the champion's single 75 % MLP.
