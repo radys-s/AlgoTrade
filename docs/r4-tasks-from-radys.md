@@ -149,3 +149,25 @@ Steps, cheapest first. Stop at the first flat step:
 3. **Runtime.** The GRU costs ~45 us/event (check was 6.7 min). Three GRUs fit inside 15 min. Five probably do not, so
    check `research.check` runtime before any grid.
 4. Bake the ensemble into mixv. Upload only if slice A **and** slice B (tape + mirror) beat mixv by >= 3 %.
+
+## T8 (radys 11:40): add multi-level order flow (MLOFI) and multi-horizon targets to the T7 retrain
+
+Source: Xu-Gould-Howison 2018 (multi-level OFI) and Kolm-Turiel-Westray 2023 ("Deep order flow imbalance": models on
+order flow beat models on raw book states; multi-horizon "alpha term structure" outputs).
+
+Measured (radys, `research/diag/mlofi_probe.py` on origin/radys, round4_public, OLS on our 26 npz features, fit 0-75 %,
+holdout corr 75-100 %):
+
+| target | own | own + MLOFI | MLOFI only |
+|---|---:|---:|---:|
+| 200 ms | 0.5502 | **0.5561** (+0.006) | 0.395 |
+| 1 s | 0.5942 | **0.6024** (+0.008) | 0.422 |
+
+MLOFI = signed flow per depth bucket 0..4 ticks from the same-side best (bid add +v, bid cancel/consumed -v, ask add -v,
+ask cancel/consumed +v), summed over 50 ms / 200 ms / 1 s windows, signed log1p. 15 cols, and the per-event update is
+O(1) in the strategy.
+It beats every earlier add-on (fs30 +0.0003, ci50 +0.0025) but is below a standalone upload bar. Use it only inside T7:
+- Add the 15 MLOFI cols to the GRU head inputs (or the 5 per-event bucket flows to the GRU tokens).
+- Train with multi-horizon outputs (100 / 200 / 500 / 1000 ms). Use the 200 ms output for the taker and optionally the
+  500 ms output for quotes. Multi-task targets usually regularise the main head.
+- Same gate as T7: holdout corr +0.01 offline, then both slices +3 % vs mixv.
