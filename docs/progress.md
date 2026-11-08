@@ -1558,3 +1558,13 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
     (153,412) / 627,511 (156,310); x1.15 scale no better. Offline corr gains do not reach pnl.
   - pred_scale 0.85 / 0.93 / 1.15 all lower on every holdout: 1.0 is a sharp optimum (the stack sits on a tuned peak of
     the public tape).
+- 04:45-04:55: queue agent (opus, research/diag/frontq_r3.py, strategies/exp_r3_queue.py): front-of-queue ceiling round3
+  834,093 (+196k, holdout 205,786 vs 157,152), mirror +215k, round2 +256k, almost all passive (small takers that the
+  replay sends to the orders queued ahead of us); every practical attempt lost (fq_tol, pre-place, park 100 / 50 / 20,
+  qa_max, fq_inside, layering, keeping front quotes); taker IOC fill rate 65 % (thin touch, not latency: 2.3 % late).
+  Hysteresis (exp_r3_hyst.py): hy_only 1 / 50 ms / 0.2 +12.6k / +11.0k full but holdout +1.2k / +0.0k (train part only).
+  Touch fragility from order ages (exp_r3_frag.py): negative (lognormal hazard falls with age). GRU ensemble (opus,
+  exp_r3_ens2.py, 4 extra GRUs fused, check 7.5 min): holdout within +-2k. Running until 05:35: reservations
+  (exp_r3_res.py), front-fill dissection (exp_r3_qcap.py), longer-lived quotes (exp_r3_flive.py), state-dependent take
+  thresholds (exp_r3_tk2.py), round2 + round3 GRU (exp_r3_gx.py), take veto (exp_r3_veto.py), partial-flip completion
+  (exp_r3_rem.py), GRU fine-tune on 100 % (exp_r3_gft.py). R4 plan: docs/r4_plan.md.
