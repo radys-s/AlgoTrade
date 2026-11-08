@@ -1653,3 +1653,9 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   1,060,473 (211,755) / 1,045,062 (209,103) / 574,917**.
 - Ceilings on round4 (mm_r3_gru3): perfect 205 ms taker 1,485,864 (x1.45), perfect 1 s quotes 1,191,308 (+164k).
 - **Insurance: `strategies/mm_r4_ins.py`** = refit seed 2; check PASS 6.5 min per 8.8M rows (R4 tape 2.4M rows).
+- R4 refit seeds (round4 / mirror, holdout in brackets; base mm_r3_gru3): s0 1,050,120 (208,464) / 1,051,958 (208,532);
+  s1 1,016,811 (200,591) / 1,034,188 (209,629); s2 1,060,473 (211,755) / 1,045,062 (209,103); s3 1,011,794 (201,104) /
+  1,046,941 (210,914); s4 1,056,585 (212,851) / 1,053,096 (209,775); s5 1,058,047 (211,369) / 1,036,665 (214,172).
+  Holdout sum mean 418.0k, sd ~5.6k; every seed beats the unrefitted gru3 (392.9k) by ~+25k (+6 %): the refit is the
+  robust step, the seed choice is noise. Running (due 08:45): GRU on round3 + round4 data (opus), hand-parameter retune
+  for R4 (sonnet).
