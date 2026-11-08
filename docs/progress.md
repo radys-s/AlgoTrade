@@ -1513,3 +1513,22 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - Passive retune on mm_r3_ms (sonnet): gate_thr 14 up on all three tapes (holdout +1.5k / +1.3k, round2 +5.6k); rt_ms 200
   +3-7k on round3 but -14k round2; fq_k_sp2 1.2 trades full pnl for holdout; fq_k_sp3, qs_k at optimum; hk_k no effect.
   On mm_r3_gru gate_thr 14: round3 638,024 (157,152), mirror 625,673 (158,439), round2 447,035 (112,310): up on all six.
+- Taker oracle horizon scan on mm_r3_gru, round3 (perfect future move, blend 1): 105 ms 959,607; 205 ms 1,004,210;
+  405 ms 969,863; mean of 205 + 1005 ms 953,087; **mean of 105 / 205 / 305 / 405 / 505 ms 1,065,749** (best). Quote-side
+  oracle (pred_raw = perfect 505 ms move, real GRU taker) 758,642 (+124k); taker 205 + quote 505 oracles 1,106,631.
+  A perfect predictor with our execution is x1.6-1.75: +200k local needs a new mechanism, not only a better model.
+  Next: GRU retrained on the averaged 0.1-0.5 s target (research/diag/seqt_r3.py; target corr with y200 0.88).
+- Generator reverse-engineering (opus, research/diag/gen2_r3.py, strategies/exp_r3_oraf.py / exp_r3_genf.py): exact F
+  is not the 2x. Present F as the taker signal loses (-1.1M at k 0.2, best +138k at k 3); F 150 ms ahead (look-ahead)
+  746k (+18 %); online F evidence added to the GRU: genf_w 0.1 533k / 535k (-100k), round2 +11k. IOCs are informed about
+  F's FUTURE (buy IOC: F +0.30 in 200 ms, 400+ lots +1.0); the GRU already sees them through trades. Card: 196 inserts/s
+  per tape, 9.4 IOC/s, lognormal lifetimes (median 317 ms, not F-dependent), 38.6 % of inserts clamped at far touch - 1.
+- Quote-side oracle targets on mm_r3_gru: 505 ms 758,642; mean 105..505 734,080; 1005 ms 776,454; mean 305..905 777,157:
+  longer targets suit the quotes.
+- GRU on the averaged 0.1-0.5 s target (`strategies/exp_r3_tw.py`, research/diag/seqt_r3.py) vs a fresh 200 ms GRU with
+  the same training run (control) vs mm_r3_gru2 (638,024 (157,152) / 625,673 (158,439) / 447,035 (112,310)):
+  tw k 0.2: 632,729 (152,044) / 614,680 (148,448) / 461,146 (119,684); tw k 0.35: 611,969 / 634,909 / 431,211;
+  control: 617,206 (151,809) / 640,056 (154,114). Not adopted: the R3 holdouts do not rise. Retraining the same GRU moves
+  the holdout by +-5k and the full tape by +-20k, so the exported GRU in mm_r3_gru is partly a lucky seed; a seed
+  ensemble would trade runtime for robustness.
+- Subagents stopped by the user at 04:06 (order-flow GRU, quote GRU); not relaunched.
