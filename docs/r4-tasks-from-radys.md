@@ -42,3 +42,23 @@ Perfect 1 s quotes +164k on R4. If any R3-end queue agent (exp_r3_res / qcap / f
 - R4 MLP taker instead of the R3 GRU (seq_on 0): 1,029k / hold 202k vs 1,036k / 198k, same.
 - Staged / graduated flips: our IOC is limited at the touch price, it never walks 3 levels; target-inventory policies
   were dead in R3.
+
+## Update 08:55 (radys, after a Gemini idea round; ranked)
+
+### T4 (new, do before T2): 10 s drift lockout on reverse flips
+When at +100 (-100), block a take to the other side unless mid(t) - mid(t - 10 s) <= -D (>= +D); entries from flat /
+small inventory are unchanged. Params `lk_s {5, 10, 20}` x `lk_d {0, 2, 4}` ticks, 0 = off. Offline check first (fill
+probe / npz): split the reverse-flip takes of mm_r4_mix by the sign of the 10 s drift vs the flip; if flips AGAINST the
+drift have a 1-5 s mark-out clearly below flips WITH it, implement; else drop. Targets the "flip back too early" gap
+(holds >= 10 s = 178k from 61 flips).
+
+### T2 addition: vol-elastic threshold
+fq_take_k_eff = fq_take_k * clip(1 + g * (sig1s / median - 1), 0.7, 1.5), sig1s = 30 s EWMA of |1 s mid change|;
+g {0.5, 1}. Merge with the vol-scaled hysteresis grid, same EWMA.
+
+### T5 (low): trailing lock
+After the unrealized move since entry peaks >= P ticks, exit to 0 by IOC when it gives back G. Offline first: mean
+(peak - exit) per flip; implement only if give-back > 3 ticks/lot on flips with peak >= 6. P {6, 10} x G {3, 5}.
+
+Rejected from that round: wall-delay of exits (250 ms delay loses the 200 ms edge), depth-capped IOC (our IOC is
+already limited at the touch and re-takes on the next event).
