@@ -1398,3 +1398,5 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - id-gap detector (sonnet): only 13 jumps >= 20 ticks in round3; unseen ids reveal them ~4.5 ms after the jump (vs 22 ms
   visible) but one or two non-trading IOCs per 20 ms happen ~200x per tape by chance: best +0.09 %. Killed.
 - modify-instead-of-cancel (sonnet): the filters almost never pull at an unchanged price; +0..400. Killed.
+- Over-cap bursts on strong 200 ms predictions (sonnet): the far touch is thin, a 600-1000-lot IOC fills only ~75-130 lots,
+  so the flat 10,000/s penalty dominates: best oc_k 4 / 50 ms 438,388 (-40k), lower k far worse. Killed.
