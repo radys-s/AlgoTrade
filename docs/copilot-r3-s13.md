@@ -30,7 +30,9 @@ Read PARAMS of s13 first and use its current values as the centre. Grid: `pred_s
 ### T2. Passive re-tune on s13 (grid, halving, tag `cp-s13-passive`)
 `fq_k_sp2 {1.5, 2.0, 2.5}` x `fq_k_sp3 {1.0, 1.5, 2.0}` x `rt_ms {100, 130, 170}` x `gate_thr {9, 11, 13}` x `qs_k {0.45, 0.6, 0.75}`.
 
-### T3. Quote pull follow-up (only if radys reports pull > 0 helps on s13; see Results)
+### T3. SKIP - quote pull has no effect on s13 (radys: pull_k 0.35 / 0.5 = -0.2 % / -0.06 % sum, s13's mq passive MLP already does it)
+
+### T3 (old). Quote pull follow-up (only if radys reports pull > 0 helps on s13; see Results)
 radys built `strategies/rd_s13_pull.py` (`pull_k`, 0 = s13 parity). If pull_k 0.35 or 0.5 wins, fine-grid
 `pull_k {0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6}` and add `pull_mode 1` = step the quote one tick back instead of cancelling.
 
@@ -46,3 +48,6 @@ All individually positive changes into `strategies/cp_s13_stack.py`, all 3 datas
 `| task | file | params | r3 | r3 hold | mirror | round2 | chunks | breach | check | verdict |`
 
 ## Results
+
+| radys | rd_s13_pull.py | pull_k 0.35 | 633,597 | 156,223 | 624,924 | 434,733 | 8/8 | 729 | - | no gain |
+| radys | rd_s13_pull.py | pull_k 0.5 | 633,495 | 156,275 | 624,777 | 438,015 | 8/8 | 729 | - | no gain |
