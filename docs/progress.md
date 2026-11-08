@@ -1674,3 +1674,8 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   (R3 GRU kept; ridge, slow, MLP, quote MLP fitted on round3 all + round4 0-75 %): slice A holdout 198,187 / 210,039
   (gru3 189,536 / 203,350: +15.3k); `exp_r4_mix_wf.py` (round3 + round4 0-56 %): slice B 240,040 / 249,204 (gru3 240,675 /
   241,518: +7.1k, all on the mirror) and slice A 197,537 / 209,052. Baked as `strategies/mm_r4_mix.py` (R4 candidate).
+- Cross-regime ensemble (sonnet, `strategies/exp_r4_xens.py` / `_wf.py`: R3 stack and R4-refit stack run side by side,
+  outputs blended by xw; check 8.5 min per 8.8M): holdout sums tape + mirror, slice A / slice B (gru3 392,887 / 482,193):
+  xw 0.3 425,166 (+32.3k) / 487,930 (+5.7k); xw 0.5 428,398 (+35.5k) / 484,811 (+2.6k); xw 0.7 +30.6k / -12.4k; xw 1
+  (R4 only) +28.0k / -19.2k. As with mm_r4_mix, the slice-B gain sits on the mirror (tape flat); the A gain of
+  R4-weighted models is partly slice-specific (the R4-only refit also gains +28k on A).
