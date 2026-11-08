@@ -1759,3 +1759,10 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   tgt 0: slice A 225,405 / 226,654 (+6.6k), slice B 245,010 / 248,950 (+2.9k), round3 628,899 (+9.0k), round2 459,640
   (+9.9k), full-file up on every tape, 8/8 chunks. Baked as **`strategies/mm_r4_mixv2.py`** (parity round4 1,103,894
   (225,405) / mirror 1,100,097 (226,654); check PASS 6.7 min) for a server comparison against mixv (1,763,582).
+- Per-component scales (opus, interim, exp_r4_comp.py): quote-MLP scale cs_q 1.6 + mlp_gate 0.2: slice A 222,945 /
+  235,704 (+13.2k, almost all on the mirror), slice B 244,231 / 252,301 (+5.4k), round2 +6.6k, round3 -3.6k.
+- **`strategies/mm_r4_mixv3.py`** = mixv + two-tier take (ht_d 0.12) + cs_q 1.6 + mlp_gate 0.2 (exp_r4_gc.py / _wf.py):
+  round4 1,101,157 (224,861), mirror 1,114,974 (239,814), round3 627,382 (152,347), round2 467,629 (121,000); slice B
+  twin 247,378 / 252,806. vs mixv: slice A +19.2k (+4.3 %), slice B +9.1k (+1.9 %), round3 +7.5k, round2 +17.9k; the two
+  parts add (comp alone A +13.2k / B +5.4k, two-tier alone +6.6k / +2.9k). Caveat: the slice-A gain of cs_q sits on the
+  mirror (tape +0.2k). check PASS 7.0 min. Server test against mixv (1,763,582) decides.
