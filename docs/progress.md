@@ -1701,3 +1701,9 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   on slice B 241,953 / 249,133. vs mm_r3_gru3: round4 1,027,483 (189,536), mirror 1,036,706 (203,350), round3 653,327
   (157,925), round2 447,310 (112,106), slice B 240,675 / 241,518. check PASS 6.4 min. Quote scale fq_scale 1.15 / 1.3:
   no gain.
+
+## 2026-11-08 08:40 — radys -> home: task list (radys)
+- **Home brain: read `docs/r4-tasks-from-radys.md` before the next agent wave.** Tested dead on R4 by radys: sweep riding
+  (offline +2.7 ticks @500 ms after latency, but sim -4.5 %: the GRU already trades it), IOC past the touch (no change),
+  30 ms insert-price fair leak, cancel imbalance, R4 MLP taker instead of the GRU (same pnl). Proposed next: vol-scaled
+  hysteresis on the taker (T2), queue priority (T3). Current upload pick: mm_r4_mix x1.15.
