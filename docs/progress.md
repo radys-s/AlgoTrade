@@ -1783,3 +1783,17 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - Quote predictor upgrade (opus, exp_r4_qx.py / _wf.py: refitted MLPQ[1000] / MLPQ[300] on round3 + round4 blended with
   MLPQ[500]): every blend within +-1.5k on slice A, best +0.5k on slice B, round3 -8k, round2 -5k. A longer or shorter
   quote horizon is not less timid than 500 ms; cs_q already does the scaling. Rejected.
+- Multi-tier policy on mixv4 (opus, exp_r4_tier.py / _wf.py): second tier ht_d2 (slice A +1..2k, slice B -1..2k), re-entry
+  tier re_d 0.1 (A +2.1k, B 0, round3 +5.3k; neighbours disagree), passive flatten ps_k (A +8.3k but B -2..-4.5k and only
+  with ps_force overriding the gate): none adopted.
+
+## 2026-11-08 11:05 — R4 state (home)
+
+- **Final: `strategies/mm_r4_mixv3.py`, server 1,810,997** (mixv 1,763,582; mix x1.15 1,720,970; R3 final gru3 ~1.03M
+  local on round4). Path: R3 stack -> non-GRU tables on round3 + round4 (robust in walk-forward, unlike R4-only refits)
+  -> volatility-scaled signal and thresholds (R4 = R3 book with 1.4-1.9x volatility) -> two-tier take + quote-MLP scale.
+- mm_r4_mixv4 (mixv3 + gate_thr 48): +0.3 % locally with ~50/50 chunks; switch only if its server score beats mixv3 by
+  > 1 % (~1.83M).
+- Every other R4 idea was flat or negative on the two-slice test (refit-only, GRU on more data / ensembles / vol-normalised
+  / head-only, trend tilt, online adaptation, drift lockout, hold bias, slow model in the taker, move-size model,
+  quote horizons, extra tiers). ~85-90 % of the remaining oracle gap is predictor latency (takes ~200 ms late).
