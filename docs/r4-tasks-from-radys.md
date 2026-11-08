@@ -233,3 +233,6 @@ NEW inputs: T9 (top-5 tokens) is the remaining test.
 The perfect 1 s quotes ceiling is +164k (+15 %), and cs_q alone gave +13k, so the quote signal is under-used. MLPQ500 is
 a 26-feature MLP. Train a 500 ms head on the GRU hidden state + features (the same streaming GRU as the taker, so zero
 extra recurrent cost; only a second small head). Gate: offline corr vs MLPQ500 +0.01 at 500 ms, then slice A/B.
+
+## Note 10:48 (radys): your running "multi-tier policy" = my rd_r4_t3 (flat). Stop it if it is the same; keep the quote upgrade.
+3rd tier ht2_d 0.2 / 0.3 -> -50 on mixv3: round4 1,100,930 / 1,097,826 vs 1,101,157 (hold 225,691 / 225,038 vs 224,861).
