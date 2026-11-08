@@ -1495,3 +1495,21 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   -10.7k; mq_b 0.5, fq_k 0.1, slw_thr 2, slw_h 5 are at their optimum.
 - Running: GRU v2 (opus, due 04:40: streaming-consistent training, larger hidden, a 500 ms head for the quotes);
   taker retune and GRU / MLP mix on mm_r3_gru (brain).
+
+## 2026-11-08 03:50 — mm_r3_gru on the leaderboard: 976,148 (+50k over ms); oracle ceilings; small knobs (home)
+
+- Leaderboard R3: `mm_r3_gru` **976,148.00** (17,571 filled orders, penalty 750, sim 4:39.6, board pnl standard error
+  55,390): +50k over mm_r3_ms (925,809), leaderboard / local x0.82 on the gain (usual x1.6). Fewer fills than ms (20,241):
+  the GRU takes less often. Laptop reproduced the local numbers and estimates ~4:00 board runtime.
+- Taker oracle on mm_r3_gru, round3 (research/diag/oracle_pred_r3.py, taker signal replaced by the true future move,
+  quotes untouched): perfect 205 ms predictor **1,004,210** (x1.58), 30 % oracle + 70 % GRU 845,475 (x1.33), perfect
+  1005 ms 736,304 (x1.16). With our execution (touch-only IOC flips, +-100) even a perfect predictor is x1.6: a 2x team
+  must also differ in mechanics, not only in prediction. Each +0.01 holdout corr is worth roughly +3-5 %.
+- On mm_r3_gru (round3 / mirror, holdout in brackets; champion 634,519 (156,075) / 624,778 (157,441)):
+  pred_blend 0.6 / 0.8 x fq_take_k 0.15 / 0.25 all lower (mirror holdout -4..-9k); seq_mix 0.8 / 0.5 lower; mlp_gate 0.1 /
+  0.2 within noise; slw_on 2 mixed (mirror -8.8k, round2 +4.4k); quotes from the GRU 200 ms output (mq_h 0) -12k / -8k.
+- Price-aware taker (`strategies/exp_r3_sweep.py`, IOC limit up to floor(F_hat - k), sw_max 1 / 3): identical within
+  100 (the take is almost always marginal: F_hat is rarely a full tick beyond the touch). Killed.
+- Passive retune on mm_r3_ms (sonnet): gate_thr 14 up on all three tapes (holdout +1.5k / +1.3k, round2 +5.6k); rt_ms 200
+  +3-7k on round3 but -14k round2; fq_k_sp2 1.2 trades full pnl for holdout; fq_k_sp3, qs_k at optimum; hk_k no effect.
+  On mm_r3_gru gate_thr 14: round3 638,024 (157,152), mirror 625,673 (158,439), round2 447,035 (112,310): up on all six.
