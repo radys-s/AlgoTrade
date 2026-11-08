@@ -1445,3 +1445,9 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   best within noise (540,536 / 560,298 / 427,673). Killed.
 - Taker retune for the MLP (sonnet, ledgers r3w5-tk-*): fq_take_k / pred_scale / pred_blend / mlp_gate / fq_take and a
   k x blend grid: the champion's holdout sum 275.5k is the maximum; higher k / blend only lift the MLP's training span.
+- MLP v2 (sonnet, `strategies/exp_r3_mlp2.py`): seed ensembles and extra inputs (ioc_sweep50, spread_max100, nev200) stay
+  within seed noise (+-4-6k holdout); B5n ensemble holdout +7.0k / +5.0k / +2.7k on the mm_r3_mlp base = weak evidence;
+  the MLP saturates near holdout corr 0.50.
+- **mq + slow merged** (`strategies/exp_r3_ms.py`, mq_on 1 / mq_b 0.5 / fq_k 0.05 + slw_on 1 / h5 / thr 2): round3 571,801,
+  mirror 582,881, round2 425,385; holdout 142,962 / 142,490 / 107,993 (mlp2 540,341 / 560,237 / 427,786; 138,223 /
+  137,230 / 108,183). mq alone (fq_k 0.05): 564,095 / 579,779 / 433,861, holdout 138,214 / 140,903 / 109,906.
