@@ -1363,3 +1363,5 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   flagged runtime under load (15 min projected while loaded, 5.6 min unloaded on the laptop; home 3.0 min).
 - Wave 2 (sonnet medium, due 02:15) on mm_r3_pms: ridge refit variants (100 % / +mirror / +round2 / targets / alpha),
   ridge in the passive quotes (pred_mode 0/2), passive-filter retune, taker-threshold retune.
+- Taker retune on mm_r3_pms (sonnet): fq_take_k 0.2 / fair_tau 70 / pred_scale 1.0 stay best; fq_take 150 + zd_quote 1
+  gives +1.4k / +1.4k (holdout +0.7k / +0.5k, round2 -0.4k): noise-level, not taken. Ledgers r3w2-tk-*.
