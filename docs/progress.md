@@ -1568,3 +1568,14 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   (exp_r3_res.py), front-fill dissection (exp_r3_qcap.py), longer-lived quotes (exp_r3_flive.py), state-dependent take
   thresholds (exp_r3_tk2.py), round2 + round3 GRU (exp_r3_gx.py), take veto (exp_r3_veto.py), partial-flip completion
   (exp_r3_rem.py), GRU fine-tune on 100 % (exp_r3_gft.py). R4 plan: docs/r4_plan.md.
+
+## 2026-11-08 05:03 — upload candidate mm_r3_gru3 = 653,327 / 639,714 (home)
+
+- **`strategies/mm_r3_gru3.py`** = mm_r3_gru2 + rt_ms 150, fq_k_sp2 1.5 and a 50 ms hysteresis after passive flips
+  (hy_only 1, hy_ms 50, hy_k 0.2; from exp_r3_hyst.py): round3 **653,327**, mirror 639,714, round2 447,310; holdout
+  157,925 / 158,799 / 112,106 (gru2 638,024 / 625,673 / 447,035; holdout 157,152 / 158,439 / 112,310). Parity of the baked
+  file verified; check PASS 6.7 min. The full-tape gain (+15k / +14k) sits mostly in the training span (holdout +0.8k /
+  +0.4k), so the leaderboard gain may be smaller than x1.6.
+- rt_ms 150 + fq_k_sp2 1.5 alone: 641,508 (157,166) / 628,681 (159,008) / 447,032 (112,192).
+- Learned take veto (opus, exp_r3_veto.py): decision-level gains vanish in the strategy (a vetoed crossing re-fires a few
+  events later); holdout +0.2..1.1k. GRU fine-tune on 100 % (sonnet, exp_r3_gft*.py): -2.5 % round3, -3.5..-4.5 % round2.
