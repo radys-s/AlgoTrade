@@ -1752,3 +1752,10 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - T7 GRU seed ensemble on round3 + round4 into mixv (opus, exp_r4_ens.py / _wf.py, block-diagonal, 2-3 new seeds +
   the R3 GRU): offline STREAM corr +0.022..0.032 (passes the gate) but slice A +0.9..1.0 %, slice B -0.2..-2.1 % at every
   pred_scale; plain mixv at x1.3 already matches it on slice A. Stopped before T8 (radys measured MLOFI dead too).
+- Oracle-gap dissection (opus, exp_r4_gap.py / _wf.py): mixv 1,090,202 vs the 205 ms oracle 1,479,660 on round4; the gap
+  is which side we hold (passive edge equal); our takes are accurate but late (median 200 ms = predictor latency) or
+  missed with the model pointing the other way: ~85-90 % of the gap is predictor latency. Reachable piece: a TWO-TIER
+  take (signal within ht_d of the threshold against our position -> flatten to ht_tgt instead of waiting): ht_d 0.12 /
+  tgt 0: slice A 225,405 / 226,654 (+6.6k), slice B 245,010 / 248,950 (+2.9k), round3 628,899 (+9.0k), round2 459,640
+  (+9.9k), full-file up on every tape, 8/8 chunks. Baked as **`strategies/mm_r4_mixv2.py`** (parity round4 1,103,894
+  (225,405) / mirror 1,100,097 (226,654); check PASS 6.7 min) for a server comparison against mixv (1,763,582).
