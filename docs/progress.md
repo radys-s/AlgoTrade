@@ -1679,3 +1679,10 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   xw 0.3 425,166 (+32.3k) / 487,930 (+5.7k); xw 0.5 428,398 (+35.5k) / 484,811 (+2.6k); xw 0.7 +30.6k / -12.4k; xw 1
   (R4 only) +28.0k / -19.2k. As with mm_r4_mix, the slice-B gain sits on the mirror (tape flat); the A gain of
   R4-weighted models is partly slice-specific (the R4-only refit also gains +28k on A).
+- 08:05 GRU on R4 + R3 + R2 (opus, strategies/exp_r4_gx.py, scratchpad gx/): STREAM corr +0.01..0.02 but pnl within
+  seed noise; the walk-forward weakness of the R4 refit comes from the refitted NON-GRU tables. mm_r4_mix + that GRU:
+  slice A 429,076 / 427,160 (seeds 0 / 1) but slice B 475,894 / 482,734 / 476,339 (gru3 482,193, mix_wf 489,244): not used.
+- Taker signal scale (R4 moves are larger), holdout sums tape + mirror, slice A / slice B: gru3 x1.0 392,887 / 482,193;
+  gru3 x1.3 424,979 / 479,141 (full round4 +29.5k, mirror +19.4k, fully out of sample; round3 -19.5k); mm_r4_mix x1.0
+  408,226 / 489,244 (mix_wf); **mm_r4_mix x1.15 430,493 / 484,726**; mm_r4_mix x1.3 435,948 / 478,484. The scale helps
+  on the first 56 % and the last 25 % but not on the 56-75 % span.
