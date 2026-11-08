@@ -1379,3 +1379,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   multi-horizon / per-spread ridge ensemble, quote-side markout model, id-gap jump detector (redo), modify-instead-of-
   cancel for the filters (keep queue place). The wave-1 leak scanner / engine / filter / generator / tuner / learner
   agents were stopped before reporting (no ledgers).
+- Leaderboard R3: `mm_r3_g2` **772,539.65** (21,045 filled orders, penalty 2,237, sim 1:55): +97k over mm_r3_pms,
+  leaderboard / local 1.61. Public chart at 01:49: median ~503k, 75th percentile ~800k: still just below the top 25 %.
+- 02:10 added: over-cap bursts on strong 200 ms predictions (sonnet), replay-artefact exploitation redo (sonnet); running
+  opus: Bayesian filter for the hidden fair price, gradient-boosting edge discovery.
