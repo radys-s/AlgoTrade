@@ -1729,3 +1729,8 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - Volatility-adaptive on mm_r4_mix (opus, exp_r4_vol_mix.py, vn_a 1.0 / vn_g 3.0): slice A 222,460 / 223,394, slice B
   243,200 / 248,978 (= mixv), round3 631,068 (+11k) but round2 424,071 (-26k): volatility cannot separate round2 from
   round3; not adopted.
+- Volatility-adaptive on mm_r4_mix, final set (opus, `strategies/exp_r4_vol_mix.py` + `_wf.py`; vn_hl_s 1200, vn_a 1.0,
+  vn_g 3.0, vn_ref 3.70, floors 1.0): slice A 224,102 / 225,078, slice B 244,891 / 247,980 (mixv 222,726 / 222,767 and
+  241,953 / 249,133: +4.9k summed, noise), round3 631,580 (+11.7k, the mechanism never fires there), round2 423,818
+  (-25.9k: round2 has LOWER volatility than round3 yet prefers mixv's static knobs). Kept mm_r4_mixv (simpler, verified,
+  better on the third regime).
