@@ -21,6 +21,7 @@ signals we already have and **regime-scaled thresholds**, not another model or m
 - MLP size (32-16 / 64-32 / 128-64), level-2 depth features, +round2 data, 150 / 300 ms targets: holdout corr 0.50 +- 0.003.
 - 1 s / 2 s target MLPs for the taker: +24 % offline tail edge on r3, but sim r3 hold 130k vs 138k and round2 -3 %.
 - Quote pull on top of the passive MLP (`pull_k`): +1.9 % on s12, **zero on s13** (mq already removes those fills).
+- GRU + MLP blend (`seq_mix` 0.6 / 0.75 / 0.9 on s13): r3 610k / 614k / 622k vs 634,519 for pure GRU; round2 +0.3 % at best. Pure GRU wins.
 - s11 quote-side mechanics (layer_size, ri_ms, tr_rest, park_size): plateau, +0.3 %.
 
 ## 3. Ideas ranked (for the next round or a long session)
