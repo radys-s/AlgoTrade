@@ -1749,3 +1749,6 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   lowering fq_take_k only when a SMALL move is expected (ms_g -0.6, hi 1, lo 0.3) +2.9k slice A, +2.4k slice B, round3
   +5.8k, round2 +6.7k; taking more readily on big expected moves loses. Consistent but ~0.5 %, the same effect as the
   lower-only elastic threshold; below the team's 3 % bar, not adopted.
+- T7 GRU seed ensemble on round3 + round4 into mixv (opus, exp_r4_ens.py / _wf.py, block-diagonal, 2-3 new seeds +
+  the R3 GRU): offline STREAM corr +0.022..0.032 (passes the gate) but slice A +0.9..1.0 %, slice B -0.2..-2.1 % at every
+  pred_scale; plain mixv at x1.3 already matches it on slice A. Stopped before T8 (radys measured MLOFI dead too).
