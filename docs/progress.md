@@ -1583,3 +1583,15 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   +5..7k on 3 seeds (+14 % taker edge) but round3 / mirror holdout -3..-11k: not for R3, noted as R4 insurance.
   Partial-flip completion (sonnet, exp_r3_rem.py): join / retake / wait all neutral or worse (45 % of takes fill partially,
   ~59 of ~170 lots; the remainder fills 0.31 tick better later, so the cost is delay, not price).
+
+## 2026-11-08 05:15 — mm_r3_gru3 on the leaderboard: 984k; upload candidate mm_r3_gru4 (home)
+
+- Leaderboard R3: `mm_r3_gru3` ~**984k** (+8k over mm_r3_gru): the full-tape gain was mostly in the training span; the
+  holdout gain (+1.2 %) predicted the board gain better than the full tape (+3 %). Judge by holdout from now on.
+- **`strategies/mm_r3_gru4.py`** = mm_r3_gru3 + the 500 ms quote head on the taker GRU state blended 50/50 with MLPQ[500]
+  (exp_r3_qgru: qg_on 1, qg_set 0, qg_mix 0.5) + direction memory hp_ms 300: round3 653,817 / mirror 640,477 / round2
+  443,678; holdout **159,531 / 159,874 / 113,023** (gru3 157,925 / 158,799 / 112,106): holdout up on all three tapes,
+  round2 full -0.8 %. Parity verified; check PASS 6.9 min. Variants (exp_r3_g4.py): long-target head 659,404 (158,836) /
+  641,039 (159,307) / 442,700 (112,686); 500 ms head without hp 654,177 (158,841) / 642,078 (159,617) / 443,246 (112,882).
+- Take-threshold state rules (sonnet, exp_r3_tk2.py: spread 2 / 3 margins, thin touch, hole, recent take): nothing beats
+  the flat fq_take_k 0.2.
