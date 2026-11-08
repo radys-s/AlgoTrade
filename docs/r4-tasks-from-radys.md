@@ -104,3 +104,13 @@ ahead 0: n 1,993, mo1 -0.21, mo5 +0.10 | ahead 1-15: n 1,260, mo1 -0.56, mo5 -0.
 Ahead <= 15 by direction-signed pred: <= -0.3: -3.09; -0.3..-0.1: -0.46; -0.1..0.1 (the proposed keep zone): -0.90;
 0.1..0.3: +0.53; > 0.3: +2.24 (those are re-pricings, not losses). Kill line was +0.4: our cancels are right; queue
 keeping by survival / rank does not pay on R4.
+
+## Update 10:20 (radys)
+- 500 ms quote MLP blended into the TAKER prediction (rd_r4_tkq on mm_r4_mixv, `tk_q`): 0.3 round4 1,093,706 (223,302)
+  / mirror 1,094,720 (223,950) vs mixv 1,090,202 (222,726) / 1,087,684 (222,767): +0.3 / +0.6 %, noise; 0.6 -4 %. Dead.
+- **T6 (biggest remaining idea, home compute): volatility-normalized models.** R4 moves are 1.4-1.9x R3; the R3 GRU
+  and the tables see out-of-range inputs, and pred_scale / gate / slw scaling (mixv, exp_r4_vol) only patches the
+  output. Retrain GRU + MLPs with every price-difference feature and the target divided by a causal EWMA vol (e.g.
+  hl 60 s of |1 s mid change|), multiply the prediction back by the same vol at run time. Train on round3 + round2 +
+  round4 0-56 % (+ mirrors), judge on both slices. This makes one model valid in all regimes, which is what the private
+  seed needs. If short on time: do it for the MLP taker (seq_on 0) only, which radys found equal to the GRU on R4.
