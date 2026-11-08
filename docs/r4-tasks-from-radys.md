@@ -114,3 +114,22 @@ keeping by survival / rank does not pay on R4.
   hl 60 s of |1 s mid change|), multiply the prediction back by the same vol at run time. Train on round3 + round2 +
   round4 0-56 % (+ mirrors), judge on both slices. This makes one model valid in all regimes, which is what the private
   seed needs. If short on time: do it for the MLP taker (seq_on 0) only, which radys found equal to the GRU on R4.
+
+## Update 10:45 (radys): Gemini "structural" ideas checked against simulator code. None are worth a run.
+
+- **Over-cap penalty arbitrage.** The penalty really is flat (`simulator.py:1290`, 10k $/s whenever |inv| > 100,
+  no matter how far over), and orders up to |inv| 1000 are accepted (`MAX_POTENTIAL_POSITION`). But there is no
+  liquidity to take. Our flip IOCs ask for up to 200 lots and fill on average 112 at the touch, so the touch is already
+  emptied. Extra lots would come from deeper levels, and IOC past the touch was already measured at -5.7 %.
+  Over-cap quoting lost -133k..-316k in R1 (`exp_overcap.py`). Skip.
+- **Replay front-running / liquidity hollowing** (take L1, rest at L1+1, so a replayed IOC "walks" into us).
+  `_execute_taker` stops at the IOC's own limit price. An IOC at the touch whose liquidity we consumed fills nothing,
+  because it is a zombie. It does not walk. Only IOCs whose limit price was already deep reach L1+1, and there we
+  sit behind the historical L2 queue. That is the sweep case, which the GRU already trades (sweep riding was -4.5 %). Skip.
+- **Path-length micro-cycling, trailing lock** = graduated / partial flips. Dead in R3 and R4 (lockout -17 %). Skip.
+- **Order-age queue promotion**: the cancel probe already measured it. Near-front cancels mark out +0.10 / -0.50
+  and the keep zone -0.90. Skip.
+- **Inside-spread quoting on wide spreads** = `fq_inside`, dead in R3. Skip.
+
+Still open on your side: T6 (vol-normalized GRU/MLP retrain) and the vol-adaptive variants. Upload only if both
+slices (A and B) beat mm_r4_mixv by >= 3 % (server 1,763,582 = current final).
