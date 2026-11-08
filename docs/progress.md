@@ -1740,3 +1740,5 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - mm_r4_mixv vs the uploaded final mm_r4_mix x1.15 (server 1,720,970), research.compare: round4 +29,937 (holdout +8,106,
   **8/8 chunks**), mirror +29,074 (+6,894, **8/8**), round2 +16,277 (+6,604, 6/8). The only REJECT reason is the small
   by-design breach penalty (rule 1). The gate / slow-threshold changes add in every chunk.
+- **Server (radys' note): mm_r4_mixv = 1,763,582, now the R4 final** (mm_r4_mix x1.15 was 1,720,970; +42.6k, the
+  predicted x1.62 of the local gain). Launched T7 (GRU seed ensemble on round3 + round4 into mixv) per radys' list.
