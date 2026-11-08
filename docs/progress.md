@@ -1720,3 +1720,12 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   246,256 / 248,524; seed 2 222,410 / 222,886, 244,074 / 249,545: all within noise. More round4 data (0-56 % -> 0-75 %
   fit) moved slice A +6.9k / -0.7k: weak evidence. `strategies/mm_r4_mixv_full.py` (round3 + ALL round4) built but
   unvalidatable (round3 609,336, round2 449,734, check PASS 7.0 min). Keep mm_r4_mixv.
+- T4 / T2 on mm_r4_mixv (opus, exp_r4_lock.py / _wf.py): T4 drift lockout dead offline (flips AGAINST the 10 s drift
+  mark out best: +2.8 / +3.1 ticks at 5 s); vol-scaled hold bias loses monotonically (hb_k 0.1 -> -8.6k slice A);
+  symmetric vol-elastic take threshold flat; lower-only elastic (el_g 1, el_lo 0.5, el_hi 1) +2.4k slice A, +2.1k
+  slice B, round3 +7.3k, round2 +2.8k: positive everywhere but below the noise bar, not adopted. radys (server):
+  mm_r4_mix x1.15 = 1,720,970 on the R4 server backtest (server / local 1.62), uploaded as final; T4 and IOC past the
+  touch dead in his sims too.
+- Volatility-adaptive on mm_r4_mix (opus, exp_r4_vol_mix.py, vn_a 1.0 / vn_g 3.0): slice A 222,460 / 223,394, slice B
+  243,200 / 248,978 (= mixv), round3 631,068 (+11k) but round2 424,071 (-26k): volatility cannot separate round2 from
+  round3; not adopted.
