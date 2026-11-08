@@ -18,6 +18,11 @@ it), price-aware sweeps, over-cap bursts, passive veto / quote blend / size by t
 bigger GRUs (offline corr up, pnl flat), averaged / longer targets, order-flow and order-age tokens, hysteresis,
 target-inventory policies, two-sided MM, queue tricks that keep stale prices (fq_tol, park, pre-place, layer, inside).
 
+Board check of small tweaks: mm_r3_gru3 984k (final); mm_r3_gru5 = gru3 + four small holdout-positive changes (quote
+head, hp_ms, take veto, near-front keep; holdout +1.6..4.2k on all three tapes) scored 970k. Small holdout gains are
+noise for the board: in R4 (no leaderboard) do not stack them; prefer the refit stack and changes worth >= ~2 % on
+BOTH tape and mirror holdouts.
+
 ## The one big lever left: queue priority
 
 Front-of-queue simulation on mm_r3_gru2 (research/diag/frontq_r3.py --mode front): round3 +196k (holdout +48.6k),

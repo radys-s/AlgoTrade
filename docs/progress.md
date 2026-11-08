@@ -1608,3 +1608,12 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   the queue, but its fills are +0.1-0.2 tick at 100 ms and adverse by 1 s (they also push inventory off +-100 and displace
   taker flips); every setting is within +-2k or loses up to 82k. The front-queue ceiling needs being first at once, which
   no strategy can buy in this replay. Final R3 candidate: **mm_r3_gru5**.
+
+## 2026-11-08 05:30 — R3 final: mm_r3_gru3 (leaderboard 984k) (home)
+
+- Leaderboard R3: `mm_r3_gru5` **970k** (gru3 984k, gru 976,148): its holdout gains over gru3 (+2.8k / +1.6k / +4.2k
+  from the quote head, hp_ms, take veto and the near-front keep rule) did not transfer; -14k on the board.
+- **Final for R3: `strategies/mm_r3_gru3.py` (984k)**, chosen by the humans.
+- Lesson for R4: holdout gains of a few thousand on the public tape are noise for the board; only structural steps
+  (refits of the learned stack, a new model class) moved the board in R3 (pms 675k -> g2 773k -> mlp2 865k -> ms 926k ->
+  gru 976k -> gru3 984k). Stacking many small holdout-positive tweaks overfits the public tape.
