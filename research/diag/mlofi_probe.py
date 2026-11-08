@@ -3,7 +3,7 @@ Rebuilds the book, accumulates signed flow per depth bucket (0..4 ticks from the
 bid add +v, bid removal -v, ask add -v, ask removal +v (cancels and taker consumption both count).
 Features = flow over 50 ms / 200 ms / 1 s windows (15 cols). Test: OLS on own npz features vs own + MLOFI,
 fit on the first 75 % of rows, holdout corr on the last 25 %.
-usage: python -m research.diag.mlofi_probe TAPE.csv NPZ"""
+usage: python -m research.diag.mlofi_probe TAPE.csv NPZ [OUT.npz]  (OUT = npz with 15 MLOFI cols appended, cols 26-40)"""
 import sys
 import numpy as np, pandas as pd
 
@@ -60,6 +60,9 @@ for w in (0.05, 0.2, 1.0):
     F.append(C[k] - C[np.maximum(j, 0)])
 F = np.hstack(F)
 F = np.sign(F) * np.log1p(np.abs(F))
+if len(sys.argv) > 3:
+    np.savez(sys.argv[3], X=np.c_[X, F].astype(np.float32), t=z['t'], mid2=z['mid2'], rm2=z['rm2'])
+    print('saved', sys.argv[3])
 ok = np.isfinite(X).all(1)
 X, F, k = X[ok], F[ok], k[ok]
 cut = int(len(k) * 0.75)
