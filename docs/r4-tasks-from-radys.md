@@ -244,3 +244,15 @@ offline holdout corr 0.6696 / 0.6697 vs the current MLPQ500 0.6589 / 0.6599 (+0.
 round4 1,102,372 (225,671) vs 1,101,157 (224,861); mirror **1,098,662 (226,579) vs 1,114,974 (239,814), -16k**. Amplitude-
 matched x1.07: 1,101,291 / 1,097,920. Like the taker ensemble, +0.01 corr does not turn into pnl, so the corr gate is
 too weak a filter. For T9/T10, sim slice A directly once the offline corr is up, and do not trust corr alone.
+
+## Update 11:30 (radys): trading-skill exits/skews on mixv3, all dead (round4 full, mixv3 1,101,157 / hold 224,861)
+
+`strategies/rd_r4_ex.py` (origin/radys), flags off = mixv3:
+| skill mechanic | pnl | hold |
+|---|---:|---:|
+| volatility stop xs_k 3 / 6 ticks adverse since entry, model not supporting | 1,101,138 / 1,101,230 | 223,905 / 224,778 |
+| time stop xt_ms 5000 (held 5 s and losing) | 1,100,716 | 224,437 |
+| A-S exit-quote skew at cap qs_sk +0.5 / +1.0 (toward mid) | 1,090,366 / 1,078,650 | 220,028 / 217,568 |
+| exit-quote skew -0.5 / -1.0 (away from mid) | 1,108,226 / 1,107,431 | **218,290 / 219,792** |
+The model already exits losing positions on its own. A wider exit quote helps only the training part. Server 11:08
+(mixv4?) 1,815,208 = +0.2 % vs mixv3, which is noise. Keep mixv3 final unless T9 passes the sim.
