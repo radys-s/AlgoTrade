@@ -1400,3 +1400,13 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - modify-instead-of-cancel (sonnet): the filters almost never pull at an unchanged price; +0..400. Killed.
 - Over-cap bursts on strong 200 ms predictions (sonnet): the far touch is thin, a 600-1000-lot IOC fills only ~75-130 lots,
   so the flat 10,000/s penalty dominates: best oc_k 4 / 50 ms 438,388 (-40k), lower k far worse. Killed.
+
+## 2026-11-08 02:27 — mm_r3_mlp = 549,721 / 556,404: MLP replaces the taker ridge (+15 %, holdout +12.5..17.5k) (home)
+
+- Subagent mlp (sonnet): same 22 features, 200 ms target, round3 + mirror first 75 %, 22-32-16-1 ReLU on the GPU; holdout
+  corr 0.463 -> 0.493, edge at the same take rate 1.151 -> 1.286 ticks.
+- **`strategies/mm_r3_mlp.py`** (g2 + mlp_on 1, mix 1.0, gate 0.3, pred_blend 0.85): round3 **549,721**, mirror 556,404,
+  round2 426,333 (g2 426,845); holdout 135,145 / 130,359 (g2 117,658 / 117,867) / round2 107,581 (110,692); 8/8 chunks;
+  check PASS 4.1 min (numpy MLP).
+- Rejected in this wave: quote-side markout model (round2 down everywhere), over-cap bursts (-40k), id-gap detector,
+  modify-instead-of-cancel, ridge ensembles.
