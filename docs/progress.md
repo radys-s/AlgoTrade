@@ -1770,3 +1770,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   +12.9..13.2k, slice B +3.0..5.4k, round2 +6.6..10.4k, round3 -3.6k); cs_gru / cs_fair inside the taker are at their
   optimum; fair_tau_ms noise. **mm_r4_mixv3 rebaked with cs_q 1.45** (plateau centre): round4 1,102,193 (224,767), mirror
   1,116,796 (240,245), round3 630,094 (153,067), round2 470,599 (121,735), slice B 248,341 / 252,397; parity verified.
+- **Server: mm_r4_mixv3 = 1,810,997.03** (sim 5:07; mixv 1,763,582, +47.4k): mixv3 is the R4 final.
+- On mixv3 (slice A tape / mirror hold; slice B twin): gate_thr 48 226,729 / 241,689, 249,405 / 253,145 (+3.4k / +1.8k;
+  full round4 +2.9k, mirror +3.4k, round4p75 +4.4k / +2.5k); quote MLP mq_h 1000: A 232,313 / 222,555 (mirror -17.7k),
+  B 246,888 / 256,193: mixed, rejected. Baked mm_r4_mixv4 = mixv3 + gate_thr 48 for a server test.
