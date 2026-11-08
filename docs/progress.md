@@ -1595,3 +1595,12 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   641,039 (159,307) / 442,700 (112,686); 500 ms head without hp 654,177 (158,841) / 642,078 (159,617) / 443,246 (112,882).
 - Take-threshold state rules (sonnet, exp_r3_tk2.py: spread 2 / 3 margins, thin touch, hole, recent take): nothing beats
   the flat fq_take_k 0.2.
+- **`strategies/mm_r3_gru5.py`** = mm_r3_gru4 + learned take veto (veto_thr 0.54, exp_r3_veto) + keep a near-front touch
+  quote at spread >= 2 (qc_ahead 30, qc_rules 16, exp_r3_qcap): round3 653,402 / mirror 638,600 / round2 454,954; holdout
+  **160,710 / 160,437 / 116,311** (gru4 159,531 / 159,874 / 113,023; gru3 157,925 / 158,799 / 112,106). Parity verified,
+  check PASS 6.8 min. Veto 0.54 alone on gru4: holdout +0.7k / +0.3k / 0; 0.47: +2.8k / -0.8k.
+- Front-fill dissection (opus, research/diag/frontq2_r3.py): the +196k front-queue upside is mid-size takers (51-200 lots)
+  eating the front of queues where our order is already live behind market lots; no pull-rule change reaches it
+  (exempting near-front quotes at spread >= 2 is the only small plateau). Longer-lived quotes (sonnet, exp_r3_flive.py):
+  only the gate / slow-pull exemption near the front helps a little (fl_gate, fa_q 150: +5.8k / +4.2k / +5.8k full,
+  holdout +0.5k / +0.3k / +1.9k on gru2); the other exemptions lose.
