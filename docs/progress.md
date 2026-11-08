@@ -1467,3 +1467,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   lean and longer retreat pause when the 2 s volatility is above its 300 s baseline): round3 546,156 / mirror 560,277 /
   round2 435,531, holdout 140,157 / 140,245 / 108,139 (mlp2 138,223 / 137,230 / 108,183). Taker and gate scaling: no.
   Merging onto mm_r3_ms as `strategies/exp_r3_msv.py` (test running).
+- vol-adaptive on top of mm_r3_ms (`exp_r3_msv.py`, vol_on 1): 563,368 / 575,500 / 440,045, holdout 145,305 / 143,677 /
+  106,960 vs ms 573,111 / 589,261 / 428,199 (143,885 / 142,614 / 107,749): a wash, not used.
+- Decision-point classifier (sonnet, `exp_r3_dpc.py`): ridge veto / force fail the holdout; a depth-3 GBM veto lifts the
+  R3 holdouts +1-3k but loses 1-3k on round2 and is non-monotone in its threshold. Killed.
