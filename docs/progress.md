@@ -1008,3 +1008,17 @@ at thresholds 1.0 / 1.5 / 2.0 (500 ms hold, optimistic overlapping samples). No 
 - Local pnl tracks the server at x1.6, so 1.2M server needs about 750k local (+57 % over s11).
 - Grid layer_size / tr_rest / pred_scale / park_size / ri_ms on s11: best 480,026 (+0.3 %); tr_rest 1, pred_scale 1.4, park 20 clearly worse. Quote mechanics are saturated.
 - Next: predictor-side work (spread-split ridge, prediction-driven quote pull, vol-adaptive thresholds); see docs/proposals-r3-radys.md.
+
+## 2026-11-08 04:20 radys - R3 push from s12 (864,770 server): predictor saturated, quote pull +2 %
+
+- s12 (Honza's mm_r3_mlp2, taker ridge + MLP) reproduced locally: round3 540,341 / mirror 560,237 / round2 427,786.
+- New tools: `research/diag/mirror_tape.py`, `mlp_dump.py` (exact in-strategy features per event), `mlp_fit.py`
+  (sklearn MLP + tail-edge report + bake), `fill_probe.py` (per-fill mark-out by prediction / inventory).
+- MLP retraining is saturated: bigger nets, level-2 depth, more data, 150-300 ms: holdout corr 0.50 = s12 +-0.003.
+  1 s / 2 s targets lift the offline r3 tail edge +24 % but lose in the sim (hold 130k vs 138k, round2 -3 %).
+- Fill probe: taker IOC = 87 % of PnL (+1.05 tick/lot at 30 s), |inv| >= 95 for 71 % of the time (the cap binds),
+  maker fills against the prediction lose. Lower taker thresholds lose in the sim despite the offline 3 s edge.
+- Quote pull (`pull_k`, cancel the quote the predictor says is about to be picked off): pull_k 0.35 =
+  round3 550,455 / mirror 565,810 / round2 427,803, every holdout up, 8/8 chunks. Candidate `strategies/rd_r3_pull.py`.
+- Learned: on a cap-bound flipper, quote-side and threshold changes are worth 1-4 %; reaching 1M server needs a new
+  information source or a different capacity use, not tuning.
