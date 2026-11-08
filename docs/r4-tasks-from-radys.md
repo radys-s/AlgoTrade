@@ -227,3 +227,9 @@ so the model learns the start of a move rather than its continuation. Gate: offl
 with the 1 s move: h200 MLP 0.4565 / 0.4532, MLP trained on quiet rows with the 1 s target 0.4573 / 0.4537, all rows 1 s
 target 0.4593 / 0.4563 (round4 / mirror). The 26 features carry no earlier information. Lateness can only shrink with
 NEW inputs: T9 (top-5 tokens) is the remaining test.
+
+## T10 (radys, after T9): quote signal from the GRU state
+
+The perfect 1 s quotes ceiling is +164k (+15 %), and cs_q alone gave +13k, so the quote signal is under-used. MLPQ500 is
+a 26-feature MLP. Train a 500 ms head on the GRU hidden state + features (the same streaming GRU as the taker, so zero
+extra recurrent cost; only a second small head). Gate: offline corr vs MLPQ500 +0.01 at 500 ms, then slice A/B.
