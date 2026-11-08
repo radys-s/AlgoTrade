@@ -1429,3 +1429,6 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - MLP in the passive quotes (sonnet, `strategies/exp_r3_mq.py`, mq_on): quote signal = mid + mq_b * MLP + (1 - mq_b) *
   fair_sig. mq_b 0.5 / fq_k 0.15: round3 553,458 / mirror 572,696 / round2 435,485 (mlp2 540,341 / 560,237 / 427,786),
   holdout +0.7k / +2.8k / +1.6k. Small, consistent: a component for the final merge.
+- Inside-spread quotes on strong MLP signals (sonnet): best +3.5k on round3, negative on round2 and mirror. Killed.
+- 02:55 big-jump bets launched: GRU / causal-CNN sequence model on the raw event stream (opus medium), wide-feature MLP
+  with exactly-online event features (sonnet), longer-horizon MLP for the quotes (sonnet).
