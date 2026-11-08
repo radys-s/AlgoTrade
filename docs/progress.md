@@ -1640,3 +1640,16 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   `-m research.retrain_torch`). Round3 run: 47 s with cached features. `strategies/exp_r4_auto_r3.py` (seed 0, base
   mm_r3_gru): 614,277 (150,909) / 634,721 (152,896) / 427,579 (110,425) vs mm_r3_gru 634,519 (156,075) / 624,778
   (157,441) / 437,941 (109,156): within seed noise. Command and R4 steps in docs/r4_plan.md.
+
+## 2026-11-08 07:09 — R4 kickoff: insurance mm_r4_ins (refit stack) (home)
+
+- R4 tape: data/round4.csv (team release data-round4), 2,398,520 rows, 0-6000 s, 10001 -> 9562. Kickoff
+  (research/r4_kickoff.sh) took 4.5 min end to end; refit 68 s per seed.
+- Baselines on round4 / mirror (holdout): mm_r3_gru3 1,027,483 (189,536) / 1,036,706 (203,350); exp_r3_gx (multi-regime
+  GRU) 1,029,872 (201,390) / 1,045,241 (207,302); mm_r3_ms 995,825 (184,339) / 1,012,732 (202,309); mm_r2_final 855,981
+  (160,300) / 853,874 (160,363). The R3 stack transfers well: R4 looks like the R3 generator.
+- Refits (base mm_r3_gru3, all tables on round4 + mirror first 75 %), round4 / mirror / round3 (holdout): seed 0 1,050,120
+  (208,464) / 1,051,958 (208,532) / 576,047; seed 1 1,016,811 (200,591) / 1,034,188 (209,629) / 578,786; **seed 2
+  1,060,473 (211,755) / 1,045,062 (209,103) / 574,917**.
+- Ceilings on round4 (mm_r3_gru3): perfect 205 ms taker 1,485,864 (x1.45), perfect 1 s quotes 1,191,308 (+164k).
+- **Insurance: `strategies/mm_r4_ins.py`** = refit seed 2; check PASS 6.5 min per 8.8M rows (R4 tape 2.4M rows).
