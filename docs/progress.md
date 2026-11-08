@@ -1670,3 +1670,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   holds >= 10 s earn 178k from 61 flips; no 10-minute block loses (41k-173k), block pnl tracks mid path length (corr
   0.94), not drift direction. Hypothesis: the R3 predictors understate R4's moves -> pred_scale / threshold test added
   to the parameter agent's grid.
+- **Non-GRU tables on round3 + round4 (sonnet, research/retrain_multi.py): robust on both slices.** `strategies/exp_r4_mix.py`
+  (R3 GRU kept; ridge, slow, MLP, quote MLP fitted on round3 all + round4 0-75 %): slice A holdout 198,187 / 210,039
+  (gru3 189,536 / 203,350: +15.3k); `exp_r4_mix_wf.py` (round3 + round4 0-56 %): slice B 240,040 / 249,204 (gru3 240,675 /
+  241,518: +7.1k, all on the mirror) and slice A 197,537 / 209,052. Baked as `strategies/mm_r4_mix.py` (R4 candidate).
