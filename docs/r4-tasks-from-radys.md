@@ -62,3 +62,14 @@ After the unrealized move since entry peaks >= P ticks, exit to 0 by IOC when it
 
 Rejected from that round: wall-delay of exits (250 ms delay loses the 200 ms edge), depth-capped IOC (our IOC is
 already limited at the touch and re-takes on the next event).
+
+## Update 09:10 (radys): T4 DEAD, skip it. Server: mm_r4_mix x1.15 = 1,720,970 (s14 1,676,168), uploaded as final.
+
+- Local baseline mm_r4_mix x1.15 (pred_scale 1.15): round4 1,060,265 (hold 214,620), mirror 1,058,610 (215,873);
+  server / local = 1.62.
+- Fill probe (research/diag/flip_drift.py, radys): reverse flips AGAINST a >= 8 tick 20 s move are the best trades
+  (83k lots, +5.7 ticks/lot @5 s, +15.9 @30 s); flips CHASING it look bad (63k lots, -0.1 @5 s, -7.9 @30 s).
+- But blocking the chase flips in the sim (rd_r4_lk, lk_s 20): lk_d 8 855,821 / 863,748, lk_d 12 878,359 / 885,437
+  (-17..-19 %). A blocked flip holds the wrong side through the move. Do not test drift lockouts or trailing exits
+  built on 30 s mark-outs: our flips pay at 1 s, the 30 s reversion is not tradeable by holding.
+- Remaining from radys: T2 (vol-elastic threshold / hysteresis) and T3 (queue priority) only.
