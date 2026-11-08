@@ -1532,3 +1532,29 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   the holdout by +-5k and the full tape by +-20k, so the exported GRU in mm_r3_gru is partly a lucky seed; a seed
   ensemble would trade runtime for robustness.
 - Subagents stopped by the user at 04:06 (order-flow GRU, quote GRU); not relaunched.
+
+## 2026-11-08 04:22 — final R3 swarm running; GRU capacity sweep: nothing beats the 16-hidden GRU (home)
+
+- 04:10 six agents (reports 05:15): order-flow token GRU (opus), quote GRU on a 0.3-0.9 s / 1 s target (sonnet), taker GRU
+  seeds / ensembles / streaming-consistent training (opus), queue position and execution (opus), flip hysteresis (sonnet),
+  passive side with the GRU (sonnet). Base for all: mm_r3_gru2.
+- GPU sweep of the taker GRU (seed 0, 200 ms target, LITE tokens; STREAM holdout corr round3 / mirror, edge sum at
+  spread/2 + 0.2): h16 T128 6 ep (control) 0.4986 / 0.4931, 227k; 10 ep 0.4842 / 0.4830; h24 0.4611 / 0.4657; h32 0.4703 /
+  0.4526; T256 0.4918 / 0.4771; lr 1e-3 x 10 ep 0.4995 / 0.4979, 234k. Larger GRUs get worse when run streaming (window
+  training from a zero state); the exported GRU (0.505) stays.
+- Passive fills of mm_r3_gru2 split by the GRU prediction at fill time (sonnet, research/diag/pfill_r3.py): fills against
+  the GRU lose 43k at 1 s, fills with it earn 52k; a passive veto (exp_r3_pgru.py, pv_k) is being tested.
+- 04:30-04:41 results on mm_r3_gru2 (round3 / mirror (holdout); base 638,024 (157,152) / 625,673 (158,439) / round2
+  447,035 (112,310)):
+  - quote-blend pg_b 0.2 641,917 (157,462) / 620,329 (151,668); pz_k 0.1 / 0.25 lower; passive veto pv_k 0.12 / 0.25
+    -49k / -27k (exp_r3_pgru.py): the GRU does not help the passive side.
+  - rt_ms 150 / 170, fq_k_sp2 1.2 / 1.5: all within +-2.5k (noise).
+  - Zombie undo (`strategies/exp_r3_undo.py`, reverse an adverse passive fill with an IOC at the fill price): uf_k 0 -34k /
+    -27k, 0.15 -13k / +10k, 0.4 +1k / +1k. The undone fills still carried spread; no gain.
+  - Order-flow token GRU (opus): STREAM corr +0.004..0.006, edge +11-14k offline; not built (below the +0.015 gate).
+  - Quote GRU head on a 0.3-0.9 s target (sonnet, `strategies/exp_r3_qgru.py`): holdout +1.3k / +0.9k, round2 -1.4 %.
+  - GRU ensembles: the agent's block GRU (exp_r3_ens2.py, offline corr 0.506 -> 0.515) sqn 3: 627.6k (158.2k) / 621.6k
+    (157.0k) / round2 456.1k (116.2k); brain's 3-member block ensemble (`strategies/exp_r3_ensb.py`, ens_n 2): 614,923
+    (153,412) / 627,511 (156,310); x1.15 scale no better. Offline corr gains do not reach pnl.
+  - pred_scale 0.85 / 0.93 / 1.15 all lower on every holdout: 1.0 is a sharp optimum (the stack sits on a tuned peak of
+    the public tape).
