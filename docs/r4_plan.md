@@ -55,6 +55,14 @@ strategies/exp_r3_gx.py carries a GRU trained on round3 + round2 (+ mirrors), re
 loses 3-5k holdout vs the round3-only GRU, but on round2 it gains +5..7k holdout (+14 % taker edge). Before the R4 refit
 is done, compare it with mm_r3_gru2 on the new tape: the multi-regime GRU should transfer better to an unseen regime.
 
+## One-command refit (tested 06:40)
+`.venv/Scripts/python.exe -X utf8 -m research.retrain --csv data/<r4>.csv --base strategies/mm_r3_gru3.py --out strategies/exp_r4_auto.py [--seed N]`
+builds the mirror, features and rows, refits ridge (rfit 19), slow ridges, taker MLP, 500 ms quote MLP and the GRU
+(torch steps in parallel) and writes a checked strategy. On round3 with cached features: 47 s total. Reproduction on
+round3 (seed 0, base mm_r3_gru): 614,277 (150,909) / mirror 634,721 (152,896) / round2 427,579 (110,425) vs mm_r3_gru
+634,519 (156,075) / 624,778 (157,441) / 437,941 (109,156): inside the +-5k holdout seed noise. In R4 run 3 seeds
+(--seed 0 / 1 / 2, different --out) and keep the best by tape + mirror holdout.
+
 ## Tooling to have ready
 - research/diag/seq_r3.py (+ seqt_r3.py `--npz` swap), mlp2_r3.py feature builder, mlpq_r3.py, slow_r3.py, pred_rfit_r3.py:
   all hard-code round3 / round3_mirror names; copy to *_r4.py with the new names at 07:05.

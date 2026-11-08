@@ -1632,3 +1632,11 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   missing = 0; weights 0.8 / 1.0 / 1.0): p<0.05 **13th of 61, total +1.95** (z1 +0.56, z2 +0.87, z3 +0.63). 11th Girls Just
   Wanna Have Funds +2.03, 12th quantový mouchy +1.98, 10th Kto je tvaroh nie je človek +2.30, 5th Olexa namichej +3.92,
   1st delfini +5.95. R4 (weight 1.2): beating the 10th needs ~+0.29 z more than them in R4.
+
+## 2026-11-08 06:40 — R4 prep: one-command refit pipeline works (home)
+
+- `research/retrain.py` (+ retrain_feats.py, retrain_torch.py; written by the stopped retrain agent at 03:39): fixed the
+  torch steps (research/profile.py shadowed the stdlib `profile` that torch imports; the torch half now runs as
+  `-m research.retrain_torch`). Round3 run: 47 s with cached features. `strategies/exp_r4_auto_r3.py` (seed 0, base
+  mm_r3_gru): 614,277 (150,909) / 634,721 (152,896) / 427,579 (110,425) vs mm_r3_gru 634,519 (156,075) / 624,778
+  (157,441) / 437,941 (109,156): within seed noise. Command and R4 steps in docs/r4_plan.md.
