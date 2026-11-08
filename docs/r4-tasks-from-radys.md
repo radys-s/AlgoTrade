@@ -79,3 +79,20 @@ already limited at the touch and re-takes on the next event).
   at the touch (112 lots), 1.2 IOCs per flip, the later 13 % fill +2.3 ticks worse.
 - IOC limit 1 tick past the touch from the first take (rd_r4_mixdeep, deep_max 1): deep_m -1 998,536 / 1,000,519
   (-5.7 %), deep_m -0.5 1,059,683 / 1,059,469 (flat). Execution is not the gap; the predictor and the queue are.
+
+## Update 09:55 (radys): queue-priority ideas (Gemini round 2), base = mm_r4_mixv (agreed upload pick)
+
+Ranked; radys runs the offline kill-check for Q1 now (`research/diag/cancel_probe.py`: every cancel of a resting quote
+with market qty ahead + pred; counterfactual fill within 1 s and its 1 s / 5 s mark-out by queue-ahead bucket).
+Result will be appended here. Only start Q1 / Q2 if that check shows ahead <= 15 cancels marking out >= +0.4 tick/lot.
+
+- **Q1 (T3 concrete): survival keep.** Do not cancel a touch quote on a weak adverse prediction when the market qty
+  ahead is expected to be gone within 100 ms: E[ahead after 100 ms] = sum over orders ahead of V_i * P(lifetime >
+  age_i + 0.1 s | > age_i), lognormal lifetime (mu -1.2174, sigma 1.0720 in seconds, fitted on R4 inserts). Keep if
+  E < 15 lots AND direction-signed pred >= -0.10. Order ids/ages: we already see market ids (fair_sig tracks them).
+- **Q2: rank-dependent cancel threshold.** cancel_thr(ahead) = 0.20 * (ahead / ahead_at_insert)^1.5 - 0.15 (front of
+  queue tolerates a mildly adverse prediction). Same check as Q1; can be one mechanic with Q1.
+- Weak / rejected: L2 pre-aging + modify_order size-up (assumes a size increase keeps priority: verify in
+  simulator/ before anything; pre-placing was dead in R3); order-id acceleration (unsigned event rate cannot predict a
+  signed move; a vol-burst threshold is covered by exp_r4_vol); lower reverse-flip threshold at the cap (= lower
+  fq_take_k, lost in every grid); IOC depth cap (our IOC is limited at the touch, it never walks).
