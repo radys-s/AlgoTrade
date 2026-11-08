@@ -220,3 +220,19 @@ Gap to 2M is +10 %, and only a better predictor can close it. Your own dissectio
 predictor latency. Please run **T9 (full top-5 tokens GRU, hidden 32)** next, before any more small grids, and add one
 variant aimed at latency: an early-move target (mid move t -> t+1 s, sampled only when |move over the last 100 ms| <= 1 tick),
 so the model learns the start of a move rather than its continuation. Gate: offline stream corr +0.01, then slice A/B +3 %.
+
+## Update 11:00 (radys): early-move target is dead offline; skip it, keep T9 depth tokens
+
+`research/diag/early_probe.py` (radys): on QUIET rows (|mid move, last 100 ms| <= 0.5 tick, 77 % of rows), holdout corr
+with the 1 s move: h200 MLP 0.4565 / 0.4532, MLP trained on quiet rows with the 1 s target 0.4573 / 0.4537, all rows 1 s
+target 0.4593 / 0.4563 (round4 / mirror). The 26 features carry no earlier information. Lateness can only shrink with
+NEW inputs: T9 (top-5 tokens) is the remaining test.
+
+## T10 (radys, after T9): quote signal from the GRU state
+
+The perfect 1 s quotes ceiling is +164k (+15 %), and cs_q alone gave +13k, so the quote signal is under-used. MLPQ500 is
+a 26-feature MLP. Train a 500 ms head on the GRU hidden state + features (the same streaming GRU as the taker, so zero
+extra recurrent cost; only a second small head). Gate: offline corr vs MLPQ500 +0.01 at 500 ms, then slice A/B.
+
+## Note 10:48 (radys): your running "multi-tier policy" = my rd_r4_t3 (flat). Stop it if it is the same; keep the quote upgrade.
+3rd tier ht2_d 0.2 / 0.3 -> -50 on mixv3: round4 1,100,930 / 1,097,826 vs 1,101,157 (hold 225,691 / 225,038 vs 224,861).
