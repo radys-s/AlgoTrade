@@ -1774,3 +1774,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
 - On mixv3 (slice A tape / mirror hold; slice B twin): gate_thr 48 226,729 / 241,689, 249,405 / 253,145 (+3.4k / +1.8k;
   full round4 +2.9k, mirror +3.4k, round4p75 +4.4k / +2.5k); quote MLP mq_h 1000: A 232,313 / 222,555 (mirror -17.7k),
   B 246,888 / 256,193: mixed, rejected. Baked mm_r4_mixv4 = mixv3 + gate_thr 48 for a server test.
+- 10:35-10:41 on mixv4 (slice A sum 468,418): ten single changes all within +-2k (gate off +0.6k, mlp_gate 0.1 / 0 +1.8k /
+  +1.7k, ht_d 0.15 +1.5k, ht_tgt 30 +1.8k, mq_b 0.6 / fq_k 0.07 / cs_q 1.6 ~0, pred_scale 1.25 -0.8k, 1.05 -15.3k): mixv4 sits
+  at a local optimum of the hand knobs. Move-size modulation on mixv4 (exp_r4_v5.py / _wf.py): slice A +0.5k, slice B
+  +1.2k, round3 -9.8k: the two-tier take already captures it. Running (11:20): quote predictor upgrade, multi-tier policy.
