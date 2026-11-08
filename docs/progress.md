@@ -1385,3 +1385,16 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   opus: Bayesian filter for the hidden fair price, gradient-boosting edge discovery.
 - Ridge ensemble on mm_r3_g2 (sonnet): 150 / 250 ms alone -7..-13k, avg of 150/200/250 or 150+250 within -2k, per-spread
   ridges -4..-10k, blend 0.6 / 0.8 worse on R3: 200 ms at blend 0.7 stays (files exp_r3_ens.py, pred_ens_r3.py).
+
+## 2026-11-08 02:25 — mm_r3_g3 = 486,580 / 486,221; engine artefacts, id-gap, modify all rejected (home)
+
+- Fine-tune on g2 (sonnet): fq_k_sp3 1.5 (+3.9k), fq_k_sp2 2.0 (+1.7k / +3.3k, round2 +0.5 %), rt_ms 130-160 (+0.3..5k,
+  round2 -2..-2.7 %), gate_thr 11 (+1.4k, round2 holdout -3 %); qs_k > 0.6 and blend != 0.7 lose.
+- **`strategies/mm_r3_g3.py`** = g2 + fq_k_sp2 2.0, fq_k_sp3 1.5, rt_ms 130, gate_thr 11: round3 **486,580**, mirror
+  486,221, round2 418,245 (g2 426,845); holdout 120,189 / 120,129 (g2 117,658 / 117,867); check PASS 3.6 min.
+- Engine (brain read simulator.py:1274-1296): the breach penalty accrues for the exact time over |I| 100 between events;
+  the 1000 rule counts resting orders; no free over-cap. Replay artefacts (sonnet): zombies ~2.5 lots per side, live ~0.1 s,
+  < 4 % upper bound and not riskless; missing liquidity +0.1 tick for < 100 ms then gone; end markout ~50.
+- id-gap detector (sonnet): only 13 jumps >= 20 ticks in round3; unseen ids reveal them ~4.5 ms after the jump (vs 22 ms
+  visible) but one or two non-trading IOCs per 20 ms happen ~200x per tape by chance: best +0.09 %. Killed.
+- modify-instead-of-cancel (sonnet): the filters almost never pull at an unchanged price; +0..400. Killed.
