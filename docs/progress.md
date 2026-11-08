@@ -1766,3 +1766,7 @@ the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 2
   twin 247,378 / 252,806. vs mixv: slice A +19.2k (+4.3 %), slice B +9.1k (+1.9 %), round3 +7.5k, round2 +17.9k; the two
   parts add (comp alone A +13.2k / B +5.4k, two-tier alone +6.6k / +2.9k). Caveat: the slice-A gain of cs_q sits on the
   mirror (tape +0.2k). check PASS 7.0 min. Server test against mixv (1,763,582) decides.
+- Per-component scaling final (opus): only the quote-MLP scale helps (cs_q 1.3-1.6 plateau with mlp_gate 0.2: slice A
+  +12.9..13.2k, slice B +3.0..5.4k, round2 +6.6..10.4k, round3 -3.6k); cs_gru / cs_fair inside the taker are at their
+  optimum; fair_tau_ms noise. **mm_r4_mixv3 rebaked with cs_q 1.45** (plateau centre): round4 1,102,193 (224,767), mirror
+  1,116,796 (240,245), round3 630,094 (153,067), round2 470,599 (121,735), slice B 248,341 / 252,397; parity verified.

@@ -1,4 +1,4 @@
-"""mm_r4_mixv3 (home, R4 candidate): mm_r4_mixv (server 1,763,582) + two-tier take (ht_on 1, ht_d 0.12, ht_tgt 0; exp_r4_gap) + quote-MLP scale cs_q 1.6 and mlp_gate 0.2 (exp_r4_comp): holdout slice A 224,861 / 239,814 (mixv 222,726 / 222,767), slice B 247,378 / 252,806 (241,953 / 249,133).
+"""mm_r4_mixv3 (home, R4 candidate): mm_r4_mixv (server 1,763,582) + two-tier take (ht_on 1, ht_d 0.12, ht_tgt 0; exp_r4_gap) + quote-MLP scale cs_q 1.45 and mlp_gate 0.2 (exp_r4_comp; plateau 1.3-1.6): round4 1,102,193 (224,767), mirror 1,116,796 (240,245), round3 630,094, round2 470,599; slice B twin 248,341 / 252,397 (mixv 1,090,202 (222,726) / 1,087,684 (222,767) / 619,879 / 449,699; slice B 241,953 / 249,133).
 
 exp_r4_gc (home, R4): mm_r4_mixv + two-tier take (ht_*, exp_r4_gap) + per-component scales (cs_*, exp_r4_comp); all off = mm_r4_mixv.
 
@@ -526,7 +526,7 @@ class MarketMaker(BaseStrategy):
         'ht_on': 1, 'ht_d': 0.12, 'ht_tgt': 0, 'ht_min': 10, 'ht_sp': 1, 'ht_pull': 1,
         'cs_gru': 1.0,
         'cs_fair': 1.0,
-        'cs_q': 1.6,
+        'cs_q': 1.45,
     }
 
     def __init__(self) -> None:
