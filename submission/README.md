@@ -37,9 +37,9 @@
 | 2026-11-07 18:05 | Round 1 / `round1.csv` | `strategies/mm_r1_final2.py` (Honza: ml_stub 0, park_size 15, park_max 8) | 514,093 (final: 510,469) | verified local |
 | 2026-11-07 18:25 | Round 1 / `round1.csv` | `strategies/mm_r1_final3.py` (radys: quote_size 180, park_max 6) | 515,687 (final2: 514,093) | ready to upload / NEW CHAMPION |
 | 2026-11-07 20:50 | Round 2 / `round2.csv` | `strategies/mm_r2_gate86.py` (Honza/home exp_r2_ladder: 30 s drift gate thr 4, gate_max_spread 3, park 0) | 86,333 (R1 champions on R2: -148k..-230k) | ready to upload (R2 insurance) |
+| 2026-11-08 11:00 | Round 4 / `round4_public.csv` | `strategies/mm_r4_mixv3.py` (FINAL: two-tier take + cs_q 1.6) | 1,101,157 (holdout 224,861) | 1,810,997 server |
 
-Absolute path for upload (Tomáš's PC):
-`C:\Users\tomas\OneDrive\Desktop\Projekty\Ostatni\AlgoTradeArena\submission\best_strategy.py`
+(Rows between round 2 and the final are in `docs/progress.md`.)
 
 ## Before each new round
 

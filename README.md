@@ -1,106 +1,208 @@
-# AlgoTrade — tým radys-s + Herz1c (Algo Trade Arena 2026)
+# AlgoTrade — team `p<0.05` at Algo Trade Arena 2026
 
-Soukromé týmové repo pro Algo Trade Arena 2026 (Qminers × MFF UK).
-Kontext soutěže a pravidla: [docs/kontext.md](docs/kontext.md) · deník: [docs/progress.md](docs/progress.md) · stav: [STATUS.md](STATUS.md).
+A high-frequency market-making and short-horizon taker strategy for a single-instrument limit
+order book, together with the research toolkit we built to develop it during **Algo Trade Arena 2026**
+(Qminers × MFF UK). The event was a 24-hour hackathon: four 5-hour rounds, a new recorded market tape
+for each round, and server-side scoring.
 
-Workflow: každý pracuje ve své větvi (`radys` = Tomáš, `herzic` = Honza), commit aspoň
-každých 30 minut i u neúspěšných experimentů, do `main` jen merge (žádný rebase, squash ani force-push).
-**Submission: only `submission/best_strategy.py` is uploaded** (see [submission/README.md](submission/README.md)). Strategie v `strategies/`, nové mechaniky za parametrem/flagem místo mazání.
+**Final strategy:** [`submission/best_strategy.py`](submission/best_strategy.py) (= `strategies/mm_r4_mixv3.py`).
+**Server PnL, round 4:** 1,810,997 for mixv3. The best confirmed board score was 1,815,208 (mixv4).
 
 ---
 
-Původní README starteru:
+## Results
 
-# Qminers trading hackathon starter
+| Round | What we ran | Server PnL | Notes |
+|---|---|---:|---|
+| Practice | `mm_v2`: symmetric quoting at the touch | +240,995 | 3rd place |
+| Round 1 | `mm_r1_final*`: quoting + ridge-signal stubs | 511,422 | 12th; leader 792,696 |
+| Round 2 | `mm_r2_zd`: drift gate + zero-delay take | 849,747 | public board |
+| Round 3 | `mm_r3_gru*`: streaming GRU taker | 984,495 | private re-run 874,971 |
+| Round 4 | `mm_r4_mixv3`: two-tier take + quote-MLP scale | **1,810,997** | +134,829 over the round-4 baseline |
+
+Round-4 server progression, each step verified on the board:
 
 ```
-strategies/   template_strategy.py, an empty strategy to copy and fill in; trend_follower.py, a simple working one
-data/         sample.csv.gz, a synthetic hour of trending prices to start on; the rounds downloaded from the website go here too (git-ignored)
-logs/         simulator output (git-ignored)
-simulator/    the exchange simulator package
-explorer/     the backtest explorer package
+s14 baseline     1,676,168
+mix  x1.15       1,720,970   models refitted on round3 + round4 (first 75 %)
+mixv             1,763,582   volatility-scaled taker signal and thresholds
+mixv3            1,810,997   two-tier take + quote-MLP scale cs_q 1.6
+mixv4            1,815,208   + gate_thr 48
+mixv5            last upload, score not recorded   + ht_d 0.15, ht_tgt 30, mlp_gate 0.1
 ```
 
-## Setup
+---
 
-[uv](https://docs.astral.sh/uv/) is a fast Python package and project manager; install it with `curl -LsSf https://astral.sh/uv/install.sh | sh` (or `pip install uv`).
+## The market and the scoring
+
+- **One instrument**, integer price ticks, no fees, 5 ms order latency.
+- The tape is **replayed and non-reactive**. Other participants never react to our orders, but our
+  orders do match against the replayed book with price-time priority.
+- A **flat 10,000 $/s penalty** applies whenever |inventory| > 100, which works as a hard ±100 cap.
+- Score = PnL marked to market at the end of the tape.
+
+The non-reactive replay is what creates the edge. A replayed IOC only removes liquidity up to its
+own limit, which leaves "zombie" quotes behind. A passive order also fills only when a recorded
+aggressor reaches it in the queue. Most of our gains came from modelling exactly *when* a fill
+happens and *what the price does next*, not from classic spread capture.
+[`docs/kontext.md`](docs/kontext.md) holds the full rules; the `arena-market-mechanics` skill in
+[`.claude/skills/`](.claude/skills/) holds the matching engine notes.
+
+---
+
+## How the final strategy works
+
+`mm_r4_mixv3` is one `BaseStrategy` subclass (~1,800 lines, numpy only, every model inlined as
+weights). It ends up as a **cap-bound flipper**: |inventory| sits at the ±100 limit most of the time,
+and about 87 % of PnL comes from taker flips.
+
+```mermaid
+flowchart LR
+    T[Book + trades<br/>every event] --> F[Online features<br/>OFI, imbalance, queue age,<br/>flow, volatility]
+    F --> R[Ridge 200 ms<br/>+ slow 1 s / 5 s ridges]
+    F --> G[Streaming GRU<br/>taker predictor]
+    F --> Q[MLPQ 500 ms<br/>quote predictor]
+    R -->|gate: GRU runs only if pred ≥ mlp_gate| G
+    G --> S[Taker signal<br/>vol-scaled]
+    Q --> P[Quote signal × cs_q]
+    S --> K{Two-tier take}
+    K -->|strong| FL[Full flip to ±cap]
+    K -->|weaker by ht_d| FT[IOC back to flat]
+    P --> L[Passive ladder<br/>skew, pull, zero-delay requote]
+    FL --> G2[Inventory guard ±100]
+    FT --> G2
+    L --> G2
+```
+
+| Component | What it does |
+|---|---|
+| **Fair value + ridge predictor** | 200 ms mid-move forecast from order-flow features, refitted on the current round's first 75 % |
+| **Streaming GRU** | Sequence model over recent events. It replaces the MLP when the ridge says something is happening (`mlp_gate`) |
+| **Two-tier take** (`ht_*`) | A strong signal flips the whole position. A weaker one (threshold − `ht_d`) only closes the exposure we hold against it |
+| **Quote MLP** (`MLPQ[500]`, `cs_q`) | A 500 ms forecast that skews and pulls passive quotes away from the predicted move |
+| **Zero-delay take / requote** | The cancel and the new order go out in the same callback, which saves ≥ 5 ms of queue position. A guard IOCs back under the cap if a race fill pushes us over |
+| **Slow-direction gate** | 1 s / 5 s ridges stop quotes from leaning into a sustained drift |
+
+Every mechanic sits behind a `PARAMS` flag. All flags off reproduces the earlier champion exactly,
+and this parity is what lets each change be judged in isolation.
+
+---
+
+## Research methodology
+
+Short-horizon PnL is noisy: the server standard error is about 54k on a 1.8M score. Our rules:
+
+1. **Every change is a flag.** Copy the champion, add one mechanic, and prove flag-off parity
+   (identical PnL) before any sweep.
+2. **Three judges, not one number.** Each challenger runs on
+   - **Slice A:** holdout = the last 25 % of the round tape, plus a *mirror* tape (price-reflected copy);
+   - **Slice B:** walk-forward refit on the earlier part, scored on the later part;
+   - the earlier rounds' tapes, as a regime-transfer check.
+3. **Paired by time chunk.** [`research/compare.py`](research/compare.py) pairs champion and challenger
+   chunk by chunk. A challenger is accepted only when it wins most chunks *and* the holdout.
+4. **Everything goes in the ledger.** Every run lands in `research/results/*.csv`, failures included.
+   The narrative is in [`docs/progress.md`](docs/progress.md).
+5. **Sandbox check before upload.** [`research/check.py`](research/check.py) runs the arena's
+   static rules and a timed smoke run.
+
+### What worked
+
+- **Policy changes beat model accuracy.** The two-tier take, the quote-MLP scale, and the
+  volatility-scaled thresholds moved the server score. Seed ensembles and multi-level OFI raised
+  offline correlation by about 0.01 and did nothing for PnL.
+- **Execution timing.** Zero-delay take/requote and queue-aware crediting were worth more than any
+  single feature.
+- **Refitting per round** on round data plus mirror data, then validating on a holdout the fit never saw.
+- **Local-to-server ratio** (~1.645 in round 4) used as a sanity check on every upload.
+
+### What did not work
+
+- A third take tier, volatility stops, time stops, exit-quote skew, quote ensembles. All were
+  flat or holdout-negative, and every one is logged.
+- Gains under ~1 % locally almost never transferred to the server. We stopped chasing them.
+- Pure passive market making at the touch loses to adverse selection on these tapes. Quotes only
+  pay when they lean on a forecast.
+
+---
+
+## Repository layout
+
+```
+submission/best_strategy.py   the uploaded strategy (final = mm_r4_mixv3)
+strategies/                   every strategy version and experiment (mm_*, exp_*, rd_*), kept, never deleted
+research/                     backtest runner, compare, sandbox check, features, signal and model training
+  run.py · compare.py         parallel parameter sweeps; paired champion-vs-challenger verdict
+  check.py                    pre-upload sandbox and runtime check
+  round.py                    one-command round kickoff (baselines, data card, signals, taker scan)
+  features*.py · signals.py   offline features, IC and walk-forward signal research
+  train_mlp.py · retrain*.py  MLP / GRU training, numpy export into strategies
+  diag/                       one-off diagnostics (fill decomposition, MLOFI, ensembles, mirrors)
+  results/                    the experiment ledger (CSV per run)
+simulator/ · explorer/        exchange simulator and backtest explorer (from the organisers' starter)
+docs/                         rules, progress log, playbooks, handoffs between team members and agents
+.claude/skills/               agent skills used in the workflow (market mechanics, experiments, pre-submit)
+```
+
+Some working docs (progress log, playbooks) are in Czech; code and docstrings are in English.
+
+---
+
+## Quick start
+
+Requires [uv](https://docs.astral.sh/uv/) (it installs Python 3.13 and all dependencies).
 
 ```bash
-uv sync                                        # Python 3.13 and everything else, into .venv
-uv run python -m gzip -d data/sample.csv.gz    # the simulator reads plain CSV only; one file at a time, the same for each downloaded round
+uv sync
+uv run python -m gzip -d data/sample.csv.gz
+uv run exchange-simulator --strategy submission/best_strategy.py --backtest data/sample.csv --log-dir logs/demo
 ```
 
-`data/sample.csv.gz` is synthetic and its price trends: one resting order per side, and every few seconds an aggressive order takes part of the touch, after which the quotes keep moving in that direction tick by tick for a few seconds and then give part of the move back. `strategies/trend_follower.py` is a simple trend-following strategy: it sends a one-lot IOC order at the touch in the direction of the trades it has just seen. The rounds are recorded market data and look nothing like the sample.
+Sweep and compare:
 
-## Writing a strategy
+```bash
+uv run python -m research.run --strategy strategies/mm_r4_mixv3.py --data data/sample.csv --grid '{"cs_q": [1.3, 1.6]}' --tag demo
+```
 
-A strategy is one `.py` file defining one subclass of `BaseStrategy` (with several, the alphabetically first is used), constructible with no arguments:
+```bash
+uv run python -m research.compare --a submission/best_strategy.py --b strategies/mm_r4_mixv5.py --data data/sample.csv
+```
+
+> **Data.** The competition tapes (rounds 1–4) belong to the organisers and are **not** included
+> or redistributed here. Only the starter's synthetic `data/sample.csv.gz` ships with the repo. The
+> strategies run on any tape in the same CSV format. The models were fitted on the round tapes, so
+> PnL on the sample is not representative.
+
+### Writing your own strategy
+
+A strategy is one `.py` file with one `BaseStrategy` subclass:
 
 ```python
 from simulator.models import OrderBookSnapshot, OrderRequest, OrderType, PrivateOrderEvent, Side, Trade
 from simulator.strategy import BaseStrategy
 
-
 class MyStrategy(BaseStrategy):
-    def on_order_book_change(self, snapshot: OrderBookSnapshot, trades: list[Trade]) -> None:
-        """After every market event: the public book and all trades since the previous call."""
-
-    def on_private_order_update(self, event: PrivateOrderEvent) -> None:
-        """Every state change of your own orders."""
+    def on_order_book_change(self, snapshot: OrderBookSnapshot, trades: list[Trade]) -> None: ...
+    def on_private_order_update(self, event: PrivateOrderEvent) -> None: ...
 ```
 
-| Call                                                   | Effect                                                         |
-| ------------------------------------------------------ | -------------------------------------------------------------- |
-| `self.send_order(OrderRequest(side, price, quantity, order_type, client_order_id=None))` | submit; returns the order id (`u000000001`, ...) immediately |
-| `self.cancel_order(order_id)`                          | cancel your resting order                                      |
-| `self.modify_order(order_id, new_quantity)`            | shrink your resting order                                      |
-| `self.now_us()`                                        | simulation time in µs                                          |
+`self.send_order(OrderRequest(side, price, qty, order_type))` with `OrderType.LIMIT` or
+`OrderType.IOC`, `self.cancel_order(id)`, `self.modify_order(id, new_qty)` and `self.now_us()` are
+the whole API. Start from `strategies/template_strategy.py`.
 
-`Side.BUY` / `Side.SELL`, `OrderType.LIMIT` / `OrderType.IOC`; prices and quantities are positive integers (prices in ticks).
+---
 
-Submissions run on Python 3.13 with numpy 2.5.4, pandas 3.0.6, scipy 1.18.1 and scikit-learn 1.9.1 available, and are statically checked first: besides the standard library and those packages, import only `simulator.models` and `simulator.strategy.BaseStrategy`. Modules giving system, network, file, threading or introspection access (`os`, `sys`, `io`, `socket`, `subprocess`, `threading`, `importlib`, `inspect`, `gc`, ...), builtins like `open`/`eval`/`exec`/`getattr`/`type`, dunder attributes and `str.format` are rejected.
+## Team
 
-## Running a backtest
+**`p<0.05`**: Honza ([@Herz1c](https://github.com/Herz1c)), strategy lead, and Tomáš
+([@radys-s](https://github.com/radys-s)), research workflow and review. We ran a two-machine setup:
+a laptop and a home GPU node, coordinated through git branches (`herzic`, `radys`, `home`).
+AI coding agents did much of the implementation and the sweeps, under human direction; see
+[`TEAM.txt`](TEAM.txt).
 
-```bash
-uv run exchange-simulator --strategy strategies/trend_follower.py --backtest data/sample.csv --log-dir logs/sample --progress
-```
+## Credits
 
-`logs/sample/result.json` holds the outcome (`pnl`, `cash`, `inventory`, `mark_price`, `breach_penalty`, `traded_volume`, `fills`, `pnl_se`, time-weighted quantiles of `|inventory|`) and `pnl.csv` the PnL sampled every second. Without `--no-logs` the directory also gets `run.jsonl`, `events.csv`, `book_deltas.csv` and `trades.csv`, several hundred MB per full round. Use `--no-logs` when you only need the result and the PnL curve; it is much faster. `--public-depth N` (default 20) sets how many ticks of the book you see.
-
-## Exploring a backtest
-
-```bash
-uv run backtest-explorer --log-dir logs/sample     # http://127.0.0.1:8050, --port to change
-```
-
-A Dash app over a full-logs run (not `--no-logs`): best bid/ask with your fills marked, your PnL over time, the reconstructed order book at any clicked time, and the event log.
-
-## How the exchange works
-
-**One instrument, replayed.** Each CSV row is a market participant's action:
-
-```
-Time,Operation,OrderId,Side,Volume,Price,Lifespan
-0.003823,Insert,1000001,B,43,9999,G
-```
-
-`Time` in seconds; `Operation` is `Insert` or `Cancel` (of `OrderId`); `Side` `B`/`A`; `Lifespan` `G` = resting limit order, `F` = immediate-or-cancel. The tape is fixed and does not react to you; your orders only add to and take from the book it builds.
-
-**Matching.** Price-time priority. An incoming order (market or yours) matches against the opposite side while prices cross, each fill at the resting (maker) order's price; a LIMIT residual rests at the back of its price level, an IOC residual is cancelled. Market orders can trade with yours; your orders never trade with each other. No fees.
-
-**Latency.** Every `send_order`, `cancel_order` and `modify_order` takes effect at $t + 5\text{ms}$, where $t$ is the simulation time at which you call it: it is applied just before the first market event with timestamp $\ge t + 5\text{ms}$, so the book may have moved by then. An order you place is therefore never filled within 5 ms, and a cancel can lose the race against a fill.
-
-**Feeds.**
-- `on_order_book_change` fires after every market event, with a snapshot of every individual order (id, side, price, quantity, `owner` `"market"`/`"user"`) within `public_depth` ticks of the best price on each side, and the list of trades (market-vs-market included) since the previous call. Fills caused by your own order activating appear in the next call's `trades`.
-- `on_private_order_update` fires synchronously for your orders: `ACCEPTED`, then one `PARTIALLY_FILLED`/`FILLED` per match (`fill_price`, `filled_quantity`, `remaining_quantity`), `CANCELED` (your cancel, or an IOC residual), `MODIFIED`, or `REJECTED`. Cancelling anything but your own resting order, or a modify that doesn't shrink it, is `REJECTED`; a modify of an unknown id is silently ignored.
-
-**Limits and scoring.** With inventory $I$ (signed), resting same-side quantity $R$ and order quantity $q$ ($s = \pm 1$ for buy/sell):
-
-$$|I + s (R + q)| > 1000 \Rightarrow \text{order REJECTED at acceptance}$$
-
-$$\text{penalty} = 10{,}000 \cdot \int \mathbb{1}\big[|I(t)| > 100\big] dt \quad (\$ \text{ per second})$$
-
-$$\text{PnL} = \text{cash} + \text{markout}(I) - \text{penalty}$$
-
-$\text{markout}(I)$ is the cash from liquidating $I$ against the resting *market* orders on the opposite side, best price outwards (volume beyond the book at the last swept price, or at the last traded price if that side is empty). It is computed at the end and every second for `pnl.csv` and `pnl_se`.
+- The exchange simulator, explorer and starter layout come from the organisers' public starter,
+  [QminersOrg/qminers-algo-arena](https://github.com/QminersOrg/qminers-algo-arena).
+- The skills in `.claude/skills/` include adapted third-party material; see
+  [`.claude/skills/THIRD_PARTY.md`](.claude/skills/THIRD_PARTY.md).
+- Thanks to Qminers and MFF UK for running Algo Trade Arena 2026.
