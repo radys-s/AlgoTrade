@@ -124,8 +124,17 @@ what runs next, and at most one yes/no question.
   cancel-filtry prodělávaly a „shrink ≈ cancel“. Špatně: shrink přes modify drží čelo fronty a vrací loty
   až po odeznění signálu, cancel ne. Správný postup byl testovat každou páku i ve verzi „přes modify“.
   Obecně: každé pravidlo „kdy nekotovat“ implementovat jako zmenšení, nikdy jako cancel.
+- **Privátní R1 (18:15): 12./61, 511 422, z 0,55 (0,44 bodu); lídr 792 696 (2,07 bodu).** Pole vyrostlo
+  z veřejného průměru 344 k na privátní 434 k (+25 %), lídr +22 %, **my ±0 %**. Moje hypotéza „650 k =
+  přefit“ byla špatně: edge je skutečný a přenositelný u 9 týmů. Náš se nepřenesl → vrstvy laděné na
+  veřejnou pásku (pevné prahy na škále predikce, park 15/8, graded, tight) jsou křehké vůči posunu
+  parametrů generátoru (na v2 celý ML stack = full_capacity −1,5 %). **Pravidlo od R2:** vybírat podle
+  součtu přes R2 public + round1 + sample_v2 (out-of-sample pásky) a holdoutů, prahy relativní (kvantil),
+  velikosti relativní k rozdělení IOC; veřejně doladěný stack jen pokud vyhraje i mimo vzorek.
 - **Plán na R2 (19:00):** kickoff (startovní relace) → data card: režim spreadu (1 vs 2 ticky), reverze
-  vs momentum po obchodech. Hned CPU grid championa mm_park na R2 + round1 + sample_v2:
+  vs momentum po obchodech. Kandidáti: exp_full_capacity (robustní základ), mm_park, mm_ml_b / final2
+  s adaptivním prahem (`exp_adaptive`), refit B na R2 pásce; compare všech na R2 + round1 + v2.
+  Hned CPU grid championa mm_park na R2 + round1 + sample_v2:
   `--grid '{"park_size": [0, 10, 20], "park_max": [2, 3, 5], "park_depth": [1]}'` (0 = park off) a
   `--grid '{"quote_size": [100, 200]}'` pro jistotu; compare vítěze vs champion → doporučení do T+20 min.
   Mechaniky z R1 netestovat znovu, pokud režim nepřinese nový důvod (viz tabulka zamítnutých).
@@ -161,7 +170,8 @@ what runs next, and at most one yes/no question.
 | 13:30 | Wave 1 uzavřena bez změny kandidáta; wave 2 = H7 `deep_pull` + rozbor času bez kotace (kódová cesta) místo dalších filtrů | všech ~80 běhů filtrů prodělává; jediný záporný segment fillů je imbalance proti × hluboká fronta |
 | 13:55 | **R1 finál = `submission/best_strategy.py` = Tomášův `mm_park` (452 651), parametry 20/1/3 nechat** | ověřeno nezávisle (home + notebook), ACCEPT 8/8 na round1; grid: plató ploché, baked hodnoty v jeho středu; −4,7 % na v2 je pro R1 irelevantní (privátní data = trh round1) |
 | 13:55 | ML taker overlay zamítnut i v levné lineární verzi; GPU/HGB verze se nestaví | −9 až −37 % ve všech 12 buňkách |
-| 16:30 | **R1 finál = `strategies/mm_ml_b.py` (503 148)**; výzkum R1 uzavřen (~30 mechanik, ~400 běhů); do 19:00 příprava R2 (refit B + park test + práh z kvantilu, compare proti mm_ml_b beze změny) | orákulum: strop rodiny 540–600 k; další pokusy jsou ±0,5 % |
+| 17:45 | **R1 finál = `strategies/mm_r1_final2.py` (514 093, nahráno, final).** Páska = syntetický queue-reactive generátor; ~40 mechanik, ~550 běhů; po 16:00 vyhrály jen cíl B (+2,6 %), stack tight/graded/park (+1,4 %), úplné stažení + park 15/8 (+0,7 %). Lepší IC (MLP, krychle, věk, strukturální E[dm]) PnL nikdy nezvedlo | shrink odměňuje jen podmínění na fill, ne globální IC; orákulum strop 540–600 k; 650 k lídra = jiný edge nebo přefit, rozhodnou privátní výsledky |
+| 16:30 | (dříve) R1 finál = `strategies/mm_ml_b.py` (503 148); výzkum R1 uzavřen (~30 mechanik, ~400 běhů); do 19:00 příprava R2 (refit B + park test + práh z kvantilu, compare proti mm_ml_b beze změny) | orákulum: strop rodiny 540–600 k; další pokusy jsou ±0,5 % |
 | 14:50 | Nový champion mm_ml (Tomáš). Home staví nad ním: jemný grid thr × stub, asymetrické prahy (přidávající vs odvíjející strana), MLP místo ridge na GPU; R1-tuned stuby (park_max 5 + improve_stub 20) přidat až po nich | shrink přes modify je páka na drift; signál s vyšším IC a správně mířený shrink jsou přímé násobky zisku |
 | 14:25 | R1 submise hotová: Tomáš nahrál mm_park, server 452 651 = lokál, final. Výzkum R1 mechanik ukončen (H12, H13 REJECT, attribution bez nové páky); do R2 klid + příprava kickoff gridu | 13 mechanik, ~230 běhů; zbývající nápady jsou ±1 % a režimově závislé |
 | 13:50 | (dříve) R1 finál = `submission/best_strategy.py` (exp_full_capacity, 425 708). Výzkum R1 mechanik zastaven (H7–H9 také REJECT, ~110 běhů); nahrát nejpozději ~17:00 a nastavit final; tokeny šetřit na R2 | žádná z 9 mechanik ani 5 os nepřekonala kandidáta; strop pozice drží 50 % času a mimo strop je kotace živá |

@@ -1,0 +1,110 @@
+
+===== data/features/round2.npz
+A. generator
+duration 6000 s, events 2,193,064 (366/s)
+  limit G  rate  178.31/s  bid  89.15/s  ask  89.16/s  size mean    72.4 q5=1 q25=4 q50=14 q75=48 q95=276 q99=940
+  IOC      rate    8.90/s  bid   4.44/s  ask   4.46/s  size mean   161.9 q5=6 q25=23 q50=61 q75=156 q95=614 q99=1543
+  cancel   rate  178.30/s  bid  89.14/s  ask  89.15/s  size mean    72.4 q5=1 q25=4 q50=14 q75=48 q95=276 q99=940
+  placement (ticks behind own touch; neg = improves): -3:0.001 -2:0.001 -1:0.012 0:0.517 1:0.361 2:0.077 3:0.020 4:0.007 5:0.003 6:0.002
+    size at -1: mean 69.9 median 14  n=15,011
+    size at +0: mean 72.2 median 14  n=552,566
+    size at +1: mean 72.5 median 14  n=385,595
+    size at +2: mean 72.9 median 14  n=82,620
+  spread (events): 1:0.851 2:0.114 3:0.028 4:0.005 5:0.003
+  touch qty bid q5=19 q25=226 q50=694 q75=1474 q95=3512
+  1s mid std 3.796 ticks; mid start 9998.5 end 9690.5 min 9459.0 max 10007.5
+B. who moves the mid
+  total |dmid| 19,849 ticks, net -309.6
+  insert G: moves  15,246 |dmid|    10,371 (52.3%)  net    +124.4  up  7,541 down  7,705
+  IOC     : moves   8,904 |dmid|     6,198 (31.2%)  net    -370.0  up  4,404 down  4,500
+  cancel  : moves   4,958 |dmid|     3,280 (16.5%)  net     -64.0  up  2,426 down  2,532
+    IOC buy: n 26,643, mean dmid +0.109, share moving 0.165, net +2,914
+    IOC sell: n 26,780, mean dmid -0.123, share moving 0.168, net -3,284
+    cancel bid: n 534,864, moving 2,532, net -1,672
+    insert bid: n 534,901, moving 7,558, net +4,619
+    cancel ask: n 534,918, moving 2,426, net +1,608
+    insert ask: n 534,957, moving 7,688, net -4,495
+C. flow imbalances vs next-window return
+  window 1 s (n=5999, SE~0.013):
+    ret: lag1 autocorr +0.033
+    ioc_vol     : same-window corr w/ ret +0.325  -> NEXT ret +0.032  self lag1 -0.027  lag5 +0.002
+    ioc_cnt     : same-window corr w/ ret +0.372  -> NEXT ret +0.058  self lag1 -0.022  lag5 +0.023
+    ins_touch   : same-window corr w/ ret +0.115  -> NEXT ret +0.005  self lag1 -0.006  lag5 -0.007
+    improve     : same-window corr w/ ret +0.550  -> NEXT ret +0.044  self lag1 +0.067  lag5 +0.026
+    cancel_touch: same-window corr w/ ret +0.161  -> NEXT ret +0.014  self lag1 +0.002  lag5 -0.026
+  window 10 s (n=599, SE~0.041):
+    ret: lag1 autocorr +0.084
+    ioc_vol     : same-window corr w/ ret +0.351  -> NEXT ret +0.007  self lag1 -0.003  lag5 -0.073
+    ioc_cnt     : same-window corr w/ ret +0.384  -> NEXT ret +0.011  self lag1 +0.049  lag5 -0.057
+    ins_touch   : same-window corr w/ ret +0.106  -> NEXT ret -0.083  self lag1 +0.016  lag5 -0.074
+    improve     : same-window corr w/ ret +0.587  -> NEXT ret +0.102  self lag1 +0.048  lag5 -0.048
+    cancel_touch: same-window corr w/ ret +0.176  -> NEXT ret +0.104  self lag1 -0.008  lag5 -0.008
+  window 60 s (n=99, SE~0.101):
+    ret: lag1 autocorr +0.067
+    ioc_vol     : same-window corr w/ ret +0.180  -> NEXT ret -0.018  self lag1 -0.160  lag5 -0.045
+    ioc_cnt     : same-window corr w/ ret +0.393  -> NEXT ret -0.022  self lag1 +0.005  lag5 +0.219
+    ins_touch   : same-window corr w/ ret -0.096  -> NEXT ret -0.057  self lag1 -0.093  lag5 +0.088
+    improve     : same-window corr w/ ret +0.606  -> NEXT ret +0.309  self lag1 +0.140  lag5 +0.318
+    cancel_touch: same-window corr w/ ret +0.337  -> NEXT ret +0.101  self lag1 -0.056  lag5 -0.082
+D. long-horizon predictability (non-overlapping)
+  h=   5s n= 1199: VR 1.02  lag1 ac +0.005 (SE 0.029)
+  h=  10s n=  599: VR 1.01  lag1 ac +0.084 (SE 0.041)
+  h=  30s n=  199: VR 1.24  lag1 ac -0.029 (SE 0.071)
+  h=  60s n=   99: VR 1.26  lag1 ac +0.067 (SE 0.101)
+  h= 120s n=   49: VR 1.51  lag1 ac +0.018 (SE 0.143)
+  h= 300s n=   19: VR 1.63  lag1 ac +0.504 (SE 0.229)
+
+===== data/features/round1.npz
+A. generator
+duration 12000 s, events 4,411,336 (368/s)
+  limit G  rate  179.80/s  bid  89.89/s  ask  89.92/s  size mean    71.9 q5=1 q25=4 q50=14 q75=48 q95=275 q99=933
+  IOC      rate    8.01/s  bid   4.01/s  ask   4.00/s  size mean   160.7 q5=6 q25=24 q50=61 q75=156 q95=603 q99=1543
+  cancel   rate  179.80/s  bid  89.89/s  ask  89.91/s  size mean    71.9 q5=1 q25=4 q50=14 q75=48 q95=275 q99=933
+  placement (ticks behind own touch; neg = improves): -2:0.000 -1:0.007 0:0.560 1:0.374 2:0.052 3:0.006 4:0.001 5:0.000 6:0.000
+    size at -1: mean 71.5 median 14  n=15,677
+    size at +0: mean 72.2 median 14  n=1,208,665
+    size at +1: mean 71.5 median 14  n=806,698
+    size at +2: mean 71.5 median 14  n=112,441
+  spread (events): 1:0.931 2:0.068 3:0.001 4:0.000 5:0.000
+  touch qty bid q5=35 q25=356 q50=904 q75=1728 q95=3848
+  1s mid std 0.921 ticks; mid start 10000.5 end 10029.5 min 9991.5 max 10094.5
+B. who moves the mid
+  total |dmid| 15,816 ticks, net +29.4
+  insert G: moves  15,799 |dmid|     7,995 (50.6%)  net     +18.9  up  7,914 down  7,885
+  IOC     : moves  11,042 |dmid|     5,842 (36.9%)  net      -3.0  up  5,514 down  5,528
+  cancel  : moves   3,945 |dmid|     1,978 (12.5%)  net     +13.5  up  1,987 down  1,958
+    IOC buy: n 48,068, mean dmid +0.061, share moving 0.115, net +2,920
+    IOC sell: n 48,020, mean dmid -0.061, share moving 0.115, net -2,922
+    cancel bid: n 1,078,636, moving 1,958, net -982
+    insert bid: n 1,078,674, moving 7,911, net +3,900
+    cancel ask: n 1,078,955, moving 1,987, net +996
+    insert ask: n 1,078,982, moving 7,888, net -3,882
+C. flow imbalances vs next-window return
+  window 1 s (n=11999, SE~0.009):
+    ret: lag1 autocorr +0.006
+    ioc_vol     : same-window corr w/ ret +0.583  -> NEXT ret +0.116  self lag1 +0.005  lag5 +0.001
+    ioc_cnt     : same-window corr w/ ret +0.619  -> NEXT ret +0.181  self lag1 -0.006  lag5 +0.010
+    ins_touch   : same-window corr w/ ret +0.289  -> NEXT ret +0.070  self lag1 +0.043  lag5 +0.008
+    improve     : same-window corr w/ ret +0.788  -> NEXT ret -0.004  self lag1 +0.010  lag5 +0.017
+    cancel_touch: same-window corr w/ ret +0.239  -> NEXT ret +0.012  self lag1 +0.028  lag5 -0.009
+  window 10 s (n=1199, SE~0.029):
+    ret: lag1 autocorr +0.022
+    ioc_vol     : same-window corr w/ ret +0.667  -> NEXT ret +0.041  self lag1 +0.035  lag5 +0.034
+    ioc_cnt     : same-window corr w/ ret +0.776  -> NEXT ret +0.032  self lag1 +0.004  lag5 +0.013
+    ins_touch   : same-window corr w/ ret +0.356  -> NEXT ret +0.041  self lag1 -0.002  lag5 -0.010
+    improve     : same-window corr w/ ret +0.778  -> NEXT ret -0.011  self lag1 -0.009  lag5 -0.041
+    cancel_touch: same-window corr w/ ret +0.233  -> NEXT ret -0.008  self lag1 +0.009  lag5 -0.033
+  window 60 s (n=199, SE~0.071):
+    ret: lag1 autocorr +0.041
+    ioc_vol     : same-window corr w/ ret +0.654  -> NEXT ret +0.180  self lag1 +0.096  lag5 +0.035
+    ioc_cnt     : same-window corr w/ ret +0.816  -> NEXT ret +0.059  self lag1 +0.121  lag5 -0.027
+    ins_touch   : same-window corr w/ ret +0.380  -> NEXT ret -0.023  self lag1 -0.013  lag5 +0.031
+    improve     : same-window corr w/ ret +0.795  -> NEXT ret -0.038  self lag1 -0.073  lag5 +0.055
+    cancel_touch: same-window corr w/ ret +0.267  -> NEXT ret +0.016  self lag1 +0.074  lag5 +0.021
+D. long-horizon predictability (non-overlapping)
+  h=   5s n= 2399: VR 0.99  lag1 ac -0.009 (SE 0.020)
+  h=  10s n= 1199: VR 0.94  lag1 ac +0.022 (SE 0.029)
+  h=  30s n=  399: VR 0.94  lag1 ac +0.058 (SE 0.050)
+  h=  60s n=  199: VR 1.07  lag1 ac +0.041 (SE 0.071)
+  h= 120s n=   99: VR 1.09  lag1 ac -0.094 (SE 0.101)
+  h= 300s n=   39: VR 0.70  lag1 ac -0.070 (SE 0.160)

@@ -929,6 +929,69 @@ ridge 23 + E[dm]: **0,412 (+0,032)** na 100 ms, HGB +0,001 (strom to má), 1 s n
 ridge 0,278). Kalibrace P_dep na round1 od 10 % výš dobrá; na v2 2–10× nadhodnoceno (jiné mu). Stejná povaha jako krychle (+0,03 IC,
 PnL −1 %) → rozhodne jen strategie: běží port `edm_100` jako 24. feature cíle B (`exp_b_struct.py`), compare do 17:45.
 
+<<<<<<< HEAD
+## 2026-11-07 17:40 — Finál R1 = `mm_r1_final2` (514 093); strukturální feature v cíli B: REJECT (home, mozek)
+
+**Grid nad finálem** (`r1-final-grid2`, `-grid3`): ML shrink jako úplné stažení (ml_stub 0) + park 15 / max 8 → **514 093**; compare vs
+mm_r1_final: round1 +3 624 (6/8, holdout +1 462), sample_v2 +1 553 (6/8, holdout +205) → ACCEPT; check PASS 4,0 min → zapečeno
+`strategies/mm_r1_final2.py` (1bc8ff6), k uploadu jako final. Graded knoby (0,05–0,08 × 0,4/0,6) ±1 k = šum.
+**Strukturální E[dm] jako 24. feature cíle B** (`strategies/exp_b_struct.py`, parita 510 469 ✔): holdout IC +0,006 vs cíl B
+(+0,025 vs prostý pohyb), ale round1 502 337 (−8 132, 0/8), v2 −1 653 → REJECT. Stejná lekce jako MLP/krychle: lepší globální
+rank ≠ lepší výběr horních 28 % |pred|, které shrink používá; B je lepší, protože je podmíněné skutečným zásahem takera.
+**Konečná bilance R1 (home):** ~40 mechanik/modelů, ~550 běhů; vítězné: plná kapacita (+33 %), park (Tomáš, +6 %), ML shrink
+přes modify (Tomáš, +8 %), cíl B (+2,6 %), stack tight/graded/park (+1,4 %), úplné stažení + park 15/8 (+0,7 %). mm_v2 321 k → 514 k.
+
+## 2026-11-07 17:45 — Poslední grid nad final2: +1,5 k při horším holdoutu → neměnit; R1 uzavřeno na 514 093 (home, mozek)
+
+Ledger `r1-final2-retune` (thr 0,095/0,105/0,115 × thr_lo 0,06/0,07/0,08): 0,115/0,06 → 515 565 (+1 472), ale holdout 130 587 vs
+131 716; 0,115/0,07 → 515 098 (holdout −705). Zisk ≤ 0,3 % s horším holdoutem = šum/přefit → **finál R1 zůstává `mm_r1_final2`
+(514 093, nahráno, server = lokál, final)**. Tomášův agent chystá strukturální prediktor do shrinku — varování s čísly posláno
+(na home −8 132, 0/8); do 18:00 žádné další uploady bez compare ≥ 6/8 proti final2.
+
+## 2026-11-07 17:55 — Audit Tomášova `mm_r1_final3` (quote_size 180, park_max 6): REJECT, final zůstává final2 (home, mozek)
+
+Diff proti final2 jen dvě čísla. Compare final2 vs final3: round1 514 093 → 515 687 (+1 594, 7/8), **holdout −166**; sample_v2 +472 (5/8),
+holdout +143 → REJECT protokolem (holdout horší); check PASS. Zisk v šumu (~0,01 bodu), přepínání finalu 20 min před koncem bez
+přínosu → doporučeno nenahrávat. **Final R1 = `mm_r1_final2` 514 093.**
+
+## 2026-11-07 18:00 — Optuna (TPE) nad final2: nic nad ruční optimum; R1 definitivně 514 093 (home, mozek)
+
+`research/optuna_tune.py` (TPE přes `research.run --set` v paralelních dávkách, cíl = train PnL, holdout mimo hledání; `uv run --with
+optuna`). 24 trialů na round1 přes 9 knobů (thr, thr_lo, frac, stub, park_size/max/depth, quote_size, tight_only; ledger `r1-optuna-*`):
+nejlepší train 382 319 / hold 130 067 / pnl 512 386 (thr 0,109, thr_lo 0,08, frac 0,58, stub 3, park 16/7, quote 160) — **pod final2
+(train 382 377, hold 131 716, pnl 514 093)**. Povrch je plochý; ruční gridy už optimum našly. Žádný nový soubor; nástroj zůstává pro R2
+(přeladění po refitu za ~15 min místo hodinového gridu).
+
+## 2026-11-07 18:15 — Privátní výsledky R1: 12. místo z 61, 511 422; pole vyrostlo o ~25 %, my ne (home, mozek)
+
+Privátní leaderboard R1: GammaStrike 792 696, Olexa namichej 701 374, Podbranč 667 357, Southeast Fortress 657 359, Codehorses
+655 444, Mac mec mic 615 391, quantový mouchy 603 501, ThatsMyQuant 602 527, Girls JWHF 576 877, Kakaový nápoj 533 533, FIFO 524 193,
+**p<0.05 511 422 (12.)**. Průměr 434 481, SD 138 695, medián 447 797 (60 týmů > 0; Cinkačka −52 = 0). Naše z = 0,55 → **0,44 bodu**;
+lídr z 2,58 → 2,07; top 5 ≥ 1,27 bodu.
+**Klíčové pozorování:** veřejný průměr pole byl 344 k (15:30), privátní 434 k → pole +25 %; GammaStrike 650 → 793 k (+22 %);
+**my 514 093 → 511 422 (±0 %)**. Privátní páska je tedy „bohatší“ (víc objemu/volatility, pravděpodobně jiné parametry
+generátoru, jako sample_v2 vs round1), a náš edge se na ni nepřenesl, zatímco edge ostatních ano. Hypotéza: vrstvy laděné na
+veřejnou pásku (pevný práh shrinku 0,105 na škále predikce, graded 0,07, park 15/8, tight_only) jsou křehké vůči posunu parametrů
+(viz citlivost prahu ±5 % a jiné optimum na v2); plain mm_park by při +25 % pole měl ~565 k. Moje hypotéza „650 k = přefit“ byla špatně.
+**Další krok:** (1) zjistit privátní PnL našich pěti submisí (mm_park 452 k, mm_ml 490 k, r1tuned 497 k, final 510 k, final2 514 k
+veřejně) → která vrstva se přenesla; (2) adaptivní práh shrinku (klouzavý kvantil |pred|, konstantní podíl spouštění) a velikosti
+relativní k rozdělení IOC → robustnost vůči parametrům generátoru; (3) na R2 preferovat robustní variantu před veřejně doladěnou.
+
+## 2026-11-07 18:55 — H24 adaptivní práh shrinku (klouzavý kvantil |pred|): funguje mechanicky, zisk žádný (home, mozek)
+
+`strategies/exp_adaptive.py` (ml_adaptive, ml_share 0,28 / ml_share_lo 0,49, histogram 400 binů, O(1); parita 514 093 ✔, check PASS),
+ledger `r1-adaptive`. Prahy sledují škálu predikce (round1 0,105/0,069 = baked; v2 0,0915/0,0495). round1 514 160 (±0), sample_v2
+258 293 (−1,8 k) při stejném podílu; podíl 0,22 → +1,0 k / +0,8 k (šum). Compare {0,28} REJECT (3/8). **Závěr:** pojistka proti posunu
+škály predikce na novém kole (pro R2 užitečné, pokud nebudeme refitovat), ne zdroj PnL. Privátní R1 navíc ukázal, že se final2 přenesl 1:1,
+takže křehkost prahů nebyla příčinou rozdílu k lídrům.
+
+## 2026-11-07 19:00 — H25 hluboký ladder na prázdných hladinách: REJECT (home, mozek)
+
+`strategies/exp_ladder_deep.py` (ladder_start 4/6, depth 3/5, size 20/50, reserve 0; parita 452 651 ✔, check PASS), ledger `r1-ladder-deep`:
+všechny buňky 10–81 k (−82 až −98 %), fills −62 až −96 %. Příčky ve 4–9 ticích hloubky zaberou 100–500 lotů invariantu a skoro se
+neplní → touch kotace vyhladoví. Kvalitu hlubokých fillů to neměří, ale platí totéž co u mělkého ladderu: kapacita je vázaná a nečinná
+příčka stojí filly na touch. „Být první z konstrukce“ v hloubce nejde zaplatit kapacitou. Hypotéza o konstrukci lídrů tímhle padá.
+=======
 ## 2026-11-07 17:55 — Round 1 closed (radys)
 
 - Final: team 511,422, 12th of 21+; leader 792,696. Our local best stack 503,745 (mm_ml_r1tuned + ml_tight_only + park_max 10 + park_size 15).
@@ -1040,3 +1103,793 @@ at thresholds 1.0 / 1.5 / 2.0 (500 ms hold, optimistic overlapping samples). No 
   fitting (the late +3 % local / +0.85 % live steps) does not carry over. delfini leads again (R2 1.88M, R3 1.46M).
 - Lesson: optimise for robustness across tapes (holdout, mirror, older rounds), not for the live board. The gap to the
   top 3 (+37-67 %) is structural, not tuning.
+>>>>>>> origin/main
+
+## 2026-11-07 19:25 — Orákulum priority ve frontě: strop 1,3–1,4 M na round1 → konstrukce lídrů = priorita (home, mozek)
+
+`research/diag/sim_frontqueue.py` (monkey-patch OrderBook.insert: náš příkaz se zařadí před všechny tržní na své ceně; simulátor nedotčen;
+s vypnutým patchem reprodukuje 514 093), report `research/reports/round1_front_oracle.md`. S dokonalou prioritou: mm_r1_final2
+**1 395 933** (fills 72 k, 3,84 M lotů, 0,364 $/lot), exp_full_capacity 1 301 334, mm_park 1 301 703, final2 bez ML 1 311 712;
+priorita jen na svěžích hladinách (< 100 lotů při vložení) 546 305 (+32 k). Chunky stabilní (177–188 k každý).
+**Závěr:** strop priority je 2,7× náš výsledek a 2× lídr → mezera 650–790 k je o pozici ve frontě, ne o signálu (ML filtr pod
+prioritou +85 k, normálně +51 k). ~850 k hodnoty je ve skoku *hlubokých* front (návrat na touch po ústupu), ne ve svěžích hladinách.
+V FIFO legitimně jen stářím příkazu: nechat kapacitu zrát na hladině místo re-kotace při každém pohybu (2,6×/s). Dřívější „trpělivé“
+varianty (requote_tolerance 1 −27 % na mm_v2, move_min −1 %, hold_inside −8 %) byly špatně postavené nebo na jiné bázi → R2 výzkum
+= jak legitimně získat stáří/prioritu: velký park (běží `r1-stay-big`), zpožděné následování zlepšení, relokace místo shrinku.
+
+## 2026-11-07 20:05 — Round 2 kickoff: trendový režim, všechny makery záporné; pojistka = flow-pull maker (home, mozek)
+
+**Data card round2** (2,19 M řádků, 6 000 s): spread 1 tick 84 %, 2 ticky 12 %; **P(reverze) 0,38, autokorelace změn midu +0,18, VR 60 s
+1,27, 1 s std 3,79 ticku (R1 0,92)**; crash −500 ticků v minutách 60–75, celkem 10 000 → 9 689. mm_edge: čelo +0,07/fill (1 s), konec
+fronty −0,57; filtr „kotovat stranu jen když proti ní neteče tok 100 ms“ +0,25 na 70 % fillů. Taker scan nejlépe +19,7 k (slabé).
+**Baseliny na round2:** exp_full_capacity −216 739, mm_park −229 893, mm_ml_b −174 560, mm_r1_final2 −170 833 (3/8 chunků); momentum
+taker −2,1 až −2,4 M; risk grid makera nejlépe max_position 20 → −11 k; imb_pull −83 k; refit B na round2 −93 k (max_position 20 → +1 k).
+**Flow-pull maker** (`exp_flow_pull_home`: nekotovat stranu, proti které teče podepsaný tok posledních N taker příkazů): okno 30, práh 200,
+max_position 20 → **round2 +20 151 (8/8, chunk_min +364), zrcadlo +20 151, round1 +48 527 (8/8), sample_v2 +36 073 (8/8)**; plató 150–300 ×
+okno 30 × max_pos 20–30 (19–24 k). Zapečeno `strategies/mm_r2_insurance.py`. Běží: trend-gated maker, hybrid maker+taker po toku.
+
+## 2026-11-07 20:20 — R2 anatomy: holes in the book, queue age, where the gate's pnl comes from (home, mozek)
+
+Report `research/reports/round2_anatomy.md`. Round2 = round1 generator with deeper placement and deeper IOC limits:
+the book behind the touch has holes, 34 transient jumps (> 20 ticks, snap back in ms) are 63 % of the mid
+variance; robust (spread <= 3) 1 s std 3.9 ticks vs 0.92. No consistent predictability at 10-120 s (weak VR
+1.2-1.5 at 60-300 s). Queue age (`research/diag/queue_age.py`): an order parked 1 s before its level becomes the
+touch has 0 lots ahead 84 % of the time (2 s: 97 %). Front-of-queue oracle: gate maker 84k -> 232k.
+`exp_r2_ladder.py` (exp_ladder_home + trend gate with robust drift `gate_max_spread`): parity 84,025 ✔; robust
+drift 3 -> 86,333 (8/8, chunk_min +95); parking -20k, ladder 15 +1k. Fill decomposition (`fill_decomp.py`):
+spread +0.37/lot at the fill, -0.32/lot adverse within 1 s, +0.10/lot trend over 60 s. Next: cut the first-second
+adverse selection, then the trend estimate.
+
+## 2026-11-07 20:30 — R2: architectures other than the gate (home, mozek; Honza: "don't optimise one architecture early")
+
+- **Taker economics** (`research/diag/taker_econ.py`): crossing on flow/return signals is break-even at best; after
+  big 1 s moves the price REVERTS (momentum taker -1.5..-4.4 ticks at 1-5 s); 60 s momentum +1.5-2.5 ticks but only
+  ~100 independent windows -> a directional book is capped by 100 lots (tens of k). Contrarian after q0.999 spikes
+  +3..+12 ticks within 1-5 s, but ~15-60 events -> < 10k. Taking is not the R2 engine.
+- **Front-of-queue oracle without the gate:** plain maker -217k -> +170k, R1 champion -171k -> +209k. Queue position is a
+  400k swing; the gate is a band-aid for back-of-queue fills.
+- **Static grid** (`strategies/exp_grid.py`, never re-prices, orders age to the front): -80k..-250k without gate,
+  12-49k with gate. REJECT.
+- **Why** (`research/diag/front_fill_age.py`): the front-of-queue fill at a FRESH level (made by an improving insert)
+  earns +0.64 ticks/lot at 1 s (< 50 ms old) and +0.1..0.2 later; at a level the touch RETREATED onto it loses
+  -0.57/-0.42 in the first 200 ms. Grid/ladder/park orders become the touch by retreat -> adverse.
+- **Fresh-level maker** (`strategies/exp_fresh.py`, joins only a touch made by improvement <= fresh_us ago):
+  no gate -217k -> -36k (keep_alone 0), with flow_pull 200 -13k -> +40k; with the gate no gain (84k vs 86k).
+  Improving ourselves (improve2 / improve_min_spread 3) -300..-600k: our own inside orders get picked off. 
+
+## 2026-11-07 20:50 — R2: hidden-fair filter integrated, mm_r2_fair = 101,933 (home, mozek)
+
+- radys' hidden-fair signal (findings s.11) implemented online in `strategies/exp_r2_fair.py` (new market ids = last
+  order of each of the first 3 levels; running side offsets; tau 50 ms). Offline split of our fills by the signal
+  (`research/diag/fair_fills.py`): plain maker fills with sig against us -305k at 1 s, with it +106k.
+- **Upload candidate `strategies/mm_r2_fair.py`** (gate 30 s / 4 / spread<=3 + fair_thr 0.3): round2 **101,933** (8/8,
+  chunk_min +2,067), mirror same, round1 / sample_v2 positive, check PASS (~1.1 min / 8.8M rows). Previous candidate
+  `mm_r2_gate.py` 86,333; insurance `mm_r2_insurance.py` 20,151.
+- Rejected today (subagents): depletion-EV filter (no gain), trend-layer hysteresis / 2nd window / vol-scaled thr /
+  flip IOC (30 s / 4 is a spike; 120 s plateau 84-105k but chunk-unstable), synthetic R2 generator (no holes ->
+  inconclusive).
+- Running at home now (do not duplicate, radys): T2 fair taker overlay (`exp_r2_fairtake.py`), T4 better fair
+  estimator (`exp_r2_fair2.py`), fair x gate robustness map + gate on fair drift (`exp_r2_fairgate.py`), small-order
+  grid + fair filter + over-cap beyond the 100 invariant (`exp_r2_grid2.py`, your s.10 idea), ML refit + gate
+  (`exp_r2_ml.py`). Free for radys: D1-D7 data questions, anything else.
+
+## 2026-11-07 21:00 — R2 leaderboard: 75th percentile ~400k at 20:31 (median 55k) -> we (102k) miss a big edge (home, mozek)
+
+- Offline pure fair TAKER (`research/diag/fair_taker.py`, non-overlapping, <= 100 lots limited by touch qty, crossing
+  both ways): best +85k (tau 50, |sig| > 1.5, hold 300 ms, 7/8 chunks); |sig| > 3: +5/lot but only ~55 lots per trade
+  (touch is thin exactly then). Not the 400k by itself.
+- Mechanism (radys s.11 + IOC limits): IOC sides are random but their LIMIT prices centre on the hidden fair F, so when
+  F > mid only buy IOCs execute -> flow is directional given F. New architecture running: fair-centric quoting
+  (`exp_r2_fq.py`: bid F-k / ask F+k, IOC when F is beyond the touch).
+- Running at home: exp_r2_fq (fair-centric), exp_r2_grid2 (small orders + fair + over-cap), exp_r2_fairtake (taker
+  overlay), exp_r2_fair2 (better F estimator), exp_r2_fairgate (robustness map + gate on F), exp_r2_ml (ML refit).
+- radys: please hunt other BIG hypotheses (what gives 400k?): D6 holes (fills far from F during one-sided books),
+  IOC partial fills revealing F, anything structural. Note: the penalty is FLAT 10,000/s regardless of the excess
+  over 100 (simulator._accrue_breach_penalty), the reject is only potential |pos| > 1000.
+
+## 2026-11-07 21:10 — R2 BREAKTHROUGH: maker + informed taker = 204,054 (home, mozek)
+
+- Online fair signal bug: scanning only 3 levels missed the deep inserts. With fair_levels 20 + mid at any spread
+  (`fair_mid_any`) the online signal matches the offline one (corr 0.954; |sig| > 1 4.6 % of the time).
+- In R2 the generator's IOC takers are INFORMED (limits centred on hidden F): market makers lose ~-3.9M at 10 s,
+  takers win it. So we take too: `strategies/exp_r2_taker.py` = maker (gate + fair filter) + IOC taker on |sig| > thr
+  that exits when the signal fades (flattens inventory).
+- **Upload candidate `strategies/mm_r2_hybrid.py`**: round2 **204,054** (8/8, chunk_min +6,103, hold 69k), mirror
+  same, round1 342k, sample_v2 246k, check PASS 1.4 min. Plateau: take_thr 1.0-1.5 x exit -0.25..0.25 x tau 30-80 x
+  gate 6-8 = 180-205k, all 8/8. Pure taker alone 85-89k; maker alone (fair 0.45, gate 6) 119.6k.
+
+## 2026-11-07 21:20 — mm_r2_hybrid2 = 211,186; small-order grid rejected; F estimate is at its information limit (home)
+
+- **Upload candidate `strategies/mm_r2_hybrid2.py`**: round2 **211,186** (8/8, chunk_min +8.6k), mirror same, round1 430k,
+  sample_v2 248k, check PASS 1.4 min. = hybrid + gate 20 s / thr 8 + fair-filter hysteresis 0.5 (exp_r2_fair2 idea).
+- Rejected: small-order grid + fair + over-cap (`exp_r2_grid2.py`, best 72k: in R2 every extra fill/queue position
+  lowers pnl), taker exit of own position only (-14.5k), inv_stop (-10..-40k), smaller quote_size / requote tolerance.
+- F estimator study (`research/diag/fair_model.py`, `exp_r2_fair2.py`): bids = floor(F - D), D ~ 1 tick + geometric
+  tail 0.25/tick, clamped at the opposite touch -1 (46 % on the clamp); EWMA tau 20-50 ms is at the information limit
+  (Kalman/Tobit +0.01 corr, worse online). Hysteresis on the maker filter +7.6k.
+- Hybrid internals: |I| >= 90 for 73 % of the time; maker fills 587k lots (+0.12/lot at 1 s, +1.04/lot at 60 s = trend),
+  taker 77k lots (+1.26/lot at 1 s). Running: fair-centric quoter, ML shrink stacked on the hybrid, taker sizing/exits.
+
+## 2026-11-07 21:30 — R2: aggressive fair taker = 341,105 -> upload candidate `strategies/mm_r2_fq.py` (home)
+
+- Subagent's fair-centric quoter (`strategies/exp_r2_fq.py`) found that the winner is an AGGRESSIVE IOC taker: cross
+  100 lots at the touch whenever F_hat = mid + fair_sig is beyond the opposite touch by 0.25 ticks (|sig| >= 0.75 at a
+  1-tick spread), re-enter on every update, plus touch quotes only on the side F favours, 30 s gate thr 6, fair over
+  20 levels / any-spread mid, tau 50.
+- **`strategies/mm_r2_fq.py`** (baked): round2 **341,105** (8/8, chunk_min +14.6k, hold 107k), mirror same, round1 377k,
+  sample_v2 253k, breach 0, check PASS 1.3 min. take_k 0.1 / 0.25 / 0.5 = 298k / 335k / 291k; cooldown 0-30 ms 320-341k;
+  gate off 277k; tau 20 185k; fair-centric (k 1) quotes under the same taker 304k.
+- Also today: flip taker (hold +-100 until the opposite signal) + maker 229-234k; ML shrink on the hybrid rejected
+  (gain only in its fit window); fade-exit taker inside the maker 204-211k (mm_r2_hybrid / hybrid2).
+
+## 2026-11-07 21:45 — mm_r2_fq2 = 349,077 (upload candidate); queue position is the remaining 244k (home)
+
+- **`strategies/mm_r2_fq2.py`**: mm_r2_fq + tau 70 ms, fq_take 200 (one IOC can reverse a full position), take_k 0.2,
+  gate_thr 8. round2 **349,077** (8/8, chunk_min +15.8k, hold 102k), mirror same, round1 444k, sample_v2 260k, breach 0,
+  check PASS 1.2 min. Plateau tau 50-70 x take_k 0.15-0.25 x gate 6-8 = 335-349k.
+- Front-of-queue oracle on mm_r2_fq: 341k -> **585k** (+244k): the remaining gap to the top teams is queue position.
+  Realistic attempts so far all lose: sticky quotes (keep while F only mildly against) -6..-56k, inside-spread quotes
+  -55..-68k, capacity release at neutral signal -57..-350k, inv_stop (maker only reduces) -1..-23k.
+- In mm_r2_fq the inventory sits at +-100 71 % of the time and 98 % of the taker's wanted crosses are room-blocked,
+  but releasing room costs more than it earns (holding with F is itself the edge).
+- Rejected on the fq base: ML shrink (B75 +25k only in its fit window, holdout -3k, sample_v2 -60k; B1 +5.9k 5/8),
+  deeper sweeps, size by signal strength, over-cap (penalty 52-59k), passive exits, skew.
+
+## 2026-11-07 22:05 — Oracle-F: the strategy is worth 935k with a perfect 150 ms predictor; realistic predictors fail (home)
+
+- `research/diag/oracle_fair.py` (diagnostic, look-ahead): mm_r2_fq2 with fair_sig replaced by the real future robust
+  mid move: lead 50 / 150 / 500 / 1000 ms = 759k / 935k / 884k / 685k; clipped at +-2 ticks 916k; 50 % blend 915k;
+  25 % blend 822k. The value is everyday precision at the taker's decision points, not the big F jumps.
+- Realistic predictors: fair taus 20/70/150 + fair-vs-queue interactions raise the offline holdout corr with the
+  150 ms move 0.44 -> 0.53 but the strategy drops to 244-273k (`exp_r2_pred2.py`); F velocity (dF over 0.5-2 s) is not
+  better than the F level offline. In round2 F - mid predicts the mid over 1 / 5 / 10 s with corr 0.32 / 0.33 / 0.33
+  (round1: 0.37 / 0.19 / 0.14): the mid keeps moving toward F for seconds.
+- Hidden F jumps exist (e.g. -88 ticks at 3873.18 s: a bid inserted 83 ticks below the book), but jumps >= 20 ticks are
+  only ~6-10 episodes; most single-insert "5-tick jumps" are the geometric placement tail.
+- PnL curve of mm_r2_fq: no catastrophic windows (worst 10 s -4.7k); seconds with |dmid| > 8 earn +115k.
+- Running: ridge predictor with build_matrix features (exp_r2_pred.py), oracle-labelled taker entry filter
+  (exp_r2_tkfilt.py).
+
+## 2026-11-07 22:10 — Leaderboard: mm_r2_fq2 = 740,067 (local 349k); mm_r2_pred = 371,961 local -> next upload (home)
+
+- Honza uploaded `mm_r2_fq2.py`: leaderboard **+740,067** (22,521 filled orders, 2.25M lots, end position -100,
+  mark-out price 10,482, penalty 0, sim 1 min 5 s). The leaderboard tape is a different, ~2x longer/more active one
+  (local round2: 10.4k fills, ends ~9,690) -> local gains scale ~x2.1. 75th percentile ~700k at that time.
+- **Next upload `strategies/mm_r2_pred.py`** (subagent): mm_r2_fq2 + ridge predictor of the 150 ms move (fair taus,
+  queue/spread/flow features, fit on round2's first 75 %) used ONLY by the IOC taker, blended 50/50 with fair_sig.
+  round2 **371,961** (8/8; compare ACCEPT: +22.9k, 6/8 paired, hold +4.3k), mirror 369.7k, round1 441.6k, sample_v2
+  265.9k, breach 0, check PASS 1.4 min.
+- Centered-F oracle (`research/diag/oracle_centf.py`, F from inserts within +-50/100 ms, no future trades): 586k / 684k
+  local -> a lag-free low-noise F estimate is worth +240-335k, but every causal attempt fails: longer tau (90-220 ms)
+  208-312k, CUSUM level reset 16-225k, surprise-weighted inserts 215-339k, Tobit for the taker 356.7k (hold +0.6k,
+  noise), oracle-labelled taker entry filter (no out-of-sample power at the holding horizon), higher flip threshold.
+
+## 2026-11-07 22:20 — Leaderboard mm_r2_pred = 797,904; next: mm_r2_pred2 (gate 20 s / thr 10) (home)
+
+- Leaderboard: `mm_r2_pred` **797,904** (+57.8k over mm_r2_fq2's 740,067; sim 1 min 30 s). Local -> leaderboard ~x2.1-2.15.
+- **`strategies/mm_r2_pred2.py`** = mm_r2_pred + gate window 20 s, gate_thr 10 (robust across regimes): round2 378,507
+  (+6.5k), mirror 374,093, round1 480,854 (+39k), sample_v2 267,440 (+1.5k), check PASS 1.4 min. (gate 6 / take_k 0.15
+  was +3k more on round2 but -64k on round1: rejected as regime-fragile.)
+- Rejected since 22:05: slow F-mid gate (sg), taker-only faster tau, Tobit for the taker (+7.6k, hold +0.6k), over-cap
+  for extreme signals only (k 4-9: -7..-53k, penalty 4-17k), direction model at 1-10 s (F-mid corr at 1-10 s is an
+  artefact of a few big jumps: by quarter +0.21/+0.13/+0.07/-0.01 at 1 s).
+
+## 2026-11-07 22:30 — R2 frontier check: everything below rejected; mm_r2_pred2 stays the upload (home)
+
+Tested on mm_r2_pred / mm_r2_pred2 / fq2 (round2 local): asymmetric maker threshold for adds (-9..-32k), trend-gated
+taker (-20..-120k), over-cap only for extreme signals (-7..-53k), CUSUM level F (16-225k), surprise-weighted inserts,
+longer tau (90-220 ms), taker-only faster tau, Tobit for the taker (+7.6k noise), tail-region predictors (pred3: +1.3k,
+hold worse), oracle-labelled entry filter, liquidity replacement after sweeps (+2.4k per tape, noise), slow F-mid gate,
+cancel flow as an F reading (no incremental power). Maker fills that ADD to |I| are -0.18/lot at 1 s but +0.02 at
+10 s and removing them hurts. On the leaderboard our inventory is at +-100 for >= 99.7 % of the time.
+
+## 2026-11-07 22:35 — Leaderboard: mm_r2_pred2 = 787,414 (WORSE than mm_r2_pred 797,904) -> keep mm_r2_pred as final (home)
+
+- `mm_r2_pred2` (gate 20 s / thr 10) on the leaderboard: 787,414 (26,071 filled orders vs 22,519, 2.57M lots vs 2.25M):
+  the shorter, higher gate trades more and loses 10.5k on the (trending, mark-out 10,482) leaderboard tape although it
+  was +6.5k locally. Local gains below ~2-3 % do not transfer; the final defaults to the LAST upload -> re-upload
+  `strategies/mm_r2_pred.py` (797,904). Round 1 is no longer a criterion (user).
+
+## 2026-11-07 22:45 — Flip execution fix: quote_size 100 on mm_r2_pred = 383,300 (leaderboard test candidate) (home)
+
+- Subagent B (`research/diag/flip_exec.py`, `strategies/exp_r2_new_b.py`): when the taker condition turns against the
+  inventory, the passive quote on the favoured side holds all 200 lots of room, so the flip IOC waits for its CANCELED;
+  25 % of these runs end with no IOC, inventory crosses 0 after a median 18 ms (mean 314 ms). Leaving room free
+  (rsv / quote_size 100) makes the first IOC immediate and halves the wrong-way time.
+- On mm_r2_pred (gate 8 / 30 s): quote_size 100 / 125 / 150 / 200 = 383,300 / 382,841 / 381,448 / 371,961 on round2,
+  mirror 383,245 / 380,267 / 378,663 / 369,664, all 8/8. **`strategies/mm_r2_pred_qs.py`** (quote_size 100) baked as the
+  next leaderboard test.
+
+## 2026-11-07 22:50 — Leaderboard g6 786,205 (worse); queue-priority ceiling on mm_r2_pred_qs = 622k (home)
+
+- Leaderboard: mm_r2_pred_g6 (gate 6 / 30 s) 786,205, mm_r2_pred2 787,414, mm_r2_pred 797,904 (final). Parameter
+  changes worth < ~3-4 % locally behave like +-10k noise on the leaderboard tape.
+- Flatten zone (IOC to flat when the signal is mildly against the inventory): -47..-257k. Rejected.
+- Front-of-queue oracle on mm_r2_pred_qs: 383k -> 622k (+239k); 'fresh' mode (front only on levels with < 200 market
+  lots) 410k: the value is in being early in THICK existing queues -> F-guarded early-placed ladder + taker
+  (`exp_r2_ladderF.py`, subagent running).
+
+## 2026-11-07 22:55 — Zero-delay take (subagent A): mm_r2_zd = 392,436 round2, better than mm_r2_pred on all 4 tapes (home)
+
+- The flip IOC waited for the CANCELED of our own passive quote that held the room (subagent B measured it; 25 % of
+  wrong-way take runs got no IOC). Subagent A's fix (`strategies/exp_r2_new_a.py`): zd_take counts the room of the
+  quote being cancelled in the same callback, so the IOC and the cancel land together; a guard IOC trims any |I| > 100
+  at once (penalty ~1k per tape, already inside the pnl); zd_quote 2 = zero-delay requote only toward the market.
+- **`strategies/mm_r2_zd.py`** (mm_r2_pred gate 8 / 30 s + zd_take + zd_quote 2, quote_size 200): round2 **392,436**
+  (+20.5k), mirror 390,836 (+21.2k), round1 457,289 (+15.7k), sample_v2 267,405 (+1.5k), 8/8 everywhere, breach
+  penalty 50-1,057, inv q99.7 100, check_submission OK. Next leaderboard test (expected ~ +40k).
+- mm_r2_zd100 (quote_size 100): round2 394,998 but round1 -50k / sample_v2 -29k -> not recommended.
+
+## 2026-11-07 23:10 — Leaderboard mm_r2_zd = 849,747 (final); ladder and order-statistic F rejected (home)
+
+- Leaderboard: `mm_r2_zd` **849,747** (+51.8k over mm_r2_pred; penalty 2,117, 23,239 filled orders) -> **final**.
+  Public chart at 22:53: 75th percentile ~860k (+-10k), median 288k; the band's top edge has been stepping with our
+  own uploads (~798k at 22:20 = mm_r2_pred, ~860k at 22:48 = mm_r2_zd), so we sit right on the top-25 % line.
+- F-guarded small-order ladder (subagent, `strategies/exp_r2_ladderF.py`, `exp_r2_ladderF_zd.py`, ledger r2-ladF):
+  no gain on either base (best +80 / -730 on round2 / mirror vs mm_r2_pred_qs; zd port -336 / -190). Deep rungs fill
+  only when an informed sweep goes through the touch (-0.75 ticks/lot at 1 s for every guard margin); older touch
+  orders earn +0.06..0.12/lot but only by using room the taker and touch quote need. Queue age is a dead end here.
+- Order-statistic F (`strategies/exp_r2_os.py`): L = max(bid insert) + 1, U = min(ask insert) - 1 over 20-30 ms.
+  Offline the 50/50 blend with the 70 ms EWMA lifts holdout corr with the 150 ms move 0.385 -> 0.412, but in the
+  strategy every weight loses: round2 + mirror 783k (off) -> 748-755k (taker 0.25), 529-610k (taker 0.5),
+  699-739k (quotes 0.3-0.5). Better bulk correlation, worse tails at the taker's decision points (as pred2 earlier).
+
+## 2026-11-07 23:30 — Retreat pull: mm_r2_rtq = 406,182 round2 / 404,769 mirror (+13.7k / +13.9k over mm_r2_zd) -> upload (home)
+
+- **`strategies/mm_r2_rtq.py`** = mm_r2_zd + rt_ms 20 (no passive quote for 20 ms after its side's touch retreats: market
+  fills on a level the touch retreated onto mark out -0.57 ticks within 50 ms) + qs_k 0.45 / qs_weak 100 (the touch quote
+  is the full 200-lot flip only while F_hat is >= 0.45 ticks beyond it, else 100 lots). round2 406,182, mirror 404,769
+  (sum 810,951 vs 783,271), check_submission OK, research.check PASS 1.5 min.
+- `strategies/mm_r2_rt.py` (rt only): sum 804,459 (+21.2k, rt 50 / 120 ms 803.8k / 802.1k: a plateau); round1 453,896
+  (-3.4k), sample_v2 266,806 (-0.6k): neutral off-R2, so the gain is R2-mechanism specific, not a fit.
+- Stacking: flow pull adds nothing on top of the retreat pull (both pull after adverse events); qs adds +6.5k.
+- Rejected this half hour: jump over-cap (inserts beyond the 20-tick snapshot are invisible), sweep follow/fade, taker
+  slip, AND-taker, order-statistic F, deeper taker.
+
+## 2026-11-07 23:36 — Leaderboard mm_r2_rtq = 891,734 (+42k); next upload mm_r2_rts = 420,715 / 419,434 (home)
+
+- Leaderboard: `mm_r2_rtq` **891,734.52** (24,723 filled orders, penalty 2,100, end -100): +42.0k over mm_r2_zd for
+  +13.8k per local tape (x3.0).
+- **`strategies/mm_r2_rts.py`** = mm_r2_rtq + fq_k_sp2 0.7 (subagent tkst: at a spread >= 2 a passive quote needs F_hat
+  >= 0.7 ticks inside it; the base quoted both sides of a wide spread). round2 **420,715**, mirror 419,434 (+28.3k /
+  +28.6k over mm_r2_zd, +14.5k / +14.7k over mm_r2_rtq), round1 450,845 (-6.4k), sample_v2 232,192 (-35k: another
+  generator), check_submission OK, research.check PASS 1.6 min. Stack on round2+mirror: sp2 alone 826.1k, + rt 836.4k,
+  + qs 840.1k (base 783.3k).
+- Subagent predb (ridge with sweep / queue / clipped-fs70 features): no gain (offline corr 0.432 -> 0.462 but fewer
+  triggers; the taker's pnl follows trigger count x edge, not corr). Thick-queue skip, improve-pull: worse.
+
+## 2026-11-07 23:43 — Leaderboard mm_r2_rts = 957,133 (+65k); next upload mm_r2_rth = 430,781 / 429,296 (home)
+
+- Leaderboard: `mm_r2_rts` **957,133.26** (22,630 filled orders, penalty 1,821): +65.4k over mm_r2_rtq for +14.6k per
+  local tape (x4.5: the passive-side filters transfer even better than the taker changes).
+- **`strategies/mm_r2_rth.py`** = mm_r2_rts + hole filter (hk_gap 3 / hk_k 0.8: when the next market level behind our
+  side's touch is >= 3 ticks away, the touch quote needs F_hat >= 0.8 ticks inside it; sweeps through a level with a hole
+  behind mark out -1.5/lot). round2 **430,781** (+10.1k), mirror 429,296 (+9.9k), check PASS 2.2 min.
+- Rejected on rts: own-fill pull (758k), imbalance pull (693-766k), quote inside the spread (778k), fq_k 0.15 / 0.0,
+  separate spread-3 threshold (+0.9k), rt / qs retune (+-2k).
+
+## 2026-11-07 23:50 — Leaderboard mm_r2_rth = 970,101 (+13k); filter search on rth (home)
+
+- Leaderboard: `mm_r2_rth` **970,101.26** (22,590 filled orders, penalty 1,821) -> final unless beaten. Two submissions left.
+- Tried on rth (round2 + mirror sum, base 860,077), all within noise or worse: thin touch qty (761-829k), shallow depth
+  1-2 ticks behind (829-850k), few orders at the touch (822-861k), mid-jump filter (850-860k), fresh-level looser join
+  (859-861k), taker threshold over a hole (857-861k), fq_k_sp2 0.55 / 0.85 and rt 30 (849-860k).
+- Subagents on rts: taker retune (fq_take_k, pred_blend, quote_size, fair_tau, fq_k) - nothing on both tapes; passive
+  filters (pull after a trade at our touch -65..-70k, queue-ahead pull, spread-change lean, stale-signal lean) - nothing.
+  Lesson: pulling a RESTING quote loses its queue place; filters only win where there is no queue place to lose
+  (retreated touch, wide spread, a hole behind the touch).
+
+## 2026-11-07 23:57 — Last candidates: mm_r2_rth2 (uploaded), mm_r2_rth3 (last submission) (home)
+
+- `strategies/mm_r2_rth2.py` = mm_r2_rth + qs_k 0.3 + fq_k_sp3 0.3: round2 432,309, mirror 431,616 (+1.5k / +2.3k).
+- `strategies/mm_r2_rth3.py` = mm_r2_rth2 + pred_blend 0.6: round2 436,496, mirror 439,487 (+4.2k / +7.9k), 8/8 chunks,
+  holdout -0.5k / +0.4k (gain inside the ridge fit window), check PASS 1.5 min: a leaderboard gamble.
+- Subagents on rth2: fine grid (qs_weak, qs_k, sp2/sp3, hk) - no gain; merged small filters (taker-over-hole, few orders,
+  fresh level) +0.9k; taker retune: fq_take_k 0.15-0.17 and pred_blend 0.55-0.6 up on both tapes (mirror more).
+- Mark as final whichever of mm_r2_rth (970,101), mm_r2_rth2, mm_r2_rth3 scores highest on the leaderboard.
+
+## 2026-11-08 00:05 — Leaderboard mm_r2_rth3 = 954,077 (worse); last upload mm_r2_final (home)
+
+- `mm_r2_rth3` (rth2 + pred_blend 0.6) scored **954,077** on the leaderboard, -16k under mm_r2_rth: the taker gain sat
+  in the ridge's fit window (holdout was flat), as feared.
+- **`strategies/mm_r2_final.py`** = mm_r2_rth + passive refinements only (fq_k_sp2 0.75, fq_k_sp3 0.15, hk_k 0.6, qs_k 0.3),
+  pred_blend back to 0.5: round2 434,477, mirror 432,324 (+3.7k / +3.0k over mm_r2_rth), round1 450,065 (+0.4k),
+  sample_v2 221,596 (-10.6k, another generator), check PASS 1.5 min. Last upload.
+- Final choice: the highest leaderboard pnl among mm_r2_rth (970,101) and mm_r2_final. Summary for the presentation:
+  research/reports/round2_final.md.
+- Stability of mm_r2_final (round2 / mirror vs 434,477 / 432,324): fq_k_sp2 0.72 433,512 / 432,998, 0.78 433,565 / 432,085;
+  hk_gap 2 433,351 / 432,142, hk_gap 4 identical; rt_ms 15 434,063 / 432,144, rt_ms 30 431,696 / 429,039. A plateau.
+- mm_r2_final vs mm_r2_rth by chunk: round2 5/8 better (gain mostly chunk 7, +2.6k), mirror 6/8. Modest, consistent sign.
+  Final pick rule stays: the higher leaderboard pnl of mm_r2_rth (970,101) and mm_r2_final.
+
+## 2026-11-08 00:08 — Leaderboard mm_r2_final = 974,031 (best); last upload mm_r2_final2 (home)
+
+- `mm_r2_final` scored **974,031.26** (22,486 filled orders, penalty 1,921): +3.9k over mm_r2_rth for +3.35k per local tape.
+- Last upload `strategies/mm_r2_final2.py` = mm_r2_final with fq_k_sp2 0.77 (local +0.5k on the two tapes: a coin flip),
+  check PASS 1.5 min. Final = the higher of mm_r2_final (974,031) and mm_r2_final2.
+- Round 2 path on the leaderboard: 740,067 -> 797,904 -> 849,747 -> 891,735 -> 957,133 -> 970,101 -> 974,031.
+- mm_r2_final2 local: round2 434,304, mirror 433,044 (vs final 434,477 / 432,324). fq_k_sp2 0.8: 432,801 / 431,517
+  (qs_k 0.35: 433,108 / 431,547) - the 0.75-0.77 peak holds.
+- Why mm_r2_final loses on sample_v2 (221,596 vs 267,405 for mm_r2_zd): the whole -45k is fq_k_sp2 (off: 266,625); the hole
+  filter never fires there, rt / qs are neutral (220-222k). The wide-spread filter is R2-generator specific (+65k on the
+  R2 leaderboard), so it fits the round-2 private tape but would hurt a sample_v2-like market.
+- round1 attribution: fq_k_sp2 off gives 457,781 (hole off) / 457,198 (hole on) vs mm_r2_final 450,065 - the wide-spread
+  filter costs ~7.7k on round1 too; the hole filter is neutral off-R2.
+- Public chart at 23:41: 75th percentile ~930k (+-10k), median 347k; our best then was 957,133 (rts), now 974,031.
+- round1 attribution (cont.): rt off 451,227 (qs 0.3) / 447,578 (qs off) vs mm_r2_final 450,065 - rt and qs are neutral
+  off-R2 (+-2k). Session end 00:15: best leaderboard mm_r2_final 974,031; last upload mm_r2_final2.
+
+## 2026-11-08 01:07 — Round 3 kickoff: same regime as R2; insurance mm_r3_ins = 339,285; 8 break-it agents running (home)
+
+- round3 (release data-round3): 6,000 s, 2.41M rows; limit inserts 98.2/s/side (R2 89.2), IOC 4.69/s/side (4.45), cancels
+  196/s, sizes as R2 (limit median 18, IOC median 60 / mean 159), price 9,732-10,160. Same generator family as R2.
+- Insurance `strategies/mm_r3_ins.py` = mm_r2_final with pred_on 0: round3 339,285, mirror 339,285, holdout 87,007, 7/8
+  chunks, check PASS 2.3 min. The R2 ridge does not transfer (338,970 / 342,176, holdout 80.5k / 79.1k); the R2 passive
+  filters are worth ~+61k on R3 (without them 273-279k).
+- Wave 1 (docs/r3_playbook.md, opus effort medium, reports due 01:55): leak scanner / id-gap detector, generator card,
+  oracle ceilings, exact-likelihood fair filter, insurance tuner + ridge refit, engine artefacts, big-move capture,
+  decision-point learner.
+- Tools: `research/diag/mirror.py` (byte-identical to the old round2_mirror), `strategies/exp_r3_base.py` (= mm_r2_final).
+
+## 2026-11-08 01:20 — R3 ceilings on mm_r3_ins (subagent, sonnet) (home)
+
+| experiment | round3 (= mirror) | gain over 339,285 |
+|---|---:|---:|
+| perfect predictor 50 / 150 / 500 / 1000 ms | 939,850 / 1,122,718 / 1,093,243 / 904,901 | +601k / +783k / +754k / +566k |
+| centred fair +-50 / +-100 ms (offset 2.0) | 402,726 / 716,060 | +63k / +377k |
+| front of queue (front / fresh 100 lots) | 542,464 / 347,736 | +203k / +8k |
+
+Prediction at 150-500 ms is the lever (R2: +545k); the centred-fair gain is mostly its look-ahead (+-50 ms only +63k).
+Agents switched to cheaper models at 01:12 at Honza's request (usage): opus medium only for the id-gap leak scanner and
+engine artefacts; opus low for the likelihood filter; sonnet medium for the generator card, ceilings, tuner, learner;
+the big-move agent stopped (overlaps the id-gap detector). mm_r3_ins over-cap: 20 episodes, 0.10 s in total, worst
+6.7 ms, max |I| 300 (flip-vs-quote race), each ended by the guard within its 5 ms latency.
+
+## 2026-11-08 01:29 — R3 upload candidate mm_r3_pms = 413,750 (+22 %): ridge refitted on round 3 (home)
+
+- Subagent pms (opus low): the round-2 lean ridge (22 features: fair taus 20-300 ms with clamp terms, imbalance, touch
+  counts, queues, flow, last trade, hole) refitted on round3's first 75 % (150 ms target) for the taker only. Holdout corr
+  0.419 -> 0.456; at the same trigger count edge 0.733 -> 0.767; at scale 1 fewer fires at higher edge (95k at 0.89).
+  New features (mid / fair momentum, sweep-implied fair) added nothing; the 500 ms target fires more on noise and loses.
+- **`strategies/mm_r3_pms.py`** (pms_on 1, pred_blend 0.5, pred_scale 1.0): round3 **413,750**, mirror 411,861, round2
+  416,647; holdout 104,902 / 105,585 (base 87,007), 8/8 chunks on all three, check PASS 3.0 min. Holdout gain (+20 %) ~
+  train gain (+22 %): not an in-sample artefact.
+- Leaderboard R3: `mm_r3_pms` **675,487.64** (21,785 filled orders, penalty 2,575, end -58, mark-out 10,035, sim 1:59);
+  leaderboard / local = 1.63 (R2 ~2.1). Laptop session reproduced it (+74,465 vs mm_r3_ins on round3, 8/8) and
+  flagged runtime under load (15 min projected while loaded, 5.6 min unloaded on the laptop; home 3.0 min).
+- Wave 2 (sonnet medium, due 02:15) on mm_r3_pms: ridge refit variants (100 % / +mirror / +round2 / targets / alpha),
+  ridge in the passive quotes (pred_mode 0/2), passive-filter retune, taker-threshold retune.
+- Taker retune on mm_r3_pms (sonnet): fq_take_k 0.2 / fair_tau 70 / pred_scale 1.0 stay best; fq_take 150 + zd_quote 1
+  gives +1.4k / +1.4k (holdout +0.7k / +0.5k, round2 -0.4k): noise-level, not taken. Ledgers r3w2-tk-*.
+
+## 2026-11-08 02:00 — R3 upload candidate mm_r3_g2 = 478,572 / 477,772 (+16 % over mm_r3_pms) (home)
+
+- Wave 2 (sonnet): passive filters re-tuned for R3 (rt_ms 20 -> 100, fq_k_sp2 0.75 -> 1.5, gate_thr 8 -> 10, qs_k 0.3 -> 0.6;
+  each monotone or a clean peak, holdout up) = 453.9k / 457.1k; ridge for a 200 ms target fitted on round3 + mirror (first
+  75 %, antisymmetric, rfit 19); taker blend 0.7 (holdout +6 %). Ridge in the passive quotes (pred_mode 0/2) loses; taker
+  threshold / tau / size at their optimum.
+- **`strategies/mm_r3_g2.py`**: round3 **478,572**, mirror 477,772, round2 426,845 (mm_r3_pms 413,750 / 411,861 /
+  416,647); holdout 117,658 / 117,867 (pms 104,902 / 105,585); 8/8 chunks on all three; check PASS 3.0 min.
+  Safer variant (blend 0.5): 464,210 / 464,248 / 433,300, holdout 112,744 / 112,787.
+- 02:05 wave 3 (sonnet medium, due 02:35-02:40) on mm_r3_g2: fine-tune (sp3, rt 80-160, gate 9-11, qs_k, sp2, blend),
+  multi-horizon / per-spread ridge ensemble, quote-side markout model, id-gap jump detector (redo), modify-instead-of-
+  cancel for the filters (keep queue place). The wave-1 leak scanner / engine / filter / generator / tuner / learner
+  agents were stopped before reporting (no ledgers).
+- Leaderboard R3: `mm_r3_g2` **772,539.65** (21,045 filled orders, penalty 2,237, sim 1:55): +97k over mm_r3_pms,
+  leaderboard / local 1.61. Public chart at 01:49: median ~503k, 75th percentile ~800k: still just below the top 25 %.
+- 02:10 added: over-cap bursts on strong 200 ms predictions (sonnet), replay-artefact exploitation redo (sonnet); running
+  opus: Bayesian filter for the hidden fair price, gradient-boosting edge discovery.
+- Ridge ensemble on mm_r3_g2 (sonnet): 150 / 250 ms alone -7..-13k, avg of 150/200/250 or 150+250 within -2k, per-spread
+  ridges -4..-10k, blend 0.6 / 0.8 worse on R3: 200 ms at blend 0.7 stays (files exp_r3_ens.py, pred_ens_r3.py).
+
+## 2026-11-08 02:25 — mm_r3_g3 = 486,580 / 486,221; engine artefacts, id-gap, modify all rejected (home)
+
+- Fine-tune on g2 (sonnet): fq_k_sp3 1.5 (+3.9k), fq_k_sp2 2.0 (+1.7k / +3.3k, round2 +0.5 %), rt_ms 130-160 (+0.3..5k,
+  round2 -2..-2.7 %), gate_thr 11 (+1.4k, round2 holdout -3 %); qs_k > 0.6 and blend != 0.7 lose.
+- **`strategies/mm_r3_g3.py`** = g2 + fq_k_sp2 2.0, fq_k_sp3 1.5, rt_ms 130, gate_thr 11: round3 **486,580**, mirror
+  486,221, round2 418,245 (g2 426,845); holdout 120,189 / 120,129 (g2 117,658 / 117,867); check PASS 3.6 min.
+- Engine (brain read simulator.py:1274-1296): the breach penalty accrues for the exact time over |I| 100 between events;
+  the 1000 rule counts resting orders; no free over-cap. Replay artefacts (sonnet): zombies ~2.5 lots per side, live ~0.1 s,
+  < 4 % upper bound and not riskless; missing liquidity +0.1 tick for < 100 ms then gone; end markout ~50.
+- id-gap detector (sonnet): only 13 jumps >= 20 ticks in round3; unseen ids reveal them ~4.5 ms after the jump (vs 22 ms
+  visible) but one or two non-trading IOCs per 20 ms happen ~200x per tape by chance: best +0.09 %. Killed.
+- modify-instead-of-cancel (sonnet): the filters almost never pull at an unchanged price; +0..400. Killed.
+- Over-cap bursts on strong 200 ms predictions (sonnet): the far touch is thin, a 600-1000-lot IOC fills only ~75-130 lots,
+  so the flat 10,000/s penalty dominates: best oc_k 4 / 50 ms 438,388 (-40k), lower k far worse. Killed.
+
+## 2026-11-08 02:27 — mm_r3_mlp = 549,721 / 556,404: MLP replaces the taker ridge (+15 %, holdout +12.5..17.5k) (home)
+
+- Subagent mlp (sonnet): same 22 features, 200 ms target, round3 + mirror first 75 %, 22-32-16-1 ReLU on the GPU; holdout
+  corr 0.463 -> 0.493, edge at the same take rate 1.151 -> 1.286 ticks.
+- **`strategies/mm_r3_mlp.py`** (g2 + mlp_on 1, mix 1.0, gate 0.3, pred_blend 0.85): round3 **549,721**, mirror 556,404,
+  round2 426,333 (g2 426,845); holdout 135,145 / 130,359 (g2 117,658 / 117,867) / round2 107,581 (110,692); 8/8 chunks;
+  check PASS 4.1 min (numpy MLP).
+- Rejected in this wave: quote-side markout model (round2 down everywhere), over-cap bursts (-40k), id-gap detector,
+  modify-instead-of-cancel, ridge ensembles.
+- `strategies/mm_r3_mlp2.py` = mm_r3_mlp + g3 thresholds + pred_blend 0.7: round3 540,341 / mirror 560,237 / round2 427,786;
+  holdout 138,223 / 137,230 / 108,183 (better than mm_r3_mlp on all three holdouts, -9k on the full round3).
+- GBM edge study (opus): wide event features add little linearly (ioc_sweep50 the only robust one); GBM + ridge holdout
+  corr 0.488 vs the MLP's 0.493: the MLP already takes the nonlinear part. Wave 4: MLP seeds / extra inputs (sonnet).
+- Bayesian clamp-aware grid filter (opus) on g2: 502,738 / 504,044 (+5 %), holdout +6.3k each, round2 -2.2k. Merged onto
+  mm_r3_mlp2 (`strategies/exp_r3_mf.py`): flt_w 0.3 gives 553,192 / 565,636 but holdout flat (137,402 / 137,385 vs
+  138,223 / 137,230) and round2 -9.5k: not additive with the MLP, not used. The filter's offline tracking is weaker than
+  the 70 ms EWMA (insert depth is not a clean function of F).
+- Best upload: `strategies/mm_r3_mlp2.py`.
+- Leaderboard R3: `mm_r3_mlp2` **864,770.06** (19,931 filled orders, penalty 1,614, sim 2:34): +92k over g2, leaderboard /
+  local 1.60. Above the ~800k 75th percentile of 01:49.
+- 02:40 running (sonnet, due 03:15-03:25): MLP v2 (seeds + ioc_sweep50 inputs), prediction-proportional target position,
+  inside-spread quotes on strong MLP signals, learned 1-5 s direction model instead of the 30 s gate, MLP in the passive
+  quotes, taker retune for the MLP, final MLP on 100 % of round3 + mirror (seed ensemble).
+- Target-inventory policy (3-level / proportional to the MLP signal, sonnet): every variant loses (best 521,903 / holdout
+  134,428 vs 540,341 / 138,223); fewer flips, lost flip revenue outweighs avoided adverse holding. Killed (exp_r3_tgt.py).
+- MLP in the passive quotes (sonnet, `strategies/exp_r3_mq.py`, mq_on): quote signal = mid + mq_b * MLP + (1 - mq_b) *
+  fair_sig. mq_b 0.5 / fq_k 0.15: round3 553,458 / mirror 572,696 / round2 435,485 (mlp2 540,341 / 560,237 / 427,786),
+  holdout +0.7k / +2.8k / +1.6k. Small, consistent: a component for the final merge.
+- Inside-spread quotes on strong MLP signals (sonnet): best +3.5k on round3, negative on round2 and mirror. Killed.
+- 02:55 big-jump bets launched: GRU / causal-CNN sequence model on the raw event stream (opus medium), wide-feature MLP
+  with exactly-online event features (sonnet), longer-horizon MLP for the quotes (sonnet).
+- Two-sided MM inside a neutral MLP band (sonnet): all 12 cells below the champion on round3 (best 535,222 / holdout
+  131,795 vs 540,341 / 138,223); the MM fills are adverse-selected. Killed (exp_r3_mm2.py).
+- Taker slip 1 tick on mm_r3_mlp2 (brain): 471,106 / 449,327 (-69k / -111k). Still terrible with the MLP.
+- Learned slow-direction pull (sonnet, `strategies/exp_r3_slow.py`, 5 s ridge, slw_on 1 / h5 / thr 2, on top of the gate):
+  round3 548,403 (holdout 143,276), mirror 565,627 (138,778), round2 423,061 (107,776) vs mlp2 540,341 / 138,223,
+  560,237 / 137,230, 427,786 / 108,183. Modest; the 30 s hand gate's drift itself correlates slightly NEGATIVELY with
+  future moves (holdout corr -0.05 / -0.14 at 1 s / 5 s). Candidate component.
+- Final-fit MLP (sonnet, `strategies/exp_r3_mlpf.py`): 3-seed ensembles; 75 % fit 551,293 / 560,383 / 429,160 but holdout
+  -4k / -5k on R3 (+6k round2): a wash; 100 % fit loses 19k on round2. Keep the champion's single 75 % MLP.
+- Pre-positioned flip quote on MLP signals (sonnet, exp_r3_pre.py): pre-filled lots mark out -0.65..-5.6 ticks/lot at 1 s;
+  best within noise (540,536 / 560,298 / 427,673). Killed.
+- Taker retune for the MLP (sonnet, ledgers r3w5-tk-*): fq_take_k / pred_scale / pred_blend / mlp_gate / fq_take and a
+  k x blend grid: the champion's holdout sum 275.5k is the maximum; higher k / blend only lift the MLP's training span.
+- MLP v2 (sonnet, `strategies/exp_r3_mlp2.py`): seed ensembles and extra inputs (ioc_sweep50, spread_max100, nev200) stay
+  within seed noise (+-4-6k holdout); B5n ensemble holdout +7.0k / +5.0k / +2.7k on the mm_r3_mlp base = weak evidence;
+  the MLP saturates near holdout corr 0.50.
+- **mq + slow merged** (`strategies/exp_r3_ms.py`, mq_on 1 / mq_b 0.5 / fq_k 0.05 + slw_on 1 / h5 / thr 2): round3 571,801,
+  mirror 582,881, round2 425,385; holdout 142,962 / 142,490 / 107,993 (mlp2 540,341 / 560,237 / 427,786; 138,223 /
+  137,230 / 108,183). mq alone (fq_k 0.05): 564,095 / 579,779 / 433,861, holdout 138,214 / 140,903 / 109,906.
+
+## 2026-11-08 03:09 — Best R3 file now: mm_r3_ms = 573,111 / 589,261 / 428,199 (home)
+
+- **`strategies/mm_r3_ms.py`** = mm_r3_mlp2 + MLP in the passive quote signal (mq_on 1, mq_b 0.5, fq_k 0.1) + learned 5 s
+  direction pull (slw_on 1, h5, thr 2): round3 **573,111**, mirror 589,261, round2 428,199; holdout 143,885 / 142,614 /
+  107,749 (mlp2 540,341 / 560,237 / 427,786; holdout 138,223 / 137,230 / 108,183); 8/8 chunks; check PASS 4.3 min.
+  Expected leaderboard ~ x1.6 of the local gain: ~ +50k over mlp2's 864,770.
+- Wide-feature MLP (sonnet): all 73 features +0.014 holdout corr / +1.6 % edge, the exactly-online subset ~ +0.005:
+  stopped. The 22-feature MLP holds most of the information; prediction gains now need new information, not models.
+- Raw-book-state MLP (sonnet, research/diag/mlpr_r3.py): 22 features + 77 raw book/trade columns, best holdout corr
+  0.5016 (+0.009), edge per take up but take rate down: stopped. Conclusion of the predictor wave: the 22-feature MLP
+  extracts nearly all short-term information we can see online (all model variants land at corr 0.49-0.51).
+- Regime-adaptive thresholds (sonnet, `strategies/exp_r3_vol.py`, on mlp2): vol_a_pas 0.5 + vol_a_rt 1.0 (stricter passive
+  lean and longer retreat pause when the 2 s volatility is above its 300 s baseline): round3 546,156 / mirror 560,277 /
+  round2 435,531, holdout 140,157 / 140,245 / 108,139 (mlp2 138,223 / 137,230 / 108,183). Taker and gate scaling: no.
+  Merging onto mm_r3_ms as `strategies/exp_r3_msv.py` (test running).
+- vol-adaptive on top of mm_r3_ms (`exp_r3_msv.py`, vol_on 1): 563,368 / 575,500 / 440,045, holdout 145,305 / 143,677 /
+  106,960 vs ms 573,111 / 589,261 / 428,199 (143,885 / 142,614 / 107,749): a wash, not used.
+- Decision-point classifier (sonnet, `exp_r3_dpc.py`): ridge veto / force fail the holdout; a depth-3 GBM veto lifts the
+  R3 holdouts +1-3k but loses 1-3k on round2 and is non-monotone in its threshold. Killed.
+- Leaderboard R3: `mm_r3_ms` **925,809.20** (20,241 filled orders, penalty 1,336, sim 2:50): +61k over mlp2 (x1.62).
+- 500 ms MLP for the quote signal (sonnet, `exp_r3_mlpq.py`; merged onto ms as `exp_r3_msq.py`, mq_h 500): round3 571,085 /
+  mirror 595,553 / round2 439,016, holdout 144,549 / 143,063 / 109,960 (ms 573,111 / 589,261 / 428,199; 143,885 / 142,614 /
+  107,749): all holdouts up a little, round2 +10.8k -> `strategies/mm_r3_msq.py`.
+- Flip anatomy of mm_r3_ms on round3 (sonnet, research/diag/flips_r3.py): 4,241 flips; taker flips 2,022 = +517,916
+  (+256 per flip, entry cost -0.62/lot, 1 s markout +1.19), passive flips 1,850 = +2,364 (zero edge), mixed 369 = +44,673;
+  hindsight whipsaws (next flip < 0.5 s) -75,686. Taker flips are positive in every bucket (signal, spread, time since
+  last flip, gate, hole). Capping weak-signal passive flips (exp_r3_flp.py) lifts the round3 holdout but loses on mirror
+  and round2: killed. The profit engine is the taker's precision x frequency.
+
+## 2026-11-08 03:32 — mm_r3_gru = 634,519 / 624,778: streaming GRU taker predictor on the msq stack (+11 %) (home)
+
+- GRU sequence model (opus, `research/diag/seq_r3.py`, `strategies/exp_r3_seq.py`): 16-hidden GRU over 13-dim per-event
+  tokens (touch moves, queue changes, trades, spread, imbalance) + the 22 hand features -> 38-64-32-1 head, 200 ms target,
+  round3 + mirror first 75 %; the strategy runs it streaming (numpy, one state carried over the tape). On mm_r3_mlp2:
+  596,312 / 601,063, holdout 146,413 / 147,821, round2 426,965. First model to beat the MLP's ~0.50 holdout corr.
+- **`strategies/mm_r3_gru.py`** = mm_r3_msq + the GRU taker (merge file `exp_r3_msqs.py`, seq_on 0 reproduces msq
+  exactly): round3 **634,519**, mirror 624,778, round2 437,941; holdout 156,075 / 157,441 / 109,156 (msq 571,085 /
+  595,553 / 439,016; holdout 144,549 / 143,063 / 109,960); 8/8 chunks on all three; check PASS 6.7 min (45 us/event).
+  Expected leaderboard ~ +100k over mm_r3_ms (925,809) at the usual x1.6.
+- slow / mq retune on mm_r3_ms (sonnet): slw_on 2 (h5, thr 2) holdout +2.3k / +1.4k / round2 +1.4k but full round3
+  -10.7k; mq_b 0.5, fq_k 0.1, slw_thr 2, slw_h 5 are at their optimum.
+- Running: GRU v2 (opus, due 04:40: streaming-consistent training, larger hidden, a 500 ms head for the quotes);
+  taker retune and GRU / MLP mix on mm_r3_gru (brain).
+
+## 2026-11-08 03:50 — mm_r3_gru on the leaderboard: 976,148 (+50k over ms); oracle ceilings; small knobs (home)
+
+- Leaderboard R3: `mm_r3_gru` **976,148.00** (17,571 filled orders, penalty 750, sim 4:39.6, board pnl standard error
+  55,390): +50k over mm_r3_ms (925,809), leaderboard / local x0.82 on the gain (usual x1.6). Fewer fills than ms (20,241):
+  the GRU takes less often. Laptop reproduced the local numbers and estimates ~4:00 board runtime.
+- Taker oracle on mm_r3_gru, round3 (research/diag/oracle_pred_r3.py, taker signal replaced by the true future move,
+  quotes untouched): perfect 205 ms predictor **1,004,210** (x1.58), 30 % oracle + 70 % GRU 845,475 (x1.33), perfect
+  1005 ms 736,304 (x1.16). With our execution (touch-only IOC flips, +-100) even a perfect predictor is x1.6: a 2x team
+  must also differ in mechanics, not only in prediction. Each +0.01 holdout corr is worth roughly +3-5 %.
+- On mm_r3_gru (round3 / mirror, holdout in brackets; champion 634,519 (156,075) / 624,778 (157,441)):
+  pred_blend 0.6 / 0.8 x fq_take_k 0.15 / 0.25 all lower (mirror holdout -4..-9k); seq_mix 0.8 / 0.5 lower; mlp_gate 0.1 /
+  0.2 within noise; slw_on 2 mixed (mirror -8.8k, round2 +4.4k); quotes from the GRU 200 ms output (mq_h 0) -12k / -8k.
+- Price-aware taker (`strategies/exp_r3_sweep.py`, IOC limit up to floor(F_hat - k), sw_max 1 / 3): identical within
+  100 (the take is almost always marginal: F_hat is rarely a full tick beyond the touch). Killed.
+- Passive retune on mm_r3_ms (sonnet): gate_thr 14 up on all three tapes (holdout +1.5k / +1.3k, round2 +5.6k); rt_ms 200
+  +3-7k on round3 but -14k round2; fq_k_sp2 1.2 trades full pnl for holdout; fq_k_sp3, qs_k at optimum; hk_k no effect.
+  On mm_r3_gru gate_thr 14: round3 638,024 (157,152), mirror 625,673 (158,439), round2 447,035 (112,310): up on all six.
+- Taker oracle horizon scan on mm_r3_gru, round3 (perfect future move, blend 1): 105 ms 959,607; 205 ms 1,004,210;
+  405 ms 969,863; mean of 205 + 1005 ms 953,087; **mean of 105 / 205 / 305 / 405 / 505 ms 1,065,749** (best). Quote-side
+  oracle (pred_raw = perfect 505 ms move, real GRU taker) 758,642 (+124k); taker 205 + quote 505 oracles 1,106,631.
+  A perfect predictor with our execution is x1.6-1.75: +200k local needs a new mechanism, not only a better model.
+  Next: GRU retrained on the averaged 0.1-0.5 s target (research/diag/seqt_r3.py; target corr with y200 0.88).
+- Generator reverse-engineering (opus, research/diag/gen2_r3.py, strategies/exp_r3_oraf.py / exp_r3_genf.py): exact F
+  is not the 2x. Present F as the taker signal loses (-1.1M at k 0.2, best +138k at k 3); F 150 ms ahead (look-ahead)
+  746k (+18 %); online F evidence added to the GRU: genf_w 0.1 533k / 535k (-100k), round2 +11k. IOCs are informed about
+  F's FUTURE (buy IOC: F +0.30 in 200 ms, 400+ lots +1.0); the GRU already sees them through trades. Card: 196 inserts/s
+  per tape, 9.4 IOC/s, lognormal lifetimes (median 317 ms, not F-dependent), 38.6 % of inserts clamped at far touch - 1.
+- Quote-side oracle targets on mm_r3_gru: 505 ms 758,642; mean 105..505 734,080; 1005 ms 776,454; mean 305..905 777,157:
+  longer targets suit the quotes.
+- GRU on the averaged 0.1-0.5 s target (`strategies/exp_r3_tw.py`, research/diag/seqt_r3.py) vs a fresh 200 ms GRU with
+  the same training run (control) vs mm_r3_gru2 (638,024 (157,152) / 625,673 (158,439) / 447,035 (112,310)):
+  tw k 0.2: 632,729 (152,044) / 614,680 (148,448) / 461,146 (119,684); tw k 0.35: 611,969 / 634,909 / 431,211;
+  control: 617,206 (151,809) / 640,056 (154,114). Not adopted: the R3 holdouts do not rise. Retraining the same GRU moves
+  the holdout by +-5k and the full tape by +-20k, so the exported GRU in mm_r3_gru is partly a lucky seed; a seed
+  ensemble would trade runtime for robustness.
+- Subagents stopped by the user at 04:06 (order-flow GRU, quote GRU); not relaunched.
+
+## 2026-11-08 04:22 — final R3 swarm running; GRU capacity sweep: nothing beats the 16-hidden GRU (home)
+
+- 04:10 six agents (reports 05:15): order-flow token GRU (opus), quote GRU on a 0.3-0.9 s / 1 s target (sonnet), taker GRU
+  seeds / ensembles / streaming-consistent training (opus), queue position and execution (opus), flip hysteresis (sonnet),
+  passive side with the GRU (sonnet). Base for all: mm_r3_gru2.
+- GPU sweep of the taker GRU (seed 0, 200 ms target, LITE tokens; STREAM holdout corr round3 / mirror, edge sum at
+  spread/2 + 0.2): h16 T128 6 ep (control) 0.4986 / 0.4931, 227k; 10 ep 0.4842 / 0.4830; h24 0.4611 / 0.4657; h32 0.4703 /
+  0.4526; T256 0.4918 / 0.4771; lr 1e-3 x 10 ep 0.4995 / 0.4979, 234k. Larger GRUs get worse when run streaming (window
+  training from a zero state); the exported GRU (0.505) stays.
+- Passive fills of mm_r3_gru2 split by the GRU prediction at fill time (sonnet, research/diag/pfill_r3.py): fills against
+  the GRU lose 43k at 1 s, fills with it earn 52k; a passive veto (exp_r3_pgru.py, pv_k) is being tested.
+- 04:30-04:41 results on mm_r3_gru2 (round3 / mirror (holdout); base 638,024 (157,152) / 625,673 (158,439) / round2
+  447,035 (112,310)):
+  - quote-blend pg_b 0.2 641,917 (157,462) / 620,329 (151,668); pz_k 0.1 / 0.25 lower; passive veto pv_k 0.12 / 0.25
+    -49k / -27k (exp_r3_pgru.py): the GRU does not help the passive side.
+  - rt_ms 150 / 170, fq_k_sp2 1.2 / 1.5: all within +-2.5k (noise).
+  - Zombie undo (`strategies/exp_r3_undo.py`, reverse an adverse passive fill with an IOC at the fill price): uf_k 0 -34k /
+    -27k, 0.15 -13k / +10k, 0.4 +1k / +1k. The undone fills still carried spread; no gain.
+  - Order-flow token GRU (opus): STREAM corr +0.004..0.006, edge +11-14k offline; not built (below the +0.015 gate).
+  - Quote GRU head on a 0.3-0.9 s target (sonnet, `strategies/exp_r3_qgru.py`): holdout +1.3k / +0.9k, round2 -1.4 %.
+  - GRU ensembles: the agent's block GRU (exp_r3_ens2.py, offline corr 0.506 -> 0.515) sqn 3: 627.6k (158.2k) / 621.6k
+    (157.0k) / round2 456.1k (116.2k); brain's 3-member block ensemble (`strategies/exp_r3_ensb.py`, ens_n 2): 614,923
+    (153,412) / 627,511 (156,310); x1.15 scale no better. Offline corr gains do not reach pnl.
+  - pred_scale 0.85 / 0.93 / 1.15 all lower on every holdout: 1.0 is a sharp optimum (the stack sits on a tuned peak of
+    the public tape).
+- 04:45-04:55: queue agent (opus, research/diag/frontq_r3.py, strategies/exp_r3_queue.py): front-of-queue ceiling round3
+  834,093 (+196k, holdout 205,786 vs 157,152), mirror +215k, round2 +256k, almost all passive (small takers that the
+  replay sends to the orders queued ahead of us); every practical attempt lost (fq_tol, pre-place, park 100 / 50 / 20,
+  qa_max, fq_inside, layering, keeping front quotes); taker IOC fill rate 65 % (thin touch, not latency: 2.3 % late).
+  Hysteresis (exp_r3_hyst.py): hy_only 1 / 50 ms / 0.2 +12.6k / +11.0k full but holdout +1.2k / +0.0k (train part only).
+  Touch fragility from order ages (exp_r3_frag.py): negative (lognormal hazard falls with age). GRU ensemble (opus,
+  exp_r3_ens2.py, 4 extra GRUs fused, check 7.5 min): holdout within +-2k. Running until 05:35: reservations
+  (exp_r3_res.py), front-fill dissection (exp_r3_qcap.py), longer-lived quotes (exp_r3_flive.py), state-dependent take
+  thresholds (exp_r3_tk2.py), round2 + round3 GRU (exp_r3_gx.py), take veto (exp_r3_veto.py), partial-flip completion
+  (exp_r3_rem.py), GRU fine-tune on 100 % (exp_r3_gft.py). R4 plan: docs/r4_plan.md.
+
+## 2026-11-08 05:03 — upload candidate mm_r3_gru3 = 653,327 / 639,714 (home)
+
+- **`strategies/mm_r3_gru3.py`** = mm_r3_gru2 + rt_ms 150, fq_k_sp2 1.5 and a 50 ms hysteresis after passive flips
+  (hy_only 1, hy_ms 50, hy_k 0.2; from exp_r3_hyst.py): round3 **653,327**, mirror 639,714, round2 447,310; holdout
+  157,925 / 158,799 / 112,106 (gru2 638,024 / 625,673 / 447,035; holdout 157,152 / 158,439 / 112,310). Parity of the baked
+  file verified; check PASS 6.7 min. The full-tape gain (+15k / +14k) sits mostly in the training span (holdout +0.8k /
+  +0.4k), so the leaderboard gain may be smaller than x1.6.
+- rt_ms 150 + fq_k_sp2 1.5 alone: 641,508 (157,166) / 628,681 (159,008) / 447,032 (112,192).
+- Learned take veto (opus, exp_r3_veto.py): decision-level gains vanish in the strategy (a vetoed crossing re-fires a few
+  events later); holdout +0.2..1.1k. GRU fine-tune on 100 % (sonnet, exp_r3_gft*.py): -2.5 % round3, -3.5..-4.5 % round2.
+- Multi-regime GRU (opus, `strategies/exp_r3_gx.py`, research/diag/mlp2x_r3.py; round3 + round2 + mirrors): round2 holdout
+  +5..7k on 3 seeds (+14 % taker edge) but round3 / mirror holdout -3..-11k: not for R3, noted as R4 insurance.
+  Partial-flip completion (sonnet, exp_r3_rem.py): join / retake / wait all neutral or worse (45 % of takes fill partially,
+  ~59 of ~170 lots; the remainder fills 0.31 tick better later, so the cost is delay, not price).
+
+## 2026-11-08 05:15 — mm_r3_gru3 on the leaderboard: 984k; upload candidate mm_r3_gru4 (home)
+
+- Leaderboard R3: `mm_r3_gru3` ~**984k** (+8k over mm_r3_gru): the full-tape gain was mostly in the training span; the
+  holdout gain (+1.2 %) predicted the board gain better than the full tape (+3 %). Judge by holdout from now on.
+- **`strategies/mm_r3_gru4.py`** = mm_r3_gru3 + the 500 ms quote head on the taker GRU state blended 50/50 with MLPQ[500]
+  (exp_r3_qgru: qg_on 1, qg_set 0, qg_mix 0.5) + direction memory hp_ms 300: round3 653,817 / mirror 640,477 / round2
+  443,678; holdout **159,531 / 159,874 / 113,023** (gru3 157,925 / 158,799 / 112,106): holdout up on all three tapes,
+  round2 full -0.8 %. Parity verified; check PASS 6.9 min. Variants (exp_r3_g4.py): long-target head 659,404 (158,836) /
+  641,039 (159,307) / 442,700 (112,686); 500 ms head without hp 654,177 (158,841) / 642,078 (159,617) / 443,246 (112,882).
+- Take-threshold state rules (sonnet, exp_r3_tk2.py: spread 2 / 3 margins, thin touch, hole, recent take): nothing beats
+  the flat fq_take_k 0.2.
+- **`strategies/mm_r3_gru5.py`** = mm_r3_gru4 + learned take veto (veto_thr 0.54, exp_r3_veto) + keep a near-front touch
+  quote at spread >= 2 (qc_ahead 30, qc_rules 16, exp_r3_qcap): round3 653,402 / mirror 638,600 / round2 454,954; holdout
+  **160,710 / 160,437 / 116,311** (gru4 159,531 / 159,874 / 113,023; gru3 157,925 / 158,799 / 112,106). Parity verified,
+  check PASS 6.8 min. Veto 0.54 alone on gru4: holdout +0.7k / +0.3k / 0; 0.47: +2.8k / -0.8k.
+- Front-fill dissection (opus, research/diag/frontq2_r3.py): the +196k front-queue upside is mid-size takers (51-200 lots)
+  eating the front of queues where our order is already live behind market lots; no pull-rule change reaches it
+  (exempting near-front quotes at spread >= 2 is the only small plateau). Longer-lived quotes (sonnet, exp_r3_flive.py):
+  only the gate / slow-pull exemption near the front helps a little (fl_gate, fa_q 150: +5.8k / +4.2k / +5.8k full,
+  holdout +0.5k / +0.3k / +1.9k on gru2); the other exemptions lose.
+- Reservation orders / early seat (opus, exp_r3_res.py): a small persistent order on the inventory-reducing side climbs
+  the queue, but its fills are +0.1-0.2 tick at 100 ms and adverse by 1 s (they also push inventory off +-100 and displace
+  taker flips); every setting is within +-2k or loses up to 82k. The front-queue ceiling needs being first at once, which
+  no strategy can buy in this replay. Final R3 candidate: **mm_r3_gru5**.
+
+## 2026-11-08 05:30 — R3 final: mm_r3_gru3 (leaderboard 984k) (home)
+
+- Leaderboard R3: `mm_r3_gru5` **970k** (gru3 984k, gru 976,148): its holdout gains over gru3 (+2.8k / +1.6k / +4.2k
+  from the quote head, hp_ms, take veto and the near-front keep rule) did not transfer; -14k on the board.
+- **Final for R3: `strategies/mm_r3_gru3.py` (984k)**, chosen by the humans.
+- Lesson for R4: holdout gains of a few thousand on the public tape are noise for the board; only structural steps
+  (refits of the learned stack, a new model class) moved the board in R3 (pms 675k -> g2 773k -> mlp2 865k -> ms 926k ->
+  gru 976k -> gru3 984k). Stacking many small holdout-positive tweaks overfits the public tape.
+- 05:39 last-minute candidate **`strategies/mm_r3_gru6.py`** = mm_r3_gru3 + skip the gate / slow-model pulls for a flip
+  quote with < 150 market lots ahead (fl_gate 1, fa_q 150; exp_r3_flive via exp_r3_g8.py): round3 659,206 / mirror 643,395
+  / round2 453,365; holdout 159,022 / 158,886 / 114,288 (gru3 653,327 / 639,714 / 447,310; holdout 157,925 / 158,799 /
+  112,106): up on all six numbers; fa_q 400 similar. Parity verified, check PASS 6.5 min.
+
+## 2026-11-08 06:05 — R3 final result: 12th of 53 (home)
+
+- Final R3 ranking (private evaluation of the marked final mm_r3_gru3): p<0.05 **12th, 874,971.48** (public board 984k,
+  x0.89). Field: 53 teams, mean 681k, std 298k (pnl <= 0 counted as 0) -> our z3 = +0.65. Top 5 from 1,073,870 (z +1.32),
+  1st delfini 1,458,005 (z +2.61), 10th 929,224. Third round in a row at 12th; score so far 0.8 z1 + z2 + z3 ~ 1.32 + 0.65.
+- R4 (weight 1.2) needs a top-5 round (~+0.7 z over this one) to move up: structural steps only (docs/r4_plan.md).
+- Overall after R3 (brain's computation per docs/kontext.md: z over teams with PnL > 0, population std, PnL <= 0 or
+  missing = 0; weights 0.8 / 1.0 / 1.0): p<0.05 **13th of 61, total +1.95** (z1 +0.56, z2 +0.87, z3 +0.63). 11th Girls Just
+  Wanna Have Funds +2.03, 12th quantový mouchy +1.98, 10th Kto je tvaroh nie je človek +2.30, 5th Olexa namichej +3.92,
+  1st delfini +5.95. R4 (weight 1.2): beating the 10th needs ~+0.29 z more than them in R4.
+
+## 2026-11-08 06:40 — R4 prep: one-command refit pipeline works (home)
+
+- `research/retrain.py` (+ retrain_feats.py, retrain_torch.py; written by the stopped retrain agent at 03:39): fixed the
+  torch steps (research/profile.py shadowed the stdlib `profile` that torch imports; the torch half now runs as
+  `-m research.retrain_torch`). Round3 run: 47 s with cached features. `strategies/exp_r4_auto_r3.py` (seed 0, base
+  mm_r3_gru): 614,277 (150,909) / 634,721 (152,896) / 427,579 (110,425) vs mm_r3_gru 634,519 (156,075) / 624,778
+  (157,441) / 437,941 (109,156): within seed noise. Command and R4 steps in docs/r4_plan.md.
+
+## 2026-11-08 07:09 — R4 kickoff: insurance mm_r4_ins (refit stack) (home)
+
+- R4 tape: data/round4.csv (team release data-round4), 2,398,520 rows, 0-6000 s, 10001 -> 9562. Kickoff
+  (research/r4_kickoff.sh) took 4.5 min end to end; refit 68 s per seed.
+- Baselines on round4 / mirror (holdout): mm_r3_gru3 1,027,483 (189,536) / 1,036,706 (203,350); exp_r3_gx (multi-regime
+  GRU) 1,029,872 (201,390) / 1,045,241 (207,302); mm_r3_ms 995,825 (184,339) / 1,012,732 (202,309); mm_r2_final 855,981
+  (160,300) / 853,874 (160,363). The R3 stack transfers well: R4 looks like the R3 generator.
+- Refits (base mm_r3_gru3, all tables on round4 + mirror first 75 %), round4 / mirror / round3 (holdout): seed 0 1,050,120
+  (208,464) / 1,051,958 (208,532) / 576,047; seed 1 1,016,811 (200,591) / 1,034,188 (209,629) / 578,786; **seed 2
+  1,060,473 (211,755) / 1,045,062 (209,103) / 574,917**.
+- Ceilings on round4 (mm_r3_gru3): perfect 205 ms taker 1,485,864 (x1.45), perfect 1 s quotes 1,191,308 (+164k).
+- **Insurance: `strategies/mm_r4_ins.py`** = refit seed 2; check PASS 6.5 min per 8.8M rows (R4 tape 2.4M rows).
+- R4 refit seeds (round4 / mirror, holdout in brackets; base mm_r3_gru3): s0 1,050,120 (208,464) / 1,051,958 (208,532);
+  s1 1,016,811 (200,591) / 1,034,188 (209,629); s2 1,060,473 (211,755) / 1,045,062 (209,103); s3 1,011,794 (201,104) /
+  1,046,941 (210,914); s4 1,056,585 (212,851) / 1,053,096 (209,775); s5 1,058,047 (211,369) / 1,036,665 (214,172).
+  Holdout sum mean 418.0k, sd ~5.6k; every seed beats the unrefitted gru3 (392.9k) by ~+25k (+6 %): the refit is the
+  robust step, the seed choice is noise. Running (due 08:45): GRU on round3 + round4 data (opus), hand-parameter retune
+  for R4 (sonnet).
+- **Walk-forward (laptop's suggestion): the R4-only refit is NOT robust.** data/round4p75.csv = round4 rows with Time <
+  4500 s; refit on its first 75 % (0-56 % of round4), tested on its last 25 % (56-75 %), holdout round4p75 / mirror:
+  mm_r3_gru3 (R3-trained, no refit) **240,675 / 241,518**; refit s0 236,009 / 236,394; s2 234,158 / 228,867; s4 232,430 /
+  236,270. The +25k of the refits on the last 25 % is slice-specific (that slice rebounds after a long fall). Keep
+  mm_r3_gru3 as the R4 insurance; candidates must beat it on both slices. Agents told to judge on both slices.
+- R4 anatomy (sonnet, research/diag/anat_r4.py) of mm_r3_gru3: round4 = round3's book (same event rates, spread 1 tick
+  82 %, touch queues, trade sizes) with 1.4x the 1 s, 1.9x the 10 s and 1.6x the 60 s mid volatility (persistent moves).
+  pnl 1,027k on 2,937 flips (round3 653k on 3,739): taker flips 864k (699 per flip vs 346), passive 95k, whipsaws -31k;
+  holds >= 10 s earn 178k from 61 flips; no 10-minute block loses (41k-173k), block pnl tracks mid path length (corr
+  0.94), not drift direction. Hypothesis: the R3 predictors understate R4's moves -> pred_scale / threshold test added
+  to the parameter agent's grid.
+- **Non-GRU tables on round3 + round4 (sonnet, research/retrain_multi.py): robust on both slices.** `strategies/exp_r4_mix.py`
+  (R3 GRU kept; ridge, slow, MLP, quote MLP fitted on round3 all + round4 0-75 %): slice A holdout 198,187 / 210,039
+  (gru3 189,536 / 203,350: +15.3k); `exp_r4_mix_wf.py` (round3 + round4 0-56 %): slice B 240,040 / 249,204 (gru3 240,675 /
+  241,518: +7.1k, all on the mirror) and slice A 197,537 / 209,052. Baked as `strategies/mm_r4_mix.py` (R4 candidate).
+- Cross-regime ensemble (sonnet, `strategies/exp_r4_xens.py` / `_wf.py`: R3 stack and R4-refit stack run side by side,
+  outputs blended by xw; check 8.5 min per 8.8M): holdout sums tape + mirror, slice A / slice B (gru3 392,887 / 482,193):
+  xw 0.3 425,166 (+32.3k) / 487,930 (+5.7k); xw 0.5 428,398 (+35.5k) / 484,811 (+2.6k); xw 0.7 +30.6k / -12.4k; xw 1
+  (R4 only) +28.0k / -19.2k. As with mm_r4_mix, the slice-B gain sits on the mirror (tape flat); the A gain of
+  R4-weighted models is partly slice-specific (the R4-only refit also gains +28k on A).
+- 08:05 GRU on R4 + R3 + R2 (opus, strategies/exp_r4_gx.py, scratchpad gx/): STREAM corr +0.01..0.02 but pnl within
+  seed noise; the walk-forward weakness of the R4 refit comes from the refitted NON-GRU tables. mm_r4_mix + that GRU:
+  slice A 429,076 / 427,160 (seeds 0 / 1) but slice B 475,894 / 482,734 / 476,339 (gru3 482,193, mix_wf 489,244): not used.
+- Taker signal scale (R4 moves are larger), holdout sums tape + mirror, slice A / slice B: gru3 x1.0 392,887 / 482,193;
+  gru3 x1.3 424,979 / 479,141 (full round4 +29.5k, mirror +19.4k, fully out of sample; round3 -19.5k); mm_r4_mix x1.0
+  408,226 / 489,244 (mix_wf); **mm_r4_mix x1.15 430,493 / 484,726**; mm_r4_mix x1.3 435,948 / 478,484. The scale helps
+  on the first 56 % and the last 25 % but not on the 56-75 % span.
+- **Volatility-scaled thresholds on gru3 (brain)**: with pred_scale 1.3, gate_thr 14 -> 24 and slw_thr 2 -> 3 (R4's
+  10-60 s volatility is 1.6-1.9x round3's): round4 **1,072,906 (216,316)**, mirror **1,071,650 (217,670)**, round4p75
+  holdout 246,094 / 241,362 vs gru3 1,027,483 (189,536) / 1,036,706 (203,350) / 240,675 / 241,518: +45k / +35k on the
+  fully out-of-sample tapes, both slices up; each part adds on its own (x1.3 alone 1,056,986 / 1,056,124; + gate 24
+  1,064,607 / 1,067,051; + slw 3 alone 1,064,423 / 1,061,374).
+- Minutes-scale trend tilt (opus, exp_r4_trend.py): no consistent offline sign at 1-15 min; taker tilts lose in both
+  directions; trend-following passive quotes fit only round4's down-leg (round3 / round2 -3..-39k). Rejected.
+- Volatility set neighbours on gru3 (round4 / mirror full; holdout): x1.3 + gate 24-32 + slw 3-4 all 1,069-1,075k /
+  1,069-1,072k (plateau); x1.45 lower on the mirror (1,055-1,058k). mm_r4_mix + gate 24 + slw 3: x1.15 slice A 222,726 /
+  222,767, slice B (mix_wf) 241,953 / 249,133; x1.3 A 224,232 / 226,042, B 241,015 / 242,713.
+- **R4 candidate `strategies/mm_r4_mixv.py`** = mm_r4_mix + pred_scale 1.15, gate_thr 24, slw_thr 3: round4 1,090,202
+  (holdout 222,726), mirror 1,087,684 (222,767), round3 619,879 (154,974), round2 449,699 (118,841); walk-forward twin
+  on slice B 241,953 / 249,133. vs mm_r3_gru3: round4 1,027,483 (189,536), mirror 1,036,706 (203,350), round3 653,327
+  (157,925), round2 447,310 (112,106), slice B 240,675 / 241,518. check PASS 6.4 min. Quote scale fq_scale 1.15 / 1.3:
+  no gain.
+
+## 2026-11-08 08:40 — radys -> home: task list (radys)
+- **Home brain: read `docs/r4-tasks-from-radys.md` before the next agent wave.** Tested dead on R4 by radys: sweep riding
+  (offline +2.7 ticks @500 ms after latency, but sim -4.5 %: the GRU already trades it), IOC past the touch (no change),
+  30 ms insert-price fair leak, cancel imbalance, R4 MLP taker instead of the GRU (same pnl). Proposed next: vol-scaled
+  hysteresis on the taker (T2), queue priority (T3). Current upload pick: mm_r4_mix x1.15.
+- Laptop verification of mm_r4_mixv (b6903e0): numbers identical; vs mm_r3_gru3 round4 +62.7k (8/8 chunks, holdout
+  +33.2k), mirror +51.0k (7/8, +19.4k); walk-forward twin on round4p75 7/8 and 7/8 chunks (holdout +1.3k / +7.6k);
+  round3 -33.4k (4/8, holdout -3.0k), round2 +2.4k (+6.7k). Caveat: the three volatility parameters were chosen on the
+  full round4, so slice B is not clean for them (smooth plateau, three principled parameters). Recommended as the R4 upload.
+- Volatility-adaptive version (opus, interim, `strategies/exp_r4_vol.py` on gru3): EWMA (hl 600 s) of clipped squared
+  1 s mid changes over a round3 reference; pred_scale = clip(r^1.25, 1, 1.6), gate / slw x clip(r^2, 1, 2.2): round4
+  1,077,589 (214,637), mirror 1,072,770 (214,279), round3 653,703, round2 448,508 (both unchanged), round4p75 holdout
+  245,057 / 235,676. Porting onto mm_r4_mix next.
+- Mix-table variants (sonnet; slice A tape / mirror hold, slice B tape / mirror hold; base mixv 222,726 / 222,767,
+  241,953 / 249,133): + round2 data 224,128 / 217,108, 244,658 / 252,383 (round3 -17k); MLP seed 1 222,792 / 222,695,
+  246,256 / 248,524; seed 2 222,410 / 222,886, 244,074 / 249,545: all within noise. More round4 data (0-56 % -> 0-75 %
+  fit) moved slice A +6.9k / -0.7k: weak evidence. `strategies/mm_r4_mixv_full.py` (round3 + ALL round4) built but
+  unvalidatable (round3 609,336, round2 449,734, check PASS 7.0 min). Keep mm_r4_mixv.
+- T4 / T2 on mm_r4_mixv (opus, exp_r4_lock.py / _wf.py): T4 drift lockout dead offline (flips AGAINST the 10 s drift
+  mark out best: +2.8 / +3.1 ticks at 5 s); vol-scaled hold bias loses monotonically (hb_k 0.1 -> -8.6k slice A);
+  symmetric vol-elastic take threshold flat; lower-only elastic (el_g 1, el_lo 0.5, el_hi 1) +2.4k slice A, +2.1k
+  slice B, round3 +7.3k, round2 +2.8k: positive everywhere but below the noise bar, not adopted. radys (server):
+  mm_r4_mix x1.15 = 1,720,970 on the R4 server backtest (server / local 1.62), uploaded as final; T4 and IOC past the
+  touch dead in his sims too.
+- Volatility-adaptive on mm_r4_mix (opus, exp_r4_vol_mix.py, vn_a 1.0 / vn_g 3.0): slice A 222,460 / 223,394, slice B
+  243,200 / 248,978 (= mixv), round3 631,068 (+11k) but round2 424,071 (-26k): volatility cannot separate round2 from
+  round3; not adopted.
+- Volatility-adaptive on mm_r4_mix, final set (opus, `strategies/exp_r4_vol_mix.py` + `_wf.py`; vn_hl_s 1200, vn_a 1.0,
+  vn_g 3.0, vn_ref 3.70, floors 1.0): slice A 224,102 / 225,078, slice B 244,891 / 247,980 (mixv 222,726 / 222,767 and
+  241,953 / 249,133: +4.9k summed, noise), round3 631,580 (+11.7k, the mechanism never fires there), round2 423,818
+  (-25.9k: round2 has LOWER volatility than round3 yet prefers mixv's static knobs). Kept mm_r4_mixv (simpler, verified,
+  better on the third regime).
+- Volatility-normalised GRU (opus, `strategies/exp_r4_vnorm.py` / `_wf.py`, vn_mode 2: 2-seed GRU on vol-normalised
+  inputs and target, trained on round3 + round4 0-75 %): round4 1,068,715 (217,217), mirror 1,065,113 (208,472),
+  round3 651,067 (kept), round2 428,184; slice B 240,851 / 236,541: the mirrors lose on both slices. Not adopted.
+- mm_r4_mixv vs the uploaded final mm_r4_mix x1.15 (server 1,720,970), research.compare: round4 +29,937 (holdout +8,106,
+  **8/8 chunks**), mirror +29,074 (+6,894, **8/8**), round2 +16,277 (+6,604, 6/8). The only REJECT reason is the small
+  by-design breach penalty (rule 1). The gate / slow-threshold changes add in every chunk.
+- **Server (radys' note): mm_r4_mixv = 1,763,582, now the R4 final** (mm_r4_mix x1.15 was 1,720,970; +42.6k, the
+  predicted x1.62 of the local gain). Launched T7 (GRU seed ensemble on round3 + round4 into mixv) per radys' list.
+- Slow model in the taker (sonnet, exp_r4_slt.py): signal blend loses monotonically, reverse-flip veto loses, entry veto
+  noise. Head-only retrain on the frozen R3 GRU (sonnet, exp_r4_head.py / _wf.py): offline corr +0.02, slice A +2..6k but
+  slice B -2..-13k for every head at x1.15. Neither adopted.
+- Forward move-size model (opus, exp_r4_msz.py / _wf.py; |dmid| over 1 s from 8 causal inputs, holdout Spearman 0.49):
+  lowering fq_take_k only when a SMALL move is expected (ms_g -0.6, hi 1, lo 0.3) +2.9k slice A, +2.4k slice B, round3
+  +5.8k, round2 +6.7k; taking more readily on big expected moves loses. Consistent but ~0.5 %, the same effect as the
+  lower-only elastic threshold; below the team's 3 % bar, not adopted.
+- T7 GRU seed ensemble on round3 + round4 into mixv (opus, exp_r4_ens.py / _wf.py, block-diagonal, 2-3 new seeds +
+  the R3 GRU): offline STREAM corr +0.022..0.032 (passes the gate) but slice A +0.9..1.0 %, slice B -0.2..-2.1 % at every
+  pred_scale; plain mixv at x1.3 already matches it on slice A. Stopped before T8 (radys measured MLOFI dead too).
+- Oracle-gap dissection (opus, exp_r4_gap.py / _wf.py): mixv 1,090,202 vs the 205 ms oracle 1,479,660 on round4; the gap
+  is which side we hold (passive edge equal); our takes are accurate but late (median 200 ms = predictor latency) or
+  missed with the model pointing the other way: ~85-90 % of the gap is predictor latency. Reachable piece: a TWO-TIER
+  take (signal within ht_d of the threshold against our position -> flatten to ht_tgt instead of waiting): ht_d 0.12 /
+  tgt 0: slice A 225,405 / 226,654 (+6.6k), slice B 245,010 / 248,950 (+2.9k), round3 628,899 (+9.0k), round2 459,640
+  (+9.9k), full-file up on every tape, 8/8 chunks. Baked as **`strategies/mm_r4_mixv2.py`** (parity round4 1,103,894
+  (225,405) / mirror 1,100,097 (226,654); check PASS 6.7 min) for a server comparison against mixv (1,763,582).
+- Per-component scales (opus, interim, exp_r4_comp.py): quote-MLP scale cs_q 1.6 + mlp_gate 0.2: slice A 222,945 /
+  235,704 (+13.2k, almost all on the mirror), slice B 244,231 / 252,301 (+5.4k), round2 +6.6k, round3 -3.6k.
+- **`strategies/mm_r4_mixv3.py`** = mixv + two-tier take (ht_d 0.12) + cs_q 1.6 + mlp_gate 0.2 (exp_r4_gc.py / _wf.py):
+  round4 1,101,157 (224,861), mirror 1,114,974 (239,814), round3 627,382 (152,347), round2 467,629 (121,000); slice B
+  twin 247,378 / 252,806. vs mixv: slice A +19.2k (+4.3 %), slice B +9.1k (+1.9 %), round3 +7.5k, round2 +17.9k; the two
+  parts add (comp alone A +13.2k / B +5.4k, two-tier alone +6.6k / +2.9k). Caveat: the slice-A gain of cs_q sits on the
+  mirror (tape +0.2k). check PASS 7.0 min. Server test against mixv (1,763,582) decides.
+- Per-component scaling final (opus): only the quote-MLP scale helps (cs_q 1.3-1.6 plateau with mlp_gate 0.2: slice A
+  +12.9..13.2k, slice B +3.0..5.4k, round2 +6.6..10.4k, round3 -3.6k); cs_gru / cs_fair inside the taker are at their
+  optimum; fair_tau_ms noise. **mm_r4_mixv3 rebaked with cs_q 1.45** (plateau centre): round4 1,102,193 (224,767), mirror
+  1,116,796 (240,245), round3 630,094 (153,067), round2 470,599 (121,735), slice B 248,341 / 252,397; parity verified.
+- **Server: mm_r4_mixv3 = 1,810,997.03** (sim 5:07; mixv 1,763,582, +47.4k): mixv3 is the R4 final.
+- On mixv3 (slice A tape / mirror hold; slice B twin): gate_thr 48 226,729 / 241,689, 249,405 / 253,145 (+3.4k / +1.8k;
+  full round4 +2.9k, mirror +3.4k, round4p75 +4.4k / +2.5k); quote MLP mq_h 1000: A 232,313 / 222,555 (mirror -17.7k),
+  B 246,888 / 256,193: mixed, rejected. Baked mm_r4_mixv4 = mixv3 + gate_thr 48 for a server test.
+- 10:35-10:41 on mixv4 (slice A sum 468,418): ten single changes all within +-2k (gate off +0.6k, mlp_gate 0.1 / 0 +1.8k /
+  +1.7k, ht_d 0.15 +1.5k, ht_tgt 30 +1.8k, mq_b 0.6 / fq_k 0.07 / cs_q 1.6 ~0, pred_scale 1.25 -0.8k, 1.05 -15.3k): mixv4 sits
+  at a local optimum of the hand knobs. Move-size modulation on mixv4 (exp_r4_v5.py / _wf.py): slice A +0.5k, slice B
+  +1.2k, round3 -9.8k: the two-tier take already captures it. Running (11:20): quote predictor upgrade, multi-tier policy.
+- Laptop: mixv3 verified (vs mixv round4 +12.0k 6/8, mirror +29.1k 6/8, round3 +10.2k, round2 +20.9k, slice B 7/8);
+  mixv4 vs mixv3 only +0.3 % with ~50/50 chunks (round4 4/8): switch to mixv4 only if its server beats mixv3 by > 1 %.
+- Quote predictor upgrade (opus, exp_r4_qx.py / _wf.py: refitted MLPQ[1000] / MLPQ[300] on round3 + round4 blended with
+  MLPQ[500]): every blend within +-1.5k on slice A, best +0.5k on slice B, round3 -8k, round2 -5k. A longer or shorter
+  quote horizon is not less timid than 500 ms; cs_q already does the scaling. Rejected.
+- Multi-tier policy on mixv4 (opus, exp_r4_tier.py / _wf.py): second tier ht_d2 (slice A +1..2k, slice B -1..2k), re-entry
+  tier re_d 0.1 (A +2.1k, B 0, round3 +5.3k; neighbours disagree), passive flatten ps_k (A +8.3k but B -2..-4.5k and only
+  with ps_force overriding the gate): none adopted.
+
+## 2026-11-08 11:05 — R4 state (home)
+
+- **Final: `strategies/mm_r4_mixv3.py`, server 1,810,997** (mixv 1,763,582; mix x1.15 1,720,970; R3 final gru3 ~1.03M
+  local on round4). Path: R3 stack -> non-GRU tables on round3 + round4 (robust in walk-forward, unlike R4-only refits)
+  -> volatility-scaled signal and thresholds (R4 = R3 book with 1.4-1.9x volatility) -> two-tier take + quote-MLP scale.
+- mm_r4_mixv4 (mixv3 + gate_thr 48): +0.3 % locally with ~50/50 chunks; switch only if its server score beats mixv3 by
+  > 1 % (~1.83M).
+- Every other R4 idea was flat or negative on the two-slice test (refit-only, GRU on more data / ensembles / vol-normalised
+  / head-only, trend tilt, online adaptation, drift lockout, hold bias, slow model in the taker, move-size model,
+  quote horizons, extra tiers). ~85-90 % of the remaining oracle gap is predictor latency (takes ~200 ms late).
