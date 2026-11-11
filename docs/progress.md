@@ -929,7 +929,6 @@ ridge 23 + E[dm]: **0,412 (+0,032)** na 100 ms, HGB +0,001 (strom to má), 1 s n
 ridge 0,278). Kalibrace P_dep na round1 od 10 % výš dobrá; na v2 2–10× nadhodnoceno (jiné mu). Stejná povaha jako krychle (+0,03 IC,
 PnL −1 %) → rozhodne jen strategie: běží port `edm_100` jako 24. feature cíle B (`exp_b_struct.py`), compare do 17:45.
 
-<<<<<<< HEAD
 ## 2026-11-07 17:40 — Finál R1 = `mm_r1_final2` (514 093); strukturální feature v cíli B: REJECT (home, mozek)
 
 **Grid nad finálem** (`r1-final-grid2`, `-grid3`): ML shrink jako úplné stažení (ml_stub 0) + park 15 / max 8 → **514 093**; compare vs
@@ -991,7 +990,6 @@ takže křehkost prahů nebyla příčinou rozdílu k lídrům.
 všechny buňky 10–81 k (−82 až −98 %), fills −62 až −96 %. Příčky ve 4–9 ticích hloubky zaberou 100–500 lotů invariantu a skoro se
 neplní → touch kotace vyhladoví. Kvalitu hlubokých fillů to neměří, ale platí totéž co u mělkého ladderu: kapacita je vázaná a nečinná
 příčka stojí filly na touch. „Být první z konstrukce“ v hloubce nejde zaplatit kapacitou. Hypotéza o konstrukci lídrů tímhle padá.
-=======
 ## 2026-11-07 17:55 — Round 1 closed (radys)
 
 - Final: team 511,422, 12th of 21+; leader 792,696. Our local best stack 503,745 (mm_ml_r1tuned + ml_tight_only + park_max 10 + park_size 15).
@@ -1103,7 +1101,6 @@ at thresholds 1.0 / 1.5 / 2.0 (500 ms hold, optimistic overlapping samples). No 
   fitting (the late +3 % local / +0.85 % live steps) does not carry over. delfini leads again (R2 1.88M, R3 1.46M).
 - Lesson: optimise for robustness across tapes (holdout, mirror, older rounds), not for the live board. The gap to the
   top 3 (+37-67 %) is structural, not tuning.
->>>>>>> origin/main
 
 ## 2026-11-07 19:25 — Orákulum priority ve frontě: strop 1,3–1,4 M na round1 → konstrukce lídrů = priorita (home, mozek)
 

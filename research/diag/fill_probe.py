@@ -44,6 +44,7 @@ def main(strategy: str, data: str, npz: str) -> None:
     st = make_probe(load_strategy_class(strategy))()
     res = ExchangeSimulator(strategy=st, config=simulation_config()).run(Path(data))
     f = pd.DataFrame(st._fills, columns=['t', 'sign', 'qty', 'px', 'ioc', 'pred', 'fair', 'inv0', 'k'])
+    f.to_csv(npz.replace('.npz', '_fills.csv'), index=False)
     d = np.load(npz)
     t, mid = d['t'], d['mid2'] / 2.0
     for name, h in H.items():

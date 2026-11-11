@@ -85,6 +85,7 @@ def main() -> None:
     p.add_argument('--train-frac', type=float, default=0.75)
     p.add_argument('--hidden', default='32,16')
     p.add_argument('--horizon', type=int, default=200)
+    p.add_argument('--nf', type=int, default=0, help='first nf columns (overrides --extra)')
     p.add_argument('--extra', action='store_true', help='use all 26 columns (needs a strategy that computes them)')
     p.add_argument('--stride', type=int, default=1, help='subsample training rows')
     p.add_argument('--alpha', type=float, default=1e-4)
@@ -94,7 +95,7 @@ def main() -> None:
     p.add_argument('--eval-horizons', default='', help='also report corr / tail edge vs these target horizons (ms)')
     p.add_argument('--save', default='', help='save mean/scale/layers to this npz-like pickle')
     a = p.parse_args()
-    nf = 26 if a.extra else 22
+    nf = a.nf or (26 if a.extra else 22)
     tr, ho, te = [], [], []
     for f in a.npz:
         X, y = load(f, a.horizon, nf)
