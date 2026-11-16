@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: backtest smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      # The submitted strategy must load and trade on the bundled synthetic sample.
+      - name: Run submission on sample data
+        run: |
+          gzip -dc data/sample.csv.gz > "$RUNNER_TEMP/sample.csv"
+          uv run exchange-simulator --strategy submission/best_strategy.py \
+            --backtest "$RUNNER_TEMP/sample.csv" --log-dir "$RUNNER_TEMP/run" | tee "$RUNNER_TEMP/out.txt"
+          grep -q '^Simulation complete' "$RUNNER_TEMP/out.txt"
+          fills=$(sed -n 's/^fills=//p' "$RUNNER_TEMP/out.txt")
+          test "${fills:-0}" -gt 0 || { echo "strategy made no fills"; exit 1; }
