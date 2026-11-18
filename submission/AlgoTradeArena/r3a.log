@@ -1,0 +1,17 @@
+full: 3 runs (1 parameter sets x 3 datasets)
+[1/3] round2 {"fq_k_sp2": 1.0, "gate_thr": 8, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 20} pnl=     392,615 hold=   109,767 (272.2s)
+[2/3] round3_public {"fq_k_sp2": 1.0, "gate_thr": 8, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 20} pnl=     358,177 hold=    91,888 (339.8s)
+[3/3] round1 {"fq_k_sp2": 1.0, "gate_thr": 8, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 20} pnl=     398,113 hold=    96,658 (613.9s)
+done in 615s
+
+      dataset                                                                          set       pnl  train_pnl  hold_pnl  chunk_wins  chunk_min  chunk_t  fills  breach_penalty  inv_q997  runtime_s
+       round1 {"fq_k_sp2": 1.0, "gate_thr": 8, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 20} 398112.62  301454.39  96658.23           8   33279.91    37.30  24182          297.38       100      613.9
+       round2 {"fq_k_sp2": 1.0, "gate_thr": 8, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 20} 392615.24  282847.78 109767.46           8   15916.18     4.76  10283         1242.76       100      272.2
+round3_public {"fq_k_sp2": 1.0, "gate_thr": 8, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 20} 358176.59  266288.86  91887.73           7   -2022.00     4.93  10572          925.41       100      339.8
+
+Across datasets (judge by positive and pnl_min, not only pnl_sum):
+                                                                              datasets  positive     pnl_sum    pnl_min  train_sum   hold_sum   breach
+set                                                                                                                                                   
+{"fq_k_sp2": 1.0, "gate_thr": 8, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 20}         3         3  1148904.45  358176.59  850591.03  298313.42  2465.55
+
+ledger: C:/Users/tomas/OneDrive/Desktop/Projekty/Ostatni/AlgoTradeArena/research/results/20261108-014010_radys-s_r3-cand-a.csv

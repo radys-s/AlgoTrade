@@ -1,0 +1,92 @@
+rung @p30: 36 sets on the first 30% of the data
+[1/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 20, "fq_k_sp2": 1.0} pnl=      63,588 hold=         0 (106.2s)
+[2/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 40, "fq_k_sp2": 1.3} pnl=      71,899 hold=         0 (106.2s)
+[3/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 40, "fq_k_sp2": 1.0} pnl=      63,346 hold=         0 (106.6s)
+[4/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 20, "fq_k_sp2": 0.7} pnl=      59,801 hold=         0 (107.0s)
+[5/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 20, "fq_k_sp2": 1.3} pnl=      72,923 hold=         0 (107.2s)
+[6/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 40, "fq_k_sp2": 0.7} pnl=      59,675 hold=         0 (107.2s)
+[7/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 80, "fq_k_sp2": 0.7} pnl=      69,955 hold=         0 (61.4s)
+[8/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 80, "fq_k_sp2": 1.0} pnl=      73,639 hold=         0 (62.2s)
+[9/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 80, "fq_k_sp2": 1.3} pnl=      77,106 hold=         0 (62.2s)
+[10/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 20, "fq_k_sp2": 1.3} pnl=      76,339 hold=         0 (62.6s)
+[11/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 20, "fq_k_sp2": 1.0} pnl=      66,130 hold=         0 (63.2s)
+[12/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 20, "fq_k_sp2": 0.7} pnl=      63,065 hold=         0 (64.1s)
+[13/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 40, "fq_k_sp2": 0.7} pnl=      63,966 hold=         0 (138.6s)
+[14/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 40, "fq_k_sp2": 1.0} pnl=      66,751 hold=         0 (137.9s)
+[15/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 40, "fq_k_sp2": 1.3} pnl=      74,896 hold=         0 (138.9s)
+[16/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 80, "fq_k_sp2": 0.7} pnl=      73,660 hold=         0 (138.1s)
+[17/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 80, "fq_k_sp2": 1.3} pnl=      79,497 hold=         0 (137.5s)
+[18/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 80, "fq_k_sp2": 1.0} pnl=      76,355 hold=         0 (138.7s)
+[19/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 20, "fq_k_sp2": 1.0} pnl=      69,172 hold=         0 (118.8s)
+[20/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 20, "fq_k_sp2": 0.7} pnl=      66,097 hold=         0 (119.2s)
+[21/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 20, "fq_k_sp2": 1.3} pnl=      77,839 hold=         0 (118.1s)
+[22/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 40, "fq_k_sp2": 0.7} pnl=      65,767 hold=         0 (119.1s)
+[23/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 40, "fq_k_sp2": 1.0} pnl=      68,724 hold=         0 (118.6s)
+[24/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 40, "fq_k_sp2": 1.3} pnl=      76,617 hold=         0 (118.9s)
+[25/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 80, "fq_k_sp2": 0.7} pnl=      75,627 hold=         0 (111.6s)
+[26/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 80, "fq_k_sp2": 1.0} pnl=      78,518 hold=         0 (111.6s)
+[27/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 80, "fq_k_sp2": 1.3} pnl=      81,326 hold=         0 (111.5s)
+[28/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 20, "fq_k_sp2": 1.0} pnl=      71,304 hold=         0 (112.2s)
+[29/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 20, "fq_k_sp2": 0.7} pnl=      68,172 hold=         0 (112.6s)
+[30/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 20, "fq_k_sp2": 1.3} pnl=      80,154 hold=         0 (112.1s)
+[31/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 40, "fq_k_sp2": 0.7} pnl=      67,658 hold=         0 (102.3s)
+[32/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 40, "fq_k_sp2": 1.0} pnl=      70,604 hold=         0 (102.1s)
+[33/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 40, "fq_k_sp2": 1.3} pnl=      78,680 hold=         0 (102.1s)
+[34/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 80, "fq_k_sp2": 0.7} pnl=      77,648 hold=         0 (100.9s)
+[35/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 80, "fq_k_sp2": 1.0} pnl=      80,453 hold=         0 (100.7s)
+[36/36] round3_public@p30 {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 80, "fq_k_sp2": 1.3} pnl=      83,341 hold=         0 (100.5s)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 80, "fq_k_sp2": 0.7} (rung pnl 75,627)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 40, "fq_k_sp2": 1.3} (rung pnl 74,896)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 80, "fq_k_sp2": 0.7} (rung pnl 73,660)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 80, "fq_k_sp2": 1.0} (rung pnl 73,639)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 20, "fq_k_sp2": 1.3} (rung pnl 72,923)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 40, "fq_k_sp2": 1.3} (rung pnl 71,899)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 20, "fq_k_sp2": 1.0} (rung pnl 71,304)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 40, "fq_k_sp2": 1.0} (rung pnl 70,604)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 80, "fq_k_sp2": 0.7} (rung pnl 69,955)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 20, "fq_k_sp2": 1.0} (rung pnl 69,172)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 40, "fq_k_sp2": 1.0} (rung pnl 68,724)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 20, "fq_k_sp2": 0.7} (rung pnl 68,172)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 40, "fq_k_sp2": 0.7} (rung pnl 67,658)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 40, "fq_k_sp2": 1.0} (rung pnl 66,751)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 20, "fq_k_sp2": 1.0} (rung pnl 66,130)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 20, "fq_k_sp2": 0.7} (rung pnl 66,097)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 40, "fq_k_sp2": 0.7} (rung pnl 65,767)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 40, "fq_k_sp2": 0.7} (rung pnl 63,966)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 20, "fq_k_sp2": 1.0} (rung pnl 63,588)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 40, "fq_k_sp2": 1.0} (rung pnl 63,346)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 20, "fq_k_sp2": 0.7} (rung pnl 63,065)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 20, "fq_k_sp2": 0.7} (rung pnl 59,801)
+  dropped {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 40, "fq_k_sp2": 0.7} (rung pnl 59,675)
+full: 13 runs (13 parameter sets x 1 datasets)
+[1/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 40, "fq_k_sp2": 1.3} pnl=     384,633 hold=    97,528 (281.8s)
+[2/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 80, "fq_k_sp2": 1.3} pnl=     384,699 hold=    97,234 (281.9s)
+[3/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 80, "fq_k_sp2": 1.3} pnl=     384,879 hold=    95,447 (282.4s)
+[4/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 80, "fq_k_sp2": 1.0} pnl=     379,663 hold=    95,375 (282.8s)
+[5/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 20, "fq_k_sp2": 1.3} pnl=     384,038 hold=    96,353 (283.7s)
+[6/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 80, "fq_k_sp2": 1.3} pnl=     391,393 hold=    97,597 (286.0s)
+[7/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 4, "ri_ms": 80, "fq_k_sp2": 1.3} pnl=     380,946 hold=    95,812 (277.8s)
+[8/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 80, "fq_k_sp2": 1.0} pnl=     373,123 hold=    93,352 (278.9s)
+[9/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 20, "fq_k_sp2": 1.3} pnl=     377,778 hold=    94,643 (280.0s)
+[10/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 8, "ri_ms": 40, "fq_k_sp2": 1.3} pnl=     378,360 hold=    95,517 (280.2s)
+[11/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 10, "ri_ms": 80, "fq_k_sp2": 0.7} pnl=     367,668 hold=    92,211 (281.7s)
+[12/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 80, "fq_k_sp2": 1.0} pnl=     374,822 hold=    95,693 (278.2s)
+[13/13] round3_public {"pred_blend": 0, "qs_k": 0.45, "gate_thr": 6, "ri_ms": 20, "fq_k_sp2": 1.3} pnl=     378,099 hold=    96,355 (206.2s)
+done in 1410s
+
+      dataset                                                                           set       pnl  train_pnl  hold_pnl  chunk_wins  chunk_min  chunk_t  fills  breach_penalty  inv_q997  runtime_s
+round3_public {"fq_k_sp2": 1.3, "gate_thr": 10, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 80} 391392.59  293795.80  97596.79           8     2856.0     5.59  10374          975.41       100      286.0
+round3_public  {"fq_k_sp2": 1.3, "gate_thr": 8, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 80} 384878.59  289431.86  95446.73           8     2293.0     5.47   9887          775.41       100      282.4
+round3_public {"fq_k_sp2": 1.3, "gate_thr": 10, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 20} 384037.59  287684.80  96352.79           8     2890.0     5.52  10682         1025.41       100      283.7
+round3_public  {"fq_k_sp2": 1.3, "gate_thr": 6, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 80} 384698.59  287464.86  97233.73           8      734.0     5.30   9238          775.41       100      281.9
+round3_public {"fq_k_sp2": 1.3, "gate_thr": 10, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 40} 384632.59  287104.80  97527.79           8     2751.0     5.50  10587         1025.41       100      281.8
+round3_public  {"fq_k_sp2": 1.3, "gate_thr": 4, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 80} 380945.59  285133.86  95811.73           7     -262.0     5.18   8474          625.41       100      277.8
+round3_public {"fq_k_sp2": 1.0, "gate_thr": 10, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 80} 379662.59  284287.80  95374.79           8     2829.0     5.52  10727         1075.41       100      282.8
+round3_public  {"fq_k_sp2": 1.3, "gate_thr": 8, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 20} 377777.59  283134.86  94642.73           8     2309.0     5.39  10180          825.41       100      280.0
+round3_public  {"fq_k_sp2": 1.3, "gate_thr": 8, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 40} 378359.59  282842.86  95516.73           8     2197.0     5.38  10086          825.41       100      280.2
+round3_public  {"fq_k_sp2": 1.3, "gate_thr": 6, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 20} 378098.59  281743.86  96354.73           8      770.0     5.22   9499          825.41       100      206.2
+round3_public  {"fq_k_sp2": 1.0, "gate_thr": 8, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 80} 373122.59  279770.86  93351.73           8     2266.0     5.41  10242          925.41       100      278.9
+round3_public  {"fq_k_sp2": 1.0, "gate_thr": 6, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 80} 374821.59  279128.86  95692.73           8      707.0     5.22   9564          875.41       100      278.2
+round3_public {"fq_k_sp2": 0.7, "gate_thr": 10, "pred_blend": 0, "qs_k": 0.45, "ri_ms": 80} 367667.59  275456.80  92210.79           8     2684.0     5.40  11079         1125.41       100      281.7
+
+ledger: C:/Users/tomas/OneDrive/Desktop/Projekty/Ostatni/AlgoTradeArena/research/results/20261108-015330_radys-s_r3-wave2.csv

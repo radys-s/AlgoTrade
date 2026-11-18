@@ -1,0 +1,8 @@
+full: 1 runs (1 parameter sets x 1 datasets)
+[1/1] round3_public {} pnl=     413,750 hold=   104,902 (430.7s)
+done in 433s
+
+      dataset        set       pnl  train_pnl  hold_pnl  chunk_wins  chunk_min  chunk_t  fills  breach_penalty  inv_q997  runtime_s
+round3_public (defaults) 413749.62  308847.89 104901.73           8    2738.56     5.78  10606          975.38       100      430.7
+
+ledger: C:/Users/tomas/OneDrive/Desktop/Projekty/Ostatni/AlgoTradeArena/research/results/20261108-013956_radys-s_r3-honza-s10.csv
